@@ -110,7 +110,7 @@ export default function AdminDashboard() {
                     contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
                     itemStyle={{ color: '#fff' }}
                     cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }}
-                    formatter={(value: number) => [`₹${value}`, 'Revenue']}
+                    formatter={(value: any) => [`₹${value}`, 'Revenue']}
                   />
                   <Line 
                     type="monotone" 
