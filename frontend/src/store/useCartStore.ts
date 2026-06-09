@@ -28,6 +28,7 @@ interface CartState {
   setRemarks: (remarks: string) => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
+  clearCart: () => void;
 }
 
 export const useCartStore = create<CartState>()(
