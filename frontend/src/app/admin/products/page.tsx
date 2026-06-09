@@ -67,7 +67,7 @@ export default function ProductsPage() {
     setVariants([...variants, { name: '', price: 0, offerPrice: null }]);
   };
 
-  const handleVariantChange = (index: number, field: keyof Variant, value: string | number) => {
+  const handleVariantChange = (index: number, field: keyof Variant, value: string | number | null) => {
     const newVariants = [...variants];
     newVariants[index] = { ...newVariants[index], [field]: value };
     setVariants(newVariants);
