@@ -24,7 +24,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await apiClient.get('http://localhost:8000/api/categories');
+      const res = await apiClient.get('/api/categories');
       const data = await res.json();
       setCategories(data);
     } catch (error) {
@@ -38,7 +38,7 @@ export default function CategoriesPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const url = editingId ? `http://localhost:8000/api/categories/${editingId}` : 'http://localhost:8000/api/categories';
+      const url = editingId ? `/api/categories/${editingId}` : '/api/categories';
       const method = editingId ? 'PUT' : 'POST';
       
       // We can use apiClient here directly, wait the original uses apiClient.post but we need method dynamic.
@@ -71,7 +71,7 @@ export default function CategoriesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this category?')) return;
     try {
-      await apiClient.delete(`http://localhost:8000/api/categories/${id}`);
+      await apiClient.delete(`/api/categories/${id}`);
       fetchCategories();
     } catch (error) {
       console.error('Failed to delete category', error);

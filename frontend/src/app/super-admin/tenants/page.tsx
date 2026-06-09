@@ -23,10 +23,10 @@ export default function SuperAdminTenants() {
       const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
       
       const [tenantsRes, packagesRes] = await Promise.all([
-        fetch('http://localhost:8000/api/super-admin/tenants', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:8000/api/super-admin/packages', {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/packages`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -55,7 +55,7 @@ export default function SuperAdminTenants() {
   const handleImpersonate = async (tenantId: string) => {
     try {
       const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8000/api/super-admin/tenants/${tenantId}/impersonate`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}/impersonate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -85,7 +85,7 @@ export default function SuperAdminTenants() {
     setSaving(true);
     try {
       const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8000/api/super-admin/tenants/${editingTenant.id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${editingTenant.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

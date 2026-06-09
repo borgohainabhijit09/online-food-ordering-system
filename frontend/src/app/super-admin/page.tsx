@@ -19,7 +19,7 @@ export default function SuperAdminDashboard() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:8000/api/super-admin/dashboard', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

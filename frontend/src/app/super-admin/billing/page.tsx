@@ -15,7 +15,7 @@ export default function SuperAdminBilling() {
   const fetchBillingRecords = async () => {
     try {
       const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:8000/api/super-admin/billing', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/billing`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
