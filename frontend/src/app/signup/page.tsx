@@ -89,113 +89,119 @@ export default function SignupPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-neutral-900 py-8 px-4 shadow-xl shadow-neutral-200/20 dark:shadow-none sm:rounded-3xl sm:px-10 border border-neutral-100 dark:border-neutral-800">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
+        <div className="bg-white dark:bg-neutral-900 py-6 px-4 shadow-xl shadow-neutral-200/20 dark:shadow-none sm:rounded-3xl sm:px-10 border border-neutral-100 dark:border-neutral-800">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-r-md">
+              <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-3 rounded-r-md">
                 <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Restaurant Name
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Store className="h-5 w-5 text-neutral-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Restaurant Name
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Store className="h-4 w-4 text-neutral-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={formData.businessName}
+                    onChange={handleNameChange}
+                    className="block w-full pl-9 pr-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
+                    placeholder="Demo Restaurant"
+                  />
                 </div>
-                <input
-                  type="text"
-                  required
-                  value={formData.businessName}
-                  onChange={handleNameChange}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
-                  placeholder="Demo Restaurant"
-                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Store URL
+                </label>
+                <div className="mt-1 flex rounded-md shadow-sm">
+                  <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-500 sm:text-sm">
+                    restobuddy.com/
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    className="flex-1 block w-full min-w-0 rounded-none rounded-r-xl sm:text-sm border-neutral-300 dark:border-neutral-700 focus:ring-orange-500 focus:border-orange-500 bg-transparent py-2 px-3 border"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Store URL
-              </label>
-              <div className="mt-1 flex rounded-md shadow-sm">
-                <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-500 sm:text-sm">
-                  restobuddy.com/
-                </span>
-                <input
-                  type="text"
-                  required
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="flex-1 block w-full min-w-0 rounded-none rounded-r-xl sm:text-sm border-neutral-300 dark:border-neutral-700 focus:ring-orange-500 focus:border-orange-500 bg-transparent py-2.5 px-3 border"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Your Name
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="text"
+                    required
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                    className="block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Email Address
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
+                    placeholder="admin@restaurant.com"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Email Address
-              </label>
-              <div className="mt-1">
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
-                  placeholder="admin@restaurant.com"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Phone Number
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
+                    placeholder="9876543210"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Your Name
-              </label>
-              <div className="mt-1">
-                <input
-                  type="text"
-                  required
-                  value={formData.ownerName}
-                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                  className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
-                  placeholder="John Doe"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Phone Number
-              </label>
-              <div className="mt-1">
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
-                  placeholder="9876543210"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Password
-              </label>
-              <div className="mt-1">
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
-                  placeholder="••••••••"
-                />
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Password
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="block w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
             </div>
 
@@ -206,10 +212,10 @@ export default function SignupPage() {
               <select
                 value={formData.plan}
                 onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent outline-none"
+                className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent outline-none text-neutral-900 dark:text-white"
               >
-                <option value="Starter">RestoBuddy Starter (₹499/mo)</option>
-                <option value="Growth">RestoBuddy Growth (₹599/mo)</option>
+                <option value="Starter" className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white">RestoBuddy Starter (₹499/mo)</option>
+                <option value="Growth" className="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white">RestoBuddy Growth (₹599/mo)</option>
               </select>
             </div>
 
