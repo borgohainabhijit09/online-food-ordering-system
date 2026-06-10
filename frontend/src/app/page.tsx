@@ -29,11 +29,11 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-xl tracking-tight text-neutral-900 dark:text-white">RestoBuddy</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/admin/login" className="hidden sm:block text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
-              Log in
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <Link href="/admin/login" className="text-xs sm:text-sm font-medium whitespace-nowrap text-neutral-600 dark:text-neutral-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
+              Restaurant Login
             </Link>
-            <Link href="/signup" className="text-sm font-bold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-5 py-2.5 rounded-full hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-neutral-900/10">
+            <Link href="/signup" className="text-xs sm:text-sm font-bold whitespace-nowrap bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-3 py-2 sm:px-5 sm:py-2.5 rounded-full hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-neutral-900/10">
               Start Free Trial
             </Link>
           </div>
@@ -51,7 +51,7 @@ export default function LandingPage() {
           {/* Background decoration */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-orange-500/10 dark:bg-orange-500/5 rounded-full blur-3xl -z-10"></div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium text-sm mb-8 border border-orange-200 dark:border-orange-800/30"
@@ -59,7 +59,7 @@ export default function LandingPage() {
             <BadgeCheck className="w-4 h-4" /> Your Restaurant's Digital Buddy
           </motion.div>
 
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -69,7 +69,7 @@ export default function LandingPage() {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">Keep More Profit.</span>
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -78,7 +78,7 @@ export default function LandingPage() {
             Stop losing customers and profits to delivery apps. Get your own ordering system, receive orders directly on WhatsApp, and turn one-time customers into regular customers.
           </motion.p>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -88,11 +88,11 @@ export default function LandingPage() {
               Start 15-Day Free Trial <ArrowRight className="w-5 h-5" />
             </Link>
             <Link href="/demo-restaurant" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-white font-bold text-lg rounded-full hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all flex items-center justify-center gap-2 active:scale-95">
-              <PlayCircle className="w-5 h-5 text-neutral-400" /> Book Demo
+              <PlayCircle className="w-5 h-5 text-neutral-400" /> View Demo
             </Link>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -159,7 +159,7 @@ export default function LandingPage() {
                 { step: 4, title: 'Receive on WhatsApp', desc: 'Instantly notified.' },
                 { step: 5, title: 'Build Customers', desc: 'Drive repeat sales.' }
               ].map((s, i) => (
-                <motion.div 
+                <motion.div
                   key={s.step}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -198,7 +198,7 @@ export default function LandingPage() {
                 { icon: BarChart3, title: 'Analytics Dashboard', desc: 'Know exactly what\'s working.' },
                 { icon: Users, title: 'Loyalty & Repeat Orders', desc: 'Turn first-time buyers into regulars.' }
               ].map((f, i) => (
-                <motion.div 
+                <motion.div
                   key={f.title}
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
@@ -226,7 +226,7 @@ export default function LandingPage() {
             <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto mb-16">
               RestoBuddy powers hundreds of independent food businesses across India.
             </p>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               {[
                 { icon: "🍛", name: "Biryani Shops" },
@@ -236,7 +236,7 @@ export default function LandingPage() {
                 { icon: "🥟", name: "Momos Shops" },
                 { icon: "🏠", name: "Cloud Kitchens" }
               ].map((cat, i) => (
-                <motion.div 
+                <motion.div
                   key={cat.name}
                   initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -342,7 +342,7 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
 
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white relative z-10">
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -350,7 +350,7 @@ export default function LandingPage() {
             >
               Every day you wait, you're paying commissions on orders that could be yours.
             </motion.h2>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -359,7 +359,7 @@ export default function LandingPage() {
             >
               Start your free trial today and keep more profit from every order. Setup takes less than 15 minutes.
             </motion.p>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -370,7 +370,7 @@ export default function LandingPage() {
                 Start 15-Day Free Trial
               </Link>
               <Link href="/demo-restaurant" className="w-full sm:w-auto px-8 py-4 bg-orange-700/50 hover:bg-orange-700 text-white border border-orange-500 font-bold text-lg rounded-full hover:scale-105 transition-transform active:scale-95">
-                Book a Demo
+                View Demo
               </Link>
             </motion.div>
           </div>

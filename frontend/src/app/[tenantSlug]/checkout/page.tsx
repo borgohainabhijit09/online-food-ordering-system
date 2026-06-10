@@ -68,7 +68,8 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
     try {
       const subtotal = appliedCoupon ? appliedCoupon.finalAmount : getTotalPrice();
-      const total = subtotal + 40 + Math.round(subtotal * 0.05);
+      const deliveryFee = settings?.hasDeliveryCharge ? (settings.deliveryChargeAmount || 0) : 0;
+      const total = subtotal + deliveryFee;
       
       const orderPayload = {
         customerName: formData.name,
@@ -137,7 +138,8 @@ export default function CheckoutPage() {
   };
 
   const subtotal = appliedCoupon ? appliedCoupon.finalAmount : getTotalPrice();
-  const displayTotal = subtotal + 40 + Math.round(subtotal * 0.05);
+  const deliveryFee = settings?.hasDeliveryCharge ? (settings.deliveryChargeAmount || 0) : 0;
+  const displayTotal = subtotal + deliveryFee;
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 pb-32">
@@ -228,14 +230,17 @@ export default function CheckoutPage() {
               <span>-₹{appliedCoupon.discountAmount}</span>
             </div>
           )}
-          <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
-            <span>Delivery Fee</span>
-            <span>₹40</span>
-          </div>
-          <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-            <span>Taxes</span>
-            <span>₹{Math.round(subtotal * 0.05)}</span>
-          </div>
+          {settings?.hasDeliveryCharge && settings.deliveryChargeAmount > 0 ? (
+            <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <span>Delivery Fee</span>
+              <span>₹{settings.deliveryChargeAmount}</span>
+            </div>
+          ) : (
+            <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <span>Delivery Fee</span>
+              <span className="text-emerald-600 dark:text-emerald-500 font-medium">Free</span>
+            </div>
+          )}
           <div className="flex justify-between font-bold text-lg pt-1">
             <span>To Pay</span>
             <span>₹{displayTotal}</span>

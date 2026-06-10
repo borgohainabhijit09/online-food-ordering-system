@@ -180,7 +180,7 @@ export default function TrackOrderPage() {
                     {item.quantity}x
                   </div>
                   <div>
-                    <div className="font-medium text-sm">Product #{item.productId.slice(-4).toUpperCase()}</div>
+                    <div className="font-medium text-sm">{item.productName || `Product #${item.productId.slice(-4).toUpperCase()}`}</div>
                     {item.variant && <div className="text-xs text-neutral-500">{item.variant}</div>}
                     {item.addons?.length > 0 && (
                       <div className="text-xs text-neutral-500">

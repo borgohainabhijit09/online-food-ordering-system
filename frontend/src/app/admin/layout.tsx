@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
+import { apiClient } from '../../lib/apiClient';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [tenantSlug, setTenantSlug] = useState('');
   const [copied, setCopied] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
 
   // Close mobile menu when pathname changes
   useEffect(() => {
@@ -39,6 +41,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.tenantSlug) setTenantSlug(payload.tenantSlug);
       } catch (e) {}
+
+      // Fetch Settings
+      const fetchSettings = async () => {
+        try {
+          const res = await apiClient.get('/api/settings');
+          if (res.ok) {
+            setSettings(await res.json());
+          }
+        } catch (e) {}
+      };
+      fetchSettings();
     }
     setIsLoading(false);
   }, [pathname, router]);
@@ -86,10 +99,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-xs">
-              R
-            </div>
-            <span className="font-bold tracking-tight text-neutral-900 dark:text-white">RestoBuddy</span>
+            {settings?.logoUrl ? (
+              <img src={settings.logoUrl} alt="Restaurant Logo" className="w-8 h-8 rounded object-cover" />
+            ) : (
+              <div className="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-xs">
+                {settings?.restaurantName ? settings.restaurantName[0] : 'R'}
+              </div>
+            )}
+            <span className="font-bold tracking-tight text-neutral-900 dark:text-white">
+              {settings?.restaurantName || 'RestoBuddy'}
+            </span>
           </Link>
           <button 
             className="md:hidden p-1 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded"
@@ -151,15 +170,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
             <span className="font-bold tracking-tight">Admin</span>
           </div>
-          <div className="hidden md:flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm overflow-hidden">
             {tenantSlug && (
-              <div className="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-900 py-1.5 px-3 rounded-full border border-neutral-200 dark:border-neutral-800">
-                <span className="text-neutral-500 dark:text-neutral-400">Store URL:</span>
-                <Link href={`/${tenantSlug}`} target="_blank" className="font-medium hover:text-orange-600 transition-colors flex items-center gap-1">
-                  /{tenantSlug} <ExternalLink className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-1 md:gap-2 bg-neutral-100 dark:bg-neutral-900 py-1 md:py-1.5 px-2 md:px-3 rounded-full border border-neutral-200 dark:border-neutral-800 shrink max-w-[140px] sm:max-w-none">
+                <span className="hidden md:inline text-neutral-500 dark:text-neutral-400">Store URL:</span>
+                <Link href={`/${tenantSlug}`} target="_blank" className="font-medium hover:text-orange-600 transition-colors flex items-center gap-1 truncate">
+                  <span className="truncate">/{tenantSlug}</span> <ExternalLink className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
                 </Link>
-                <button onClick={handleCopyLink} className="ml-2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors" title="Copy link">
-                  {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                <button onClick={handleCopyLink} className="ml-1 md:ml-2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors shrink-0" title="Copy link">
+                  {copied ? <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-emerald-500" /> : <Copy className="w-3 h-3 md:w-4 md:h-4" />}
                 </button>
               </div>
             )}

@@ -12,6 +12,9 @@ interface Settings {
   restaurantLat: number;
   restaurantLng: number;
   whatsappNumber: string;
+  hasDeliveryCharge: boolean;
+  deliveryChargeAmount: number;
+  logoUrl?: string;
 }
 
 export default function SettingsPage() {
@@ -21,7 +24,10 @@ export default function SettingsPage() {
     deliveryRadiusKm: 5,
     restaurantLat: 0,
     restaurantLng: 0,
-    whatsappNumber: ''
+    whatsappNumber: '',
+    hasDeliveryCharge: false,
+    deliveryChargeAmount: 0,
+    logoUrl: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,7 +42,17 @@ export default function SettingsPage() {
       const res = await apiClient.get('/api/settings');
       if (res.ok) {
         const data = await res.json();
-        setSettings(data);
+        setSettings({
+          restaurantName: data.restaurantName || '',
+          isAcceptingOrders: data.isAcceptingOrders ?? true,
+          deliveryRadiusKm: data.deliveryRadiusKm || 5,
+          restaurantLat: data.restaurantLat || 0,
+          restaurantLng: data.restaurantLng || 0,
+          whatsappNumber: data.whatsappNumber || '',
+          hasDeliveryCharge: data.hasDeliveryCharge ?? false,
+          deliveryChargeAmount: data.deliveryChargeAmount || 0,
+          logoUrl: data.logoUrl || ''
+        });
       }
     } catch (error) {
       console.error('Failed to fetch settings', error);
@@ -99,6 +115,52 @@ export default function SettingsPage() {
             />
             <p className="text-xs text-neutral-500 mt-1">This number will receive the WhatsApp orders from customers.</p>
           </div>
+
+          <div>
+                  <div className="grid gap-2">
+                    <label className="block text-sm font-medium mb-1">Restaurant Logo (Optional)</label>
+                    <div className="flex items-start gap-4">
+                      {settings?.logoUrl && (
+                        <div className="w-16 h-16 rounded-lg border overflow-hidden bg-gray-50 shrink-0 flex items-center justify-center">
+                          <img src={settings.logoUrl} alt="Logo preview" className="w-full h-full object-contain" />
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg"
+                          className="w-full text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            if (file.size > 100 * 1024) {
+                              alert("File size must be less than 100KB");
+                              e.target.value = '';
+                              return;
+                            }
+
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setSettings({ ...settings, logoUrl: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                        <p className="text-sm text-gray-500">Upload your logo image (PNG/JPG). Max size: 100KB.</p>
+                        {settings?.logoUrl && (
+                          <button 
+                            type="button" 
+                            className="text-sm font-medium text-red-500 hover:text-red-700"
+                            onClick={() => setSettings({ ...settings, logoUrl: '' })}
+                          >
+                            Remove Logo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+          </div>
         </div>
 
         <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
@@ -156,6 +218,38 @@ export default function SettingsPage() {
               className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" 
               required
             />
+          </div>
+
+          <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-medium">Charge Delivery Fee?</h4>
+                <p className="text-xs text-neutral-500 mt-1">If enabled, this fee will be added to customer orders.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={settings.hasDeliveryCharge}
+                  onChange={e => setSettings({ ...settings, hasDeliveryCharge: e.target.checked })}
+                />
+                <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-orange-600"></div>
+              </label>
+            </div>
+
+            {settings.hasDeliveryCharge && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Delivery Charge Amount (₹)</label>
+                <input 
+                  type="number" 
+                  step="1"
+                  value={settings.deliveryChargeAmount}
+                  onChange={e => setSettings({ ...settings, deliveryChargeAmount: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" 
+                  required={settings.hasDeliveryCharge}
+                />
+              </div>
+            )}
           </div>
         </div>
 

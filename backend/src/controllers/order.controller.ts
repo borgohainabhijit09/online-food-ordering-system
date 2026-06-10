@@ -34,7 +34,25 @@ export const getOrderById = async (req: TenantReq, res: Response, next: NextFunc
     });
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    res.status(200).json(order);
+
+    // Fetch product names to attach to items
+    const productIds = order.items.map(i => i.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true }
+    });
+    
+    const productMap = Object.fromEntries(products.map(p => [p.id, p.name]));
+    
+    const orderWithNames = {
+      ...order,
+      items: order.items.map(item => ({
+        ...item,
+        productName: productMap[item.productId] || `Product #${item.productId.slice(-4).toUpperCase()}`
+      }))
+    };
+
+    res.status(200).json(orderWithNames);
   } catch (error) {
     next(error);
   }

@@ -17,6 +17,21 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = React.useState(false);
   const [couponError, setCouponError] = React.useState<string | null>(null);
   const [availableCoupons, setAvailableCoupons] = React.useState<any[]>([]);
+  const [settings, setSettings] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await apiClient.get('/api/settings');
+        if (res.ok) {
+          setSettings(await res.json());
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   React.useEffect(() => {
     const fetchCoupons = async () => {
@@ -76,7 +91,8 @@ export default function CartPage() {
   };
 
   const subtotal = appliedCoupon ? appliedCoupon.finalAmount : total;
-  const displayTotal = subtotal + 40 + Math.round(subtotal * 0.05);
+  const deliveryFee = settings?.hasDeliveryCharge ? (settings.deliveryChargeAmount || 0) : 0;
+  const displayTotal = subtotal + deliveryFee;
 
   if (items.length === 0) {
     return (
@@ -251,14 +267,17 @@ export default function CartPage() {
               <span>-₹{appliedCoupon.discountAmount}</span>
             </div>
           )}
-          <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
-            <span>Delivery Fee</span>
-            <span>₹40</span>
-          </div>
-          <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-            <span>Taxes</span>
-            <span>₹{Math.round(subtotal * 0.05)}</span>
-          </div>
+          {settings?.hasDeliveryCharge && settings.deliveryChargeAmount > 0 ? (
+            <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <span>Delivery Fee</span>
+              <span>₹{settings.deliveryChargeAmount}</span>
+            </div>
+          ) : (
+            <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <span>Delivery Fee</span>
+              <span className="text-emerald-600 dark:text-emerald-500 font-medium">Free</span>
+            </div>
+          )}
           <div className="flex justify-between font-bold text-lg pt-1">
             <span>To Pay</span>
             <span>₹{displayTotal}</span>

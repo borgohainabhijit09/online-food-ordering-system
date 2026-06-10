@@ -181,9 +181,12 @@ model Settings {
   restaurantName    String
   isAcceptingOrders Boolean @default(true)
   deliveryRadiusKm  Float   @default(5.0)
-  restaurantLat     Float
-  restaurantLng     Float
-  whatsappNumber    String
+  restaurantLat        Float
+  restaurantLng        Float
+  whatsappNumber       String
+  hasDeliveryCharge    Boolean @default(false)
+  deliveryChargeAmount Float   @default(0)
+  logoUrl              String?
 
   tenantId String @unique
   tenant   Tenant @relation(fields: [tenantId], references: [id])

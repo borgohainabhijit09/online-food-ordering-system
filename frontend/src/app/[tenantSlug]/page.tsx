@@ -93,12 +93,16 @@ export default function Home() {
       )}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-orange-600/30">
-              {restaurantName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight tracking-tight">{restaurantName}</h1>
+          <div className="flex items-center gap-3">
+            {settings?.logoUrl ? (
+              <img src={settings.logoUrl} alt="Restaurant Logo" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+            ) : (
+              <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-extrabold shadow-sm">
+                {settings?.restaurantName?.[0] || 'R'}
+              </div>
+            )}
+            <div className="flex flex-col">
+              <h1 className="font-bold text-lg leading-tight tracking-tight">{settings?.restaurantName || 'Menu'}</h1>
               {settings?.isAcceptingOrders === false ? (
                 <div className="flex items-center gap-1 text-xs text-red-600 font-medium">
                   <span className="w-2 h-2 rounded-full bg-red-500"></span>
@@ -112,6 +116,7 @@ export default function Home() {
               )}
             </div>
           </div>
+
 
           <div className="flex items-center gap-2.5">
             <a href={`tel:${settings?.whatsappNumber || ''}`} className="group flex items-center justify-center w-10 h-10 bg-white/60 dark:bg-neutral-800/60 hover:bg-white dark:hover:bg-neutral-800 rounded-full backdrop-blur-md border border-neutral-200/60 dark:border-neutral-700/60 shadow-sm hover:shadow-md hover:border-orange-500/30 transition-all duration-300 hover:-translate-y-0.5">
