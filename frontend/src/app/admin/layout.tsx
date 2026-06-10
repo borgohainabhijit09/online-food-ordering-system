@@ -98,7 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/admin" className="flex items-center gap-2">
             {settings?.logoUrl ? (
               <img src={settings.logoUrl} alt="Restaurant Logo" className="w-8 h-8 rounded object-cover" />
             ) : (
