@@ -5,28 +5,32 @@ import { Plus, Minus } from 'lucide-react';
 
 const faqs = [
   {
-    question: "Will this replace Swiggy or Zomato?",
-    answer: "Not necessarily. Swiggy and Zomato are great for customer discovery. RestoBuddy is for converting those customers into your direct, loyal customers so you don't keep paying 20-30% commission every time they order."
+    question: "Will I receive orders directly on WhatsApp?",
+    answer: "Yes! Every time a customer places an order on your RestoBuddy menu, you instantly receive a structured, easy-to-read order summary directly on your designated WhatsApp number. No separate devices or tablets required."
   },
   {
-    question: "How quickly can I start accepting orders?",
-    answer: "Within 15 minutes. Just sign up, add your menu items, and you instantly get a custom link and QR code to share with your customers or put on your tables."
+    question: "Can I continue using Swiggy and Zomato?",
+    answer: "Absolutely. We encourage you to use delivery apps to discover new customers. Once they order, use your RestoBuddy link (via flyers, social media, or packaging) to convert them into direct customers for their next order, saving you 20-30%."
   },
   {
-    question: "Do I need technical knowledge?",
-    answer: "Zero. If you can use WhatsApp or Facebook, you can use RestoBuddy. We designed it specifically for busy restaurant owners, not tech experts."
+    question: "How long does setup take?",
+    answer: "Most restaurants are fully set up in under 15 minutes. Just upload your logo, add your menu items, and you instantly receive your unique ordering link. No coding or technical skills required."
   },
   {
-    question: "Can customers order from mobile?",
-    answer: "Yes! RestoBuddy is built to look and feel like a modern mobile app on your customer's phone, but they don't have to download anything from the App Store. They just click a link and order."
+    question: "What happens after my trial ends?",
+    answer: "After your 15-day free trial, you can choose either the Starter or Growth plan. If you decide RestoBuddy isn't for you, there are absolutely no cancellation fees or hidden charges."
   },
   {
     question: "Can I use my own domain name? (e.g., myrestaurant.com)",
-    answer: "Absolutely! The RestoBuddy Growth plan allows you to link your custom domain so your brand looks 100% professional."
+    answer: "Yes! If you choose the Growth plan, you can connect your own custom domain so your brand looks 100% professional and independent."
   },
   {
-    question: "Can I cancel anytime?",
-    answer: "Yes. There are no lock-in contracts or hidden cancellation fees. You can pause or cancel your subscription at any time right from your dashboard."
+    question: "How many products can I add?",
+    answer: "Unlimited. There are no restrictions on the number of menu items, categories, or variants you can add to your RestoBuddy storefront."
+  },
+  {
+    question: "Is there any commission on orders?",
+    answer: "0%. We charge a flat monthly subscription fee (as low as ₹499/month). Whether you get 10 orders or 10,000 orders, you never pay us a single rupee in commission."
   }
 ];
 

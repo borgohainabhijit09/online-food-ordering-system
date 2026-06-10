@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { IndianRupee, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 export default function ROICalculator() {
   const [orders, setOrders] = useState(500);
@@ -18,6 +19,7 @@ export default function ROICalculator() {
   const platformFee = Math.round(totalRevenue * (commission / 100));
   const restobuddyFee = 499; // Starter plan
   const savings = platformFee - restobuddyFee;
+  const yearlySavings = savings * 12;
 
   if (!isClient) return null; // Hydration fix
 
@@ -97,10 +99,27 @@ export default function ROICalculator() {
           </div>
 
           <div className="pt-2">
-            <p className="text-sm text-neutral-500 font-medium mb-1 uppercase tracking-wider">Your Potential Monthly Savings</p>
-            <div className="text-4xl sm:text-5xl font-extrabold text-emerald-500 flex items-center gap-2">
+            <p className="text-sm text-neutral-500 font-medium mb-1 uppercase tracking-wider">Monthly Savings</p>
+            <motion.div 
+              key={savings}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl sm:text-5xl font-extrabold text-emerald-500 flex items-center gap-2"
+            >
               ₹{savings > 0 ? savings.toLocaleString('en-IN') : '0'}
-            </div>
+            </motion.div>
+          </div>
+
+          <div className="pt-1">
+            <p className="text-sm text-neutral-500 font-medium mb-1 uppercase tracking-wider">Yearly Savings</p>
+            <motion.div 
+              key={yearlySavings}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-2"
+            >
+              ₹{yearlySavings > 0 ? yearlySavings.toLocaleString('en-IN') : '0'}
+            </motion.div>
           </div>
           
           <div className="pt-4">
