@@ -29,6 +29,10 @@ export default function CheckoutPage() {
     landmark: '',
     notes: ''
   });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
   
   const [distanceError, setDistanceError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
