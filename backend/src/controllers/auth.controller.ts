@@ -52,7 +52,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 export const registerTenant = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { businessName, slug, email, phone, ownerName, password } = req.body;
+    const { businessName, slug, email, phone, ownerName, password, plan } = req.body;
 
     // Validate slug
     const existingTenant = await prisma.tenant.findFirst({ where: { slug } });
@@ -60,8 +60,9 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
       return res.status(400).json({ message: 'Slug is already taken. Please choose another.' });
     }
 
+    const packageName = plan === 'Growth' ? 'App + Website' : 'App Only';
     const defaultPackage = await prisma.subscriptionPackage.findUnique({
-      where: { name: 'App Only' }
+      where: { name: packageName }
     });
     
     if (!defaultPackage) {

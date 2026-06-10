@@ -8,8 +8,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Restaurant Ordering",
-  description: "Order food online with live delivery tracking.",
+  title: "RestoBuddy | Your Restaurant's Digital Buddy",
+  description: "Get more direct online orders, reduce commission dependency, and grow your restaurant with RestoBuddy.",
 };
 
 export default function RootLayout({

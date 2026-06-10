@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Store, Loader2, ArrowRight } from 'lucide-react';
@@ -17,12 +17,23 @@ export default function SignupPage() {
     ownerName: '',
     email: '',
     phone: '',
-    password: ''
+    password: '',
+    plan: 'Starter'
   });
 
   const generateSlug = (name: string) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const planQuery = searchParams.get('plan');
+      if (planQuery === 'Starter' || planQuery === 'Growth') {
+        setFormData(prev => ({ ...prev, plan: planQuery }));
+      }
+    }
+  }, []);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
@@ -63,9 +74,9 @@ export default function SignupPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 mb-6">
           <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-orange-600/30">
-            O
+            R
           </div>
-          <span className="font-bold text-2xl tracking-tight">OmniServe</span>
+          <span className="font-bold text-2xl tracking-tight">RestoBuddy</span>
         </Link>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-neutral-900 dark:text-white">
           Create your storefront
@@ -112,7 +123,7 @@ export default function SignupPage() {
               </label>
               <div className="mt-1 flex rounded-md shadow-sm">
                 <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-500 sm:text-sm">
-                  omniserve.com/
+                  restobuddy.com/
                 </span>
                 <input
                   type="text"
@@ -186,6 +197,20 @@ export default function SignupPage() {
                   placeholder="••••••••"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                Select Package
+              </label>
+              <select
+                value={formData.plan}
+                onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                className="block w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:ring-orange-500 focus:border-orange-500 sm:text-sm bg-transparent outline-none"
+              >
+                <option value="Starter">RestoBuddy Starter (₹499/mo)</option>
+                <option value="Growth">RestoBuddy Growth (₹599/mo)</option>
+              </select>
             </div>
 
             <div>

@@ -87,9 +87,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-bold text-xs">
-              O
+              R
             </div>
-            <span className="font-bold tracking-tight text-neutral-900 dark:text-white">OmniServe</span>
+            <span className="font-bold tracking-tight text-neutral-900 dark:text-white">RestoBuddy</span>
           </Link>
           <button 
             className="md:hidden p-1 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded"
