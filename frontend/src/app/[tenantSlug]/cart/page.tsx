@@ -3,14 +3,80 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { useCartStore } from '../../../store/useCartStore';
-import { ArrowLeft, Minus, Plus, Trash2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Trash2, ChevronRight, Tag } from 'lucide-react';
+import { apiClient } from '../../../lib/apiClient';
 import Link from 'next/link';
 
 export default function CartPage() {
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
-  const { items, remarks, setRemarks, updateQuantity, removeItem, getTotalPrice } = useCartStore();
+  const { items, remarks, setRemarks, updateQuantity, removeItem, getTotalPrice, appliedCoupon, applyCoupon, removeCoupon } = useCartStore();
   const total = getTotalPrice();
+
+  const [couponInput, setCouponInput] = React.useState('');
+  const [couponLoading, setCouponLoading] = React.useState(false);
+  const [couponError, setCouponError] = React.useState<string | null>(null);
+  const [availableCoupons, setAvailableCoupons] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const res = await apiClient.get('/api/coupons/public');
+        if (res.ok) {
+          setAvailableCoupons(await res.json());
+        }
+      } catch (error) {
+        console.error('Failed to fetch coupons', error);
+      }
+    };
+    fetchCoupons();
+  }, []);
+
+  const handleApplyCoupon = async (codeToApply?: string) => {
+    const code = typeof codeToApply === 'string' ? codeToApply : couponInput;
+    if (!code) return;
+    
+    // Check if it's a first order coupon locally if it's in the list
+    const foundCoupon = availableCoupons.find(c => c.code === code);
+    if (foundCoupon?.firstOrderOnly) {
+      setCouponError("Please proceed to checkout to apply First Order coupons (requires phone verification).");
+      return;
+    }
+    
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const res = await apiClient.post('/api/coupons/validate', {
+        couponCode: code,
+        phone: '', // Phone is collected at checkout
+        cartTotal: getTotalPrice()
+      });
+      const data = await res.json();
+      
+      if (!res.ok || !data.valid) {
+        if (data.message?.includes('Phone')) {
+          setCouponError("Please proceed to checkout to apply this coupon (requires phone verification).");
+        } else {
+          setCouponError(data.message || 'Invalid coupon.');
+        }
+      } else {
+        applyCoupon({
+          code: data.coupon.code,
+          type: data.coupon.type,
+          discountAmount: data.discountAmount,
+          finalAmount: data.finalAmount
+        });
+        if (!codeToApply) setCouponInput('');
+      }
+    } catch (err) {
+      setCouponError('Error validating coupon.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const subtotal = appliedCoupon ? appliedCoupon.finalAmount : total;
+  const displayTotal = subtotal + 40 + Math.round(subtotal * 0.05);
 
   if (items.length === 0) {
     return (
@@ -97,23 +163,105 @@ export default function CartPage() {
           ></textarea>
         </div>
 
+        {/* Coupons & Offers */}
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 p-6">
+          <h2 className="font-bold text-lg mb-4">Coupons & Offers</h2>
+          
+          {appliedCoupon ? (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="font-bold text-emerald-700 dark:text-emerald-400">'{appliedCoupon.code}' applied</p>
+                <p className="text-sm text-emerald-600 dark:text-emerald-500">You saved ₹{appliedCoupon.discountAmount}</p>
+              </div>
+              <button onClick={removeCoupon} className="text-sm font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300">
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex gap-2 mb-4">
+                <input 
+                  type="text" 
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Enter Coupon Code" 
+                  className="flex-1 px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none uppercase"
+                />
+                <button 
+                  onClick={() => handleApplyCoupon()}
+                  disabled={!couponInput || couponLoading}
+                  className="px-6 py-3 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 font-bold rounded-xl disabled:opacity-50"
+                >
+                  {couponLoading ? '...' : 'Apply'}
+                </button>
+              </div>
+              {couponError && <p className="text-red-500 text-sm mb-4">{couponError}</p>}
+              
+              {availableCoupons.length > 0 && (
+                <div className="space-y-3 mt-6 pt-6 border-t border-neutral-100 dark:border-neutral-800">
+                  <h3 className="font-medium text-sm text-neutral-500 dark:text-neutral-400 mb-2">AVAILABLE OFFERS</h3>
+                  {availableCoupons.map((coupon) => (
+                    <div key={coupon.id} className="border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 hover:border-orange-200 dark:hover:border-orange-800 transition-colors">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div className="flex gap-3 w-full">
+                          <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg text-orange-600 dark:text-orange-500 h-10 w-10 flex items-center justify-center shrink-0">
+                            <Tag className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="font-bold border-2 border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400 px-2 py-0.5 rounded text-sm inline-block mb-1">
+                              {coupon.code}
+                            </div>
+                            <p className="font-bold text-neutral-900 dark:text-neutral-100">
+                              {coupon.discountType === 'PERCENTAGE' 
+                                ? `${coupon.discountValue}% OFF` 
+                                : `Flat ₹{coupon.discountValue} OFF`}
+                            </p>
+                            <p className="text-sm text-neutral-500 mt-1 line-clamp-2">
+                              {coupon.minOrderValue ? `Valid on orders above ₹${coupon.minOrderValue}. ` : 'Valid on all orders. '}
+                              {coupon.maxDiscount ? `Maximum discount of ₹${coupon.maxDiscount}. ` : ''}
+                              {coupon.firstOrderOnly ? 'Applicable on your first order only.' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleApplyCoupon(coupon.code)}
+                          disabled={couponLoading}
+                          className="text-orange-600 dark:text-orange-500 font-bold text-sm bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 px-4 py-2.5 rounded-lg transition-colors shrink-0 w-full sm:w-auto mt-2 sm:mt-0"
+                        >
+                          APPLY
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 p-4 space-y-3">
           <h3 className="font-bold mb-4">Bill Details</h3>
           <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
             <span>Item Total</span>
             <span>₹{total}</span>
           </div>
+          {appliedCoupon && (
+            <div className="flex justify-between text-emerald-600 dark:text-emerald-500 font-medium">
+              <span>Item Discount</span>
+              <span>-₹{appliedCoupon.discountAmount}</span>
+            </div>
+          )}
           <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
             <span>Delivery Fee</span>
             <span>₹40</span>
           </div>
           <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
             <span>Taxes</span>
-            <span>₹{(total * 0.05).toFixed(0)}</span>
+            <span>₹{Math.round(subtotal * 0.05)}</span>
           </div>
           <div className="flex justify-between font-bold text-lg pt-1">
             <span>To Pay</span>
-            <span>₹{total + 40 + Math.round(total * 0.05)}</span>
+            <span>₹{displayTotal}</span>
           </div>
         </div>
       </main>
@@ -122,10 +270,10 @@ export default function CartPage() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <div className="text-sm text-neutral-500 font-medium">TOTAL</div>
-            <div className="font-bold text-2xl">₹{total + 40 + Math.round(total * 0.05)}</div>
+            <div className="font-bold text-xl sm:text-2xl">₹{displayTotal}</div>
           </div>
-          <Link href={`/${tenantSlug}/checkout`} className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg shadow-orange-600/30 transition-colors flex items-center gap-2">
-            Proceed to Pay <ChevronRight className="w-5 h-5" />
+          <Link href={`/${tenantSlug}/checkout`} className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4 rounded-xl shadow-lg shadow-orange-600/30 transition-colors flex items-center gap-1 sm:gap-2">
+            Proceed to Pay <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </Link>
         </div>
       </div>

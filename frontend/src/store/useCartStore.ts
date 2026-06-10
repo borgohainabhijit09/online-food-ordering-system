@@ -19,6 +19,13 @@ export interface CartItem {
   }>;
 }
 
+export interface AppliedCoupon {
+  code: string;
+  type: 'PERCENTAGE' | 'FLAT';
+  discountAmount: number;
+  finalAmount: number;
+}
+
 interface CartState {
   items: CartItem[];
   addItem: (item: Omit<CartItem, 'id'>) => void;
@@ -29,6 +36,9 @@ interface CartState {
   getTotalPrice: () => number;
   getTotalItems: () => number;
   clearCart: () => void;
+  appliedCoupon: AppliedCoupon | null;
+  applyCoupon: (coupon: AppliedCoupon) => void;
+  removeCoupon: () => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -36,6 +46,10 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       remarks: '',
+      appliedCoupon: null,
+      
+      applyCoupon: (coupon) => set({ appliedCoupon: coupon }),
+      removeCoupon: () => set({ appliedCoupon: null }),
       
       setRemarks: (remarks) => set({ remarks }),
 
@@ -75,7 +89,7 @@ export const useCartStore = create<CartState>()(
         }));
       },
       
-      clearCart: () => set({ items: [], remarks: '' }),
+      clearCart: () => set({ items: [], remarks: '', appliedCoupon: null }),
       
       getTotalPrice: () => {
         const { items } = get();

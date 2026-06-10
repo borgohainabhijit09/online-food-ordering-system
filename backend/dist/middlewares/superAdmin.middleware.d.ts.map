@@ -1,0 +1,1 @@
+{"version":3,"file":"superAdmin.middleware.d.ts","sourceRoot":"","sources":["../../src/middlewares/superAdmin.middleware.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAG1D,MAAM,WAAW,iBAAkB,SAAQ,OAAO;IAChD,IAAI,CAAC,EAAE,GAAG,CAAC;CACZ;AAED,eAAO,MAAM,YAAY,GAAI,KAAK,iBAAiB,EAAE,KAAK,QAAQ,EAAE,MAAM,YAAY,KAAG,IAmBxF,CAAC"}

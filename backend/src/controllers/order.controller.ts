@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../services/prisma';
+import { validateCoupon } from '../services/coupon.service';
 
 interface TenantReq extends Request { tenantId?: string; }
 
@@ -60,7 +61,27 @@ export const updateOrderStatus = async (req: TenantReq, res: Response, next: Nex
 
 export const createOrder = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const { customerName, phone, address, latitude, longitude, total, items, remarks } = req.body;
+    const { customerName, phone, address, latitude, longitude, total, items, remarks, couponCode } = req.body;
+
+    let finalTotal = total;
+    let appliedDiscount = 0;
+
+    // Validate Coupon Server-Side
+    if (couponCode) {
+      const couponResult = await validateCoupon({
+        tenantId: req.tenantId!,
+        couponCode,
+        phone,
+        cartTotal: total
+      });
+
+      if (!couponResult.valid) {
+        return res.status(400).json({ message: couponResult.message });
+      }
+
+      finalTotal = couponResult.finalAmount!;
+      appliedDiscount = couponResult.discountAmount!;
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -69,7 +90,9 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
         address,
         latitude,
         longitude,
-        total,
+        total: finalTotal,
+        couponCode: couponCode || null,
+        discountAmount: appliedDiscount,
         remarks,
         status: 'NEW',
         tenant: { connect: { id: req.tenantId! } },

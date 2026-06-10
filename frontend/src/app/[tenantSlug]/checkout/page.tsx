@@ -19,7 +19,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
-  const { items, remarks, getTotalPrice, clearCart } = useCartStore();
+  const { items, remarks, getTotalPrice, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCartStore();
   const { location, error: locError, loading: locLoading, requestLocation, calculateDistance } = useLocation();
   
   const [formData, setFormData] = useState({
@@ -34,6 +34,7 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [settings, setSettings] = useState<any>(null);
 
+  // Coupon State
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -45,27 +46,9 @@ export default function CheckoutPage() {
         console.error('Failed to fetch settings', error);
       }
     };
+    
     fetchSettings();
   }, []);
-
-  useEffect(() => {
-    if (location && settings) {
-      const lat = settings.restaurantLat || FALLBACK_LAT;
-      const lng = settings.restaurantLng || FALLBACK_LNG;
-      const radius = settings.deliveryRadiusKm || FALLBACK_RADIUS_KM;
-
-      const dist = calculateDistance(lat, lng, location.lat, location.lng);
-      if (dist > radius) {
-        setDistanceError(`Sorry, delivery is not available for your location. You are ${dist.toFixed(1)}km away (Max ${radius}km).`);
-      } else {
-        setDistanceError(null);
-      }
-    }
-  }, [location, settings, calculateDistance]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
   const handlePlaceOrder = async () => {
     if (!location) {
@@ -80,7 +63,8 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
     try {
-      const total = getTotalPrice() + 40 + Math.round(getTotalPrice() * 0.05);
+      const subtotal = appliedCoupon ? appliedCoupon.finalAmount : getTotalPrice();
+      const total = subtotal + 40 + Math.round(subtotal * 0.05);
       
       const orderPayload = {
         customerName: formData.name,
@@ -99,7 +83,8 @@ export default function CheckoutPage() {
             price: addon.price
           }))
         })),
-        remarks: remarks || formData.notes
+        remarks: remarks || formData.notes,
+        couponCode: appliedCoupon?.code
       };
 
       const response = await apiClient.post('/api/orders', orderPayload);
@@ -147,7 +132,8 @@ export default function CheckoutPage() {
     }
   };
 
-  const total = getTotalPrice();
+  const subtotal = appliedCoupon ? appliedCoupon.finalAmount : getTotalPrice();
+  const displayTotal = subtotal + 40 + Math.round(subtotal * 0.05);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 pb-32">
@@ -224,10 +210,41 @@ export default function CheckoutPage() {
             </div>
           </div>
         </div>
+
+        {/* Bill Details */}
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 p-6 space-y-3">
+          <h3 className="font-bold mb-4">Bill Details</h3>
+          <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
+            <span>Item Total</span>
+            <span>₹{getTotalPrice()}</span>
+          </div>
+          {appliedCoupon && (
+            <div className="flex justify-between text-emerald-600 dark:text-emerald-500 font-medium">
+              <span>Item Discount</span>
+              <span>-₹{appliedCoupon.discountAmount}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
+            <span>Delivery Fee</span>
+            <span>₹40</span>
+          </div>
+          <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+            <span>Taxes</span>
+            <span>₹{Math.round(subtotal * 0.05)}</span>
+          </div>
+          <div className="flex justify-between font-bold text-lg pt-1">
+            <span>To Pay</span>
+            <span>₹{displayTotal}</span>
+          </div>
+        </div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 p-4">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <div className="text-sm text-neutral-500 font-medium">TOTAL</div>
+            <div className="font-bold text-2xl">₹{displayTotal}</div>
+          </div>
           <button 
             onClick={handlePlaceOrder}
             disabled={isPlacingOrder || !location || !!distanceError || !formData.name || !formData.phone || !formData.address}

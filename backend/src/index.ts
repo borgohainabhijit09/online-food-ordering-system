@@ -11,13 +11,17 @@ import addonRoutes from './routes/addon.routes';
 import orderRoutes from './routes/order.routes';
 import settingsRoutes from './routes/settings.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import couponRoutes from './routes/coupon.routes';
 import { errorHandler } from './middlewares/error.middleware';
 const app: Express = express();
 const port = process.env.PORT || 8000;
 
+import { queryMonitor } from './middlewares/queryMonitor';
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(queryMonitor);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Smart Restaurant Ordering API is running');
@@ -40,6 +44,7 @@ app.use('/api/addons', addonRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/coupons', couponRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

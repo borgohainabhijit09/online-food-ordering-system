@@ -141,7 +141,7 @@ export default function OrdersPage() {
           <div className="p-12 text-center text-neutral-500">No orders received yet.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
               <thead className="bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400">
                 <tr>
                   <th className="px-6 py-4 font-medium whitespace-nowrap">Order ID / Time</th>

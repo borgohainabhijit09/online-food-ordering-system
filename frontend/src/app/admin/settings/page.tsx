@@ -122,7 +122,7 @@ export default function SettingsPage() {
         <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
           <h3 className="font-bold text-lg">Delivery Configuration</h3>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Restaurant Latitude</label>
               <input 
@@ -159,14 +159,14 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4">
-          <div className="text-sm font-medium text-emerald-600 dark:text-emerald-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4">
+          <div className="text-sm font-medium text-emerald-600 dark:text-emerald-500 order-2 sm:order-1">
             {saveMessage}
           </div>
           <button 
             type="submit"
             disabled={isSaving}
-            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50 order-1 sm:order-2"
           >
             {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Save Settings

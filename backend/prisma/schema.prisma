@@ -7,14 +7,14 @@ datasource db {
 }
 
 model Tenant {
-  id             String    @id @default(uuid())
-  slug           String    @unique
-  businessName   String
-  email          String    @unique
-  phone          String?
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  businessName String
+  email        String   @unique
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
   users          User[]
   categories     Category[]
   products       Product[]
@@ -23,6 +23,7 @@ model Tenant {
   settings       Settings?
   subscription   TenantSubscription?
   billingRecords BillingRecord[]
+  coupons        Coupon[]
 }
 
 model User {
@@ -34,8 +35,8 @@ model User {
   orders    Order[]
   createdAt DateTime @default(now())
 
-  tenantId  String?
-  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
 }
 
 enum Role {
@@ -51,35 +52,35 @@ enum DietaryPreference {
 }
 
 model Category {
-  id        String    @id @default(uuid())
-  name      String
-  imageUrl  String?
-  order     Int       @default(0)
-  products  Product[]
+  id       String    @id @default(uuid())
+  name     String
+  imageUrl String?
+  order    Int       @default(0)
+  products Product[]
 
-  tenantId  String
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model Product {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  basePrice   Float
-  offerPrice  Float?
-  categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
-  images      ProductImage[]
-  variants    ProductVariant[]
-  addons      ProductAddon[]
-  inventory   Inventory?
-  isActive    Boolean   @default(true)
-  isTrending  Boolean   @default(false)
+  id                String            @id @default(uuid())
+  name              String
+  description       String?
+  basePrice         Float
+  offerPrice        Float?
+  categoryId        String
+  category          Category          @relation(fields: [categoryId], references: [id])
+  images            ProductImage[]
+  variants          ProductVariant[]
+  addons            ProductAddon[]
+  inventory         Inventory?
+  isActive          Boolean           @default(true)
+  isTrending        Boolean           @default(false)
   dietaryPreference DietaryPreference @default(VEG)
-  isSpicy     Boolean   @default(false)
+  isSpicy           Boolean           @default(false)
 
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model ProductImage {
@@ -90,12 +91,12 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id        String  @id @default(uuid())
-  name      String
-  price     Float
+  id         String  @id @default(uuid())
+  name       String
+  price      Float
   offerPrice Float?
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
 }
 
 model Addon {
@@ -105,8 +106,8 @@ model Addon {
   imageUrl      String?
   productAddons ProductAddon[]
 
-  tenantId      String
-  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model ProductAddon {
@@ -114,6 +115,7 @@ model ProductAddon {
   addonId   String
   product   Product @relation(fields: [productId], references: [id])
   addon     Addon   @relation(fields: [addonId], references: [id])
+
   @@id([productId, addonId])
 }
 
@@ -126,22 +128,24 @@ model Inventory {
 }
 
 model Order {
-  id               String      @id @default(uuid())
-  userId           String?
-  user             User?       @relation(fields: [userId], references: [id])
-  customerName     String
-  phone            String
-  address          String
-  latitude         Float
-  longitude        Float
-  status           OrderStatus @default(NEW)
-  total            Float
-  remarks          String?
-  items            OrderItem[]
-  createdAt        DateTime    @default(now())
+  id             String      @id @default(uuid())
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+  customerName   String
+  phone          String
+  address        String
+  latitude       Float
+  longitude      Float
+  status         OrderStatus @default(NEW)
+  total          Float
+  remarks        String?
+  items          OrderItem[]
+  couponCode     String?
+  discountAmount Float?      @default(0)
+  createdAt      DateTime    @default(now())
 
-  tenantId         String
-  tenant           Tenant      @relation(fields: [tenantId], references: [id])
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
 enum OrderStatus {
@@ -154,9 +158,9 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id        String          @id @default(uuid())
+  id        String           @id @default(uuid())
   orderId   String
-  order     Order           @relation(fields: [orderId], references: [id])
+  order     Order            @relation(fields: [orderId], references: [id])
   productId String
   quantity  Int
   price     Float
@@ -173,26 +177,26 @@ model OrderItemAddon {
 }
 
 model Settings {
-  id                 String  @id @default(uuid())
-  restaurantName     String
-  isAcceptingOrders  Boolean @default(true)
-  deliveryRadiusKm   Float   @default(5.0)
-  restaurantLat      Float
-  restaurantLng      Float
-  whatsappNumber     String
+  id                String  @id @default(uuid())
+  restaurantName    String
+  isAcceptingOrders Boolean @default(true)
+  deliveryRadiusKm  Float   @default(5.0)
+  restaurantLat     Float
+  restaurantLng     Float
+  whatsappNumber    String
 
-  tenantId           String  @unique
-  tenant             Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId String @unique
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
 model SubscriptionPackage {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  price       Float
-  features    String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  name      String   @unique
+  price     Float
+  features  String
+  createdAt DateTime @default(now())
 
-  tenants     TenantSubscription[]
+  tenants TenantSubscription[]
 }
 
 enum SubscriptionStatus {
@@ -202,14 +206,14 @@ enum SubscriptionStatus {
 }
 
 model TenantSubscription {
-  id              String             @id @default(uuid())
-  tenantId        String             @unique
-  tenant          Tenant             @relation(fields: [tenantId], references: [id])
+  id              String              @id @default(uuid())
+  tenantId        String              @unique
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
   packageId       String
   package         SubscriptionPackage @relation(fields: [packageId], references: [id])
-  startDate       DateTime           @default(now())
+  startDate       DateTime            @default(now())
   nextBillingDate DateTime
-  status          SubscriptionStatus @default(ACTIVE)
+  status          SubscriptionStatus  @default(ACTIVE)
 }
 
 enum PaymentStatus {
@@ -219,12 +223,34 @@ enum PaymentStatus {
 }
 
 model BillingRecord {
-  id          String        @id @default(uuid())
-  tenantId    String
-  tenant      Tenant        @relation(fields: [tenantId], references: [id])
-  amount      Float
-  date        DateTime      @default(now())
-  status      PaymentStatus @default(COMPLETED)
-  invoiceUrl  String?
+  id         String        @id @default(uuid())
+  tenantId   String
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  amount     Float
+  date       DateTime      @default(now())
+  status     PaymentStatus @default(COMPLETED)
+  invoiceUrl String?
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FLAT
+}
+
+model Coupon {
+  id             String       @id @default(uuid())
+  tenantId       String
+  code           String
+  discountType   DiscountType
+  discountValue  Float
+  minOrderValue  Float?
+  maxDiscount    Float?
+  firstOrderOnly Boolean      @default(false)
+  active         Boolean      @default(true)
+  startDate      DateTime?
+  expiryDate     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
