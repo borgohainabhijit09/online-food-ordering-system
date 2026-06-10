@@ -69,7 +69,7 @@ export default function SuperAdminBilling() {
               <CreditCard className="w-5 h-5 text-emerald-600" />
             </div>
           </div>
-          <p className="text-3xl font-black text-neutral-900">₹{totalCollected.toLocaleString()}</p>
+          <p className="text-3xl font-black text-neutral-900">₹{Number(totalCollected || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200">

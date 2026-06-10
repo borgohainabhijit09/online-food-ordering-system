@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -10,6 +10,22 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "RestoBuddy | Your Restaurant's Digital Buddy",
   description: "Get more direct online orders, reduce commission dependency, and grow your restaurant with RestoBuddy.",
+  manifest: "/api/manifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "RestoBuddy",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ea580c",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

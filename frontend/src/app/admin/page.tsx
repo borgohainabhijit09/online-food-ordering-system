@@ -40,7 +40,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Revenue Today" 
-          value={`₹${stats?.revenueToday || 0}`} 
+          value={`₹${Number(stats?.revenueToday || 0).toFixed(2)}`} 
           trend="" 
           isPositive={true}
           icon={<IndianRupee className="w-6 h-6 text-emerald-500" />} 
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
                     contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
                     itemStyle={{ color: '#fff' }}
                     cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }}
-                    formatter={(value: any) => [`₹${value}`, 'Revenue']}
+                    formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue']}
                   />
                   <Line 
                     type="monotone" 
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
                         {order.status}
                       </span>
                     </td>
-                    <td className="py-3 text-right font-medium">₹{order.total}</td>
+                    <td className="py-3 text-right font-medium">₹{Number(order.total || 0).toFixed(2)}</td>
                   </tr>
                 ))
               )}

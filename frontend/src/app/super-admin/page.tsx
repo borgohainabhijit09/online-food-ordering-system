@@ -66,7 +66,7 @@ export default function SuperAdminDashboard() {
             </div>
             <div>
               <div className="text-sm text-neutral-500 font-medium">Monthly Revenue</div>
-              <div className="text-2xl font-bold">₹{stats.mrr}</div>
+              <div className="text-2xl font-bold">₹{Number(stats.mrr || 0).toFixed(2)}</div>
             </div>
           </div>
         </div>
