@@ -14,12 +14,15 @@ const addon_routes_1 = __importDefault(require("./routes/addon.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const settings_routes_1 = __importDefault(require("./routes/settings.routes"));
 const dashboard_routes_1 = __importDefault(require("./routes/dashboard.routes"));
+const coupon_routes_1 = __importDefault(require("./routes/coupon.routes"));
 const error_middleware_1 = require("./middlewares/error.middleware");
 const app = (0, express_1.default)();
 const port = process.env.PORT || 8000;
+const queryMonitor_1 = require("./middlewares/queryMonitor");
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+app.use(queryMonitor_1.queryMonitor);
 app.get('/', (req, res) => {
     res.send('Smart Restaurant Ordering API is running');
 });
@@ -36,6 +39,7 @@ app.use('/api/addons', addon_routes_1.default);
 app.use('/api/orders', order_routes_1.default);
 app.use('/api/settings', settings_routes_1.default);
 app.use('/api/dashboard', dashboard_routes_1.default);
+app.use('/api/coupons', coupon_routes_1.default);
 // Error Handling Middleware
 app.use(error_middleware_1.errorHandler);
 const billing_cron_1 = require("./cron/billing.cron");

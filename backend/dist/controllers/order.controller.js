@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createOrder = exports.updateOrderStatus = exports.getOrderById = exports.getOrders = void 0;
 const prisma_1 = __importDefault(require("../services/prisma"));
+const coupon_service_1 = require("../services/coupon.service");
 const getOrders = async (req, res, next) => {
     try {
         const orders = await prisma_1.default.order.findMany({
@@ -63,7 +64,23 @@ const updateOrderStatus = async (req, res, next) => {
 exports.updateOrderStatus = updateOrderStatus;
 const createOrder = async (req, res, next) => {
     try {
-        const { customerName, phone, address, latitude, longitude, total, items, remarks } = req.body;
+        const { customerName, phone, address, latitude, longitude, total, items, remarks, couponCode } = req.body;
+        let finalTotal = total;
+        let appliedDiscount = 0;
+        // Validate Coupon Server-Side
+        if (couponCode) {
+            const couponResult = await (0, coupon_service_1.validateCoupon)({
+                tenantId: req.tenantId,
+                couponCode,
+                phone,
+                cartTotal: total
+            });
+            if (!couponResult.valid) {
+                return res.status(400).json({ message: couponResult.message });
+            }
+            finalTotal = couponResult.finalAmount;
+            appliedDiscount = couponResult.discountAmount;
+        }
         const order = await prisma_1.default.order.create({
             data: {
                 customerName,
@@ -71,7 +88,9 @@ const createOrder = async (req, res, next) => {
                 address,
                 latitude,
                 longitude,
-                total,
+                total: finalTotal,
+                couponCode: couponCode || null,
+                discountAmount: appliedDiscount,
                 remarks,
                 status: 'NEW',
                 tenant: { connect: { id: req.tenantId } },
