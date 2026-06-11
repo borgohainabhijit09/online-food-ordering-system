@@ -377,16 +377,74 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="bg-neutral-950 border-t border-neutral-900 py-12 text-white">
-        <div className="max-w-7xl mx-auto px-4 text-center text-neutral-400">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-extrabold text-sm">
-              R
+      <footer className="bg-neutral-950 border-t border-neutral-900 py-16 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div className="col-span-1 md:col-span-1">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-8 h-8 bg-orange-600 rounded flex items-center justify-center text-white font-extrabold text-sm">
+                  R
+                </div>
+                <span className="font-bold text-2xl tracking-tight text-white">RestoBuddy</span>
+              </div>
+              <p className="text-neutral-400 mb-6">Your Restaurant's Digital Buddy. Build your brand, own your customers, and save on commissions.</p>
+              <div className="text-sm text-neutral-500">
+                <p>Powered by</p>
+                <a href="https://sygmiainnovative.co.in/" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:text-orange-400 font-semibold transition-colors">
+                  Sygmia Innovative
+                </a>
+              </div>
             </div>
-            <span className="font-bold text-xl tracking-tight text-white">RestoBuddy</span>
+
+            <div>
+              <h4 className="text-lg font-bold mb-4 text-white">Office Locations</h4>
+              <ul className="space-y-2 text-neutral-400">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 text-orange-500">•</span>
+                  <span>Bangalore, Karnataka-IN</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 text-orange-500">•</span>
+                  <span>Tezpur, Assam-IN</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 text-orange-500">•</span>
+                  <span>Dibrugarh, Assam-IN</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-bold mb-4 text-white">Contact Us</h4>
+              <div className="space-y-4 text-neutral-400">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-300 mb-1">Email</p>
+                  <a href="mailto:info@sygmiainnovative.co.in" className="hover:text-orange-400 transition-colors">info@sygmiainnovative.co.in</a>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-300 mb-1">Call Us</p>
+                  <p><a href="tel:+917760133445" className="hover:text-orange-400 transition-colors">+91 77601 33445</a></p>
+                  <p><a href="tel:+917002309306" className="hover:text-orange-400 transition-colors">+91 70023 09306</a></p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-bold mb-4 text-white">Quick Links</h4>
+              <ul className="space-y-2 text-neutral-400">
+                <li><Link href="/signup" className="hover:text-orange-400 transition-colors">Start Free Trial</Link></li>
+                <li><Link href="/demo-restaurant" className="hover:text-orange-400 transition-colors">View Demo</Link></li>
+              </ul>
+            </div>
           </div>
-          <p className="mb-4">Your Restaurant's Digital Buddy.</p>
-          <p className="text-sm">© {new Date().getFullYear()} RestoBuddy. Built for the modern Indian restaurant.</p>
+          
+          <div className="pt-8 border-t border-neutral-900 text-center text-neutral-500 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
+            <p>© {new Date().getFullYear()} RestoBuddy. Built for the modern Indian restaurant.</p>
+            <div className="flex gap-6">
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
