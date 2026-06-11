@@ -79,7 +79,7 @@ export const updateOrderStatus = async (req: TenantReq, res: Response, next: Nex
 
 export const createOrder = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const { customerName, phone, address, latitude, longitude, total, items, remarks, couponCode } = req.body;
+    const { customerName, phone, address, latitude, longitude, total, items, remarks, couponCode, dob } = req.body;
 
     let finalTotal = total;
     let appliedDiscount = 0;
@@ -101,6 +101,23 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
       appliedDiscount = couponResult.discountAmount!;
     }
 
+    // Upsert Customer Profile
+    const customer = await prisma.customer.upsert({
+      where: {
+        tenantId_phone: { tenantId: req.tenantId!, phone: phone }
+      },
+      update: {
+        name: customerName,
+        ...(dob ? { dob: new Date(dob) } : {})
+      },
+      create: {
+        tenantId: req.tenantId!,
+        name: customerName,
+        phone: phone,
+        ...(dob ? { dob: new Date(dob) } : {})
+      }
+    });
+
     const order = await prisma.order.create({
       data: {
         customerName,
@@ -114,6 +131,7 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
         remarks,
         status: 'NEW',
         tenant: { connect: { id: req.tenantId! } },
+        customer: { connect: { id: customer.id } },
         items: {
           create: items.map((item: any) => ({
             productId: item.productId,

@@ -12,6 +12,7 @@ import orderRoutes from './routes/order.routes';
 import settingsRoutes from './routes/settings.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import couponRoutes from './routes/coupon.routes';
+import customerRoutes from './routes/customer.routes';
 import { errorHandler } from './middlewares/error.middleware';
 const app: Express = express();
 const port = process.env.PORT || 8000;
@@ -45,6 +46,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/customers', customerRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);
@@ -57,7 +59,3 @@ initBillingCron();
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
-
-// Trigger nodemon restart
-
-// Trigger nodemon restart 2

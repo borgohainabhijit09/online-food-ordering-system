@@ -25,6 +25,7 @@ export default function CheckoutPage() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    dob: '',
     address: '',
     landmark: '',
     notes: ''
@@ -74,6 +75,7 @@ export default function CheckoutPage() {
       const orderPayload = {
         customerName: formData.name,
         phone: formData.phone,
+        dob: formData.dob ? new Date(formData.dob).toISOString() : undefined,
         address: formData.address + (formData.landmark ? `, ${formData.landmark}` : ''),
         latitude: location.lat,
         longitude: location.lng,
@@ -205,6 +207,10 @@ export default function CheckoutPage() {
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Phone Number</label>
               <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all" placeholder="9876543210" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Date of Birth (For Birthday Surprises! 🎉)</label>
+              <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all text-neutral-500 dark:text-neutral-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Delivery Address</label>

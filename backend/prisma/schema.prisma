@@ -24,6 +24,7 @@ model Tenant {
   subscription   TenantSubscription?
   billingRecords BillingRecord[]
   coupons        Coupon[]
+  customers      Customer[]
 }
 
 model User {
@@ -127,10 +128,26 @@ model Inventory {
   minimumStock Int     @default(5)
 }
 
+model Customer {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  phone     String
+  dob       DateTime?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, phone])
+}
+
 model Order {
   id             String      @id @default(uuid())
   userId         String?
   user           User?       @relation(fields: [userId], references: [id])
+  customerId     String?
+  customer       Customer?   @relation(fields: [customerId], references: [id])
   customerName   String
   phone          String
   address        String

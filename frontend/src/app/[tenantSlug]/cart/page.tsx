@@ -230,7 +230,7 @@ export default function CartPage() {
                             <p className="font-bold text-neutral-900 dark:text-neutral-100">
                               {coupon.discountType === 'PERCENTAGE' 
                                 ? `${coupon.discountValue}% OFF` 
-                                : `Flat ₹{coupon.discountValue} OFF`}
+                                : `Flat ₹${coupon.discountValue} OFF`}
                             </p>
                             <p className="text-sm text-neutral-500 mt-1 line-clamp-2">
                               {coupon.minOrderValue ? `Valid on orders above ₹${coupon.minOrderValue}. ` : 'Valid on all orders. '}
