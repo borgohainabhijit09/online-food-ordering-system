@@ -29,11 +29,11 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-xl tracking-tight text-neutral-900 dark:text-white">RestoBuddy</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <Link href="/admin/login" className="text-xs sm:text-sm font-medium whitespace-nowrap text-neutral-600 dark:text-neutral-300 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
+            <Link href="/admin/login" className="text-xs sm:text-sm font-semibold whitespace-nowrap text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white px-3 py-2 sm:px-4 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
               Restaurant Login
             </Link>
-            <Link href="/signup" className="text-xs sm:text-sm font-bold whitespace-nowrap bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-3 py-2 sm:px-5 sm:py-2.5 rounded-full hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-neutral-900/10">
+            <Link href="/signup" className="text-xs sm:text-sm font-bold whitespace-nowrap bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2 sm:px-6 sm:py-2.5 rounded-full hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-neutral-900/10">
               Start Free Trial
             </Link>
           </div>
