@@ -25,7 +25,7 @@ export const getProducts = async (req: TenantReq, res: Response, next: NextFunct
 
 export const createProduct = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const { name, description, basePrice, offerPrice, categoryId, variants, addons, imageUrl, isTrending, dietaryPreference, isSpicy } = req.body;
+    const { name, description, basePrice, offerPrice, categoryId, variants, addons, imageUrl, isTrending, dietaryPreference, isSpicy, isActive } = req.body;
     
     // Validate category belongs to this tenant
     const category = await prisma.category.findFirst({ where: { id: categoryId, tenantId: req.tenantId } });
@@ -42,6 +42,7 @@ export const createProduct = async (req: TenantReq, res: Response, next: NextFun
         isTrending: isTrending || false,
         dietaryPreference: dietaryPreference || 'VEG',
         isSpicy: isSpicy || false,
+        isActive: isActive !== undefined ? isActive : true,
         variants: variants && variants.length > 0 ? { create: variants } : undefined,
         inventory: { create: { currentStock: 0, minimumStock: 5 } },
         addons: addons && addons.length > 0 ? {
@@ -92,7 +93,7 @@ export const getProductById = async (req: TenantReq, res: Response, next: NextFu
 export const updateProduct = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { name, description, basePrice, offerPrice, categoryId, variants, addons, imageUrl, isTrending, dietaryPreference, isSpicy } = req.body;
+    const { name, description, basePrice, offerPrice, categoryId, variants, addons, imageUrl, isTrending, dietaryPreference, isSpicy, isActive } = req.body;
 
     // Verify product belongs to tenant
     const existing = await prisma.product.findFirst({ where: { id: id as string, tenantId: req.tenantId } });
@@ -119,6 +120,7 @@ export const updateProduct = async (req: TenantReq, res: Response, next: NextFun
           isTrending: isTrending || false,
           dietaryPreference: dietaryPreference || 'VEG',
           isSpicy: isSpicy || false,
+          ...(isActive !== undefined && { isActive }),
           variants: variants && variants.length > 0 ? { create: variants } : undefined,
           addons: addons && addons.length > 0 ? {
             create: addons.map((addonId: string) => ({
@@ -164,3 +166,30 @@ export const deleteProduct = async (req: TenantReq, res: Response, next: NextFun
     next(error);
   }
 };
+
+export const toggleProductStatus = async (req: TenantReq, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const existing = await prisma.product.findFirst({ where: { id: id as string, tenantId: req.tenantId } });
+    if (!existing) return res.status(404).json({ message: 'Product not found' });
+
+    const product = await prisma.product.update({
+      where: { id: id as string },
+      data: { isActive },
+      include: {
+        category: true,
+        variants: true,
+        addons: { include: { addon: true } },
+        images: true,
+        inventory: true
+      }
+    });
+
+    res.status(200).json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+

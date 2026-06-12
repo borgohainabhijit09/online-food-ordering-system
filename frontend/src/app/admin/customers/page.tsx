@@ -146,37 +146,37 @@ export default function CustomersPage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-neutral-50 dark:bg-neutral-950/50 text-neutral-500 dark:text-neutral-400 font-medium">
                   <tr>
-                    <th className="px-6 py-4">Customer</th>
-                    <th className="px-6 py-4">Phone</th>
-                    <th className="px-6 py-4">Birthday</th>
-                    <th className="px-6 py-4">Total Orders</th>
-                    <th className="px-6 py-4">Lifetime Spend</th>
-                    <th className="px-6 py-4">Last Order</th>
+                    <th className="px-4 py-2.5">Customer</th>
+                    <th className="px-4 py-2.5">Phone</th>
+                    <th className="px-4 py-2.5">Birthday</th>
+                    <th className="px-4 py-2.5">Total Orders</th>
+                    <th className="px-4 py-2.5">Lifetime Spend</th>
+                    <th className="px-4 py-2.5">Last Order</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                   {filteredCustomers.length > 0 ? (
                     filteredCustomers.map((customer) => (
                       <tr key={customer.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-neutral-900 dark:text-white">
+                        <td className="px-4 py-2.5 font-medium text-neutral-900 dark:text-white">
                           {customer.name}
                         </td>
-                        <td className="px-6 py-4 text-neutral-600 dark:text-neutral-400">
+                        <td className="px-4 py-2.5 text-neutral-600 dark:text-neutral-400">
                           {customer.phone}
                         </td>
-                        <td className="px-6 py-4 text-neutral-600 dark:text-neutral-400">
+                        <td className="px-4 py-2.5 text-neutral-600 dark:text-neutral-400">
                           {customer.dob ? new Date(customer.dob).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '-'}
                         </td>
-                        <td className="px-6 py-4 text-neutral-600 dark:text-neutral-400">
+                        <td className="px-4 py-2.5 text-neutral-600 dark:text-neutral-400">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-neutral-100 dark:bg-neutral-800 rounded-full font-medium text-xs">
                             <ShoppingBag className="w-3.5 h-3.5 text-neutral-500" />
                             {customer.totalOrders}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-neutral-900 dark:text-white font-medium">
+                        <td className="px-4 py-2.5 text-neutral-900 dark:text-white font-medium">
                           ₹{customer.lifetimeSpend.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-neutral-600 dark:text-neutral-400 text-xs">
+                        <td className="px-4 py-2.5 text-neutral-600 dark:text-neutral-400 text-xs">
                           {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '-'}
                         </td>
                       </tr>

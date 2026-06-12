@@ -144,11 +144,11 @@ export default function OrdersPage() {
             <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
               <thead className="bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400">
                 <tr>
-                  <th className="px-6 py-4 font-medium whitespace-nowrap">Order ID / Time</th>
-                  <th className="px-6 py-4 font-medium">Customer Details</th>
-                  <th className="px-6 py-4 font-medium">Order Items</th>
-                  <th className="px-6 py-4 font-medium">Total</th>
-                  <th className="px-6 py-4 font-medium">Status & Action</th>
+                  <th className="px-4 py-2.5 font-medium whitespace-nowrap">Order ID / Time</th>
+                  <th className="px-4 py-2.5 font-medium">Customer Details</th>
+                  <th className="px-4 py-2.5 font-medium">Order Items</th>
+                  <th className="px-4 py-2.5 font-medium">Total</th>
+                  <th className="px-4 py-2.5 font-medium">Status & Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -176,12 +176,12 @@ export default function OrdersPage() {
                   })
                   .map(order => (
                   <tr key={order.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="font-mono text-xs text-neutral-500 mb-1">{order.id.slice(0,8).toUpperCase()}</div>
                       <div className="font-medium whitespace-nowrap">{new Date(order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       <div className="text-xs text-neutral-500">{new Date(order.createdAt).toLocaleDateString()}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="font-medium">{order.customerName}</div>
                       <div className="text-sm text-neutral-500 mb-1">{order.phone}</div>
                       <div className="text-xs text-neutral-500 max-w-xs truncate" title={order.address}>{order.address}</div>
@@ -191,7 +191,7 @@ export default function OrdersPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <ul className="list-disc pl-4 space-y-1 text-xs">
                         {order.items?.map(item => (
                           <li key={item.id}>
@@ -200,10 +200,10 @@ export default function OrdersPage() {
                         ))}
                       </ul>
                     </td>
-                    <td className="px-6 py-4 font-bold text-lg">
+                    <td className="px-4 py-2.5 font-bold text-lg">
                       ₹{order.total}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex flex-col gap-2 items-start">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>
                           {order.status}

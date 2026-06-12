@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Loader2, Image as ImageIcon, Star } from 'lucide-react';
+import { Plus, Trash2, Loader2, Image as ImageIcon, Star, X } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Category { id: string; name: string; }
 interface Addon { id: string; name: string; price: number; }
 interface Variant { name: string; price: number; offerPrice?: number | null; }
-interface Product { id: string; name: string; basePrice: number; offerPrice?: number | null; category: Category; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN'; isSpicy: boolean; }
+interface Product { id: string; name: string; basePrice: number; offerPrice?: number | null; category: Category; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN'; isSpicy: boolean; isActive: boolean; }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -33,6 +34,7 @@ export default function ProductsPage() {
   const [isTrending, setIsTrending] = useState(false);
   const [dietaryPreference, setDietaryPreference] = useState<'VEG' | 'NON_VEG' | 'VEGAN'>('VEG');
   const [isSpicy, setIsSpicy] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   
   const [variants, setVariants] = useState<Variant[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
@@ -91,6 +93,7 @@ export default function ProductsPage() {
         isTrending,
         dietaryPreference,
         isSpicy,
+        isActive,
         variants: variants.filter(v => v.name.trim() !== ''),
         addons: selectedAddons
       };
@@ -122,6 +125,7 @@ export default function ProductsPage() {
     setIsTrending(false);
     setDietaryPreference('VEG');
     setIsSpicy(false);
+    setIsActive(true);
     setVariants([]);
     setSelectedAddons([]);
     if (categories.length > 0) setCategoryId(categories[0].id);
@@ -138,6 +142,7 @@ export default function ProductsPage() {
     setIsTrending(product.isTrending || false);
     setDietaryPreference(product.dietaryPreference || 'VEG');
     setIsSpicy(product.isSpicy || false);
+    setIsActive(product.isActive ?? true);
     
     // Set variants (excluding id and other DB fields for the form)
     setVariants(product.variants?.map((v: any) => ({ name: v.name, price: v.price, offerPrice: v.offerPrice })) || []);
@@ -155,6 +160,17 @@ export default function ProductsPage() {
       fetchData();
     } catch (error) {
       console.error('Failed to delete', error);
+    }
+  };
+
+  const handleToggleStatus = async (product: Product) => {
+    try {
+      const res = await apiClient.patch(`/api/products/${product.id}/status`, { isActive: !product.isActive });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Failed to toggle status', error);
     }
   };
 
@@ -178,20 +194,34 @@ export default function ProductsPage() {
         </button>
       </div>
 
+      <AnimatePresence>
       {showForm && (
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg">{editingId ? 'Edit Product' : 'Create New Product'}</h3>
-            <button 
-              onClick={() => { setShowForm(false); resetForm(); }}
-              className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-            >
-              Cancel
-            </button>
-          </div>
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }} 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        >
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0.1 }}
+            className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col"
+          >
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white dark:bg-neutral-900 pb-4 z-10 border-b border-neutral-100 dark:border-neutral-800">
+              <h3 className="font-bold text-lg">{editingId ? 'Edit Product' : 'Create New Product'}</h3>
+              <button 
+                type="button"
+                onClick={() => { setShowForm(false); resetForm(); }}
+                className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 p-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Name</label>
@@ -228,9 +258,15 @@ export default function ProductsPage() {
                       <option value="VEGAN">Vegan</option>
                     </select>
                   </div>
-                  <div className="col-span-2 lg:col-span-1 flex items-center gap-2 mt-6">
-                    <input type="checkbox" id="isSpicy" checked={isSpicy} onChange={e => setIsSpicy(e.target.checked)} className="rounded accent-red-600 w-4 h-4" />
-                    <label htmlFor="isSpicy" className="text-sm font-medium cursor-pointer">🌶️ Mark as Spicy</label>
+                  <div className="col-span-2 lg:col-span-1 flex items-center gap-4 mt-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={isSpicy} onChange={e => setIsSpicy(e.target.checked)} className="rounded accent-red-600 w-4 h-4" />
+                      <span className="text-sm font-medium">🌶️ Spicy</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="rounded accent-orange-600 w-4 h-4" />
+                      <span className="text-sm font-medium">Available</span>
+                    </label>
                   </div>
                 </div>
                 <div>
@@ -248,11 +284,11 @@ export default function ProductsPage() {
                   </div>
                   <div className="space-y-2">
                     {variants.map((v, i) => (
-                      <div key={i} className="flex gap-2 items-center">
-                        <input type="text" placeholder="e.g. Half" value={v.name} onChange={e => handleVariantChange(i, 'name', e.target.value)} className="flex-1 px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg text-sm" />
-                        <input type="number" placeholder="Price" value={v.price} onChange={e => handleVariantChange(i, 'price', parseFloat(e.target.value) || 0)} className="w-20 px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg text-sm" />
-                        <input type="number" placeholder="Offer Price" value={v.offerPrice === null ? '' : v.offerPrice} onChange={e => handleVariantChange(i, 'offerPrice', e.target.value === '' ? null : parseFloat(e.target.value))} className="w-24 px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg text-sm" />
-                        <button type="button" onClick={() => setVariants(variants.filter((_, idx) => idx !== i))} className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                      <div key={i} className="flex gap-2 items-center w-full">
+                        <input type="text" placeholder="e.g. Half" value={v.name} onChange={e => handleVariantChange(i, 'name', e.target.value)} className="flex-[2] min-w-[80px] px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg text-sm" />
+                        <input type="number" placeholder="Price" value={v.price} onChange={e => handleVariantChange(i, 'price', parseFloat(e.target.value) || 0)} className="flex-1 min-w-[70px] px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg text-sm" />
+                        <input type="number" placeholder="Offer Price" value={v.offerPrice === null ? '' : v.offerPrice} onChange={e => handleVariantChange(i, 'offerPrice', e.target.value === '' ? null : parseFloat(e.target.value))} className="flex-1 min-w-[70px] px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg text-sm" />
+                        <button type="button" onClick={() => setVariants(variants.filter((_, idx) => idx !== i))} className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded shrink-0">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -276,14 +312,16 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <div className="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-800 sticky bottom-0 bg-white dark:bg-neutral-900 pb-2 z-10">
               <button type="submit" disabled={isSubmitting} className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-8 rounded-lg disabled:opacity-50">
                 {isSubmitting ? 'Saving...' : 'Save Product'}
               </button>
             </div>
           </form>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* List */}
       <div className="mb-4 flex flex-col sm:flex-row justify-end gap-4">
@@ -314,11 +352,12 @@ export default function ProductsPage() {
             <table className="w-full text-left text-sm whitespace-nowrap min-w-[600px]">
               <thead className="bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400">
                 <tr>
-                  <th className="px-6 py-4 font-medium">Name</th>
-                  <th className="px-6 py-4 font-medium">Category</th>
-                  <th className="px-6 py-4 font-medium">Price</th>
-                  <th className="px-6 py-4 font-medium text-center">Trending</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Category</th>
+                  <th className="px-4 py-2.5 font-medium">Price</th>
+                  <th className="px-4 py-2.5 font-medium text-center">Status</th>
+                  <th className="px-4 py-2.5 font-medium text-center">Trending</th>
+                  <th className="px-4 py-2.5 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -327,7 +366,7 @@ export default function ProductsPage() {
                   .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(p => (
                   <tr key={p.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
-                    <td className="px-6 py-4 font-medium">
+                    <td className="px-4 py-2.5 font-medium">
                       <div className="flex items-center gap-2">
                         {p.name}
                         {p.dietaryPreference === 'VEG' && <span className="inline-block w-3 h-3 border border-green-600 rounded-sm flex items-center justify-center"><span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span></span>}
@@ -336,8 +375,8 @@ export default function ProductsPage() {
                         {p.isSpicy && <span title="Spicy">🌶️</span>}
                       </div>
                     </td>
-                    <td className="px-6 py-4">{p.category?.name || '-'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">{p.category?.name || '-'}</td>
+                    <td className="px-4 py-2.5">
                       {p.offerPrice ? (
                         <div className="flex items-center gap-2">
                           <span className="text-orange-600 font-bold">₹{p.offerPrice}</span>
@@ -347,7 +386,16 @@ export default function ProductsPage() {
                         <span>₹{p.basePrice}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-2.5 text-center">
+                      <button
+                        onClick={() => handleToggleStatus(p)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 ${p.isActive ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                        title={p.isActive ? 'Available' : 'Unavailable'}
+                      >
+                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${p.isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+                      </button>
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
                       {p.isTrending ? (
                         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600">
                           <Star className="w-3 h-3 fill-emerald-600" />
@@ -356,7 +404,7 @@ export default function ProductsPage() {
                         <span className="text-neutral-300">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => handleEdit(p)}

@@ -15,6 +15,7 @@ interface Product {
   categoryId: string; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN'; isSpicy: boolean;
   variants: Variant[];
   images: { url: string }[];
+  isActive: boolean;
 }
 
 export default function Home() {
@@ -45,8 +46,12 @@ export default function Home() {
         if (catRes.ok) setCategories(await catRes.json());
         else setCategories([]);
 
-        if (prodRes.ok) setProducts(await prodRes.json());
-        else setProducts([]);
+        if (prodRes.ok) {
+          const allProducts = await prodRes.json();
+          setProducts(allProducts.filter((p: any) => p.isActive));
+        } else {
+          setProducts([]);
+        }
 
         if (setRes.ok) {
           setSettings(await setRes.json());

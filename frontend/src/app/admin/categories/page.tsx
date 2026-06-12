@@ -151,25 +151,25 @@ export default function CategoriesPage() {
               <table className="w-full text-left text-sm whitespace-nowrap min-w-[500px]">
                 <thead className="bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400">
                   <tr>
-                    <th className="px-6 py-4 font-medium">Order</th>
-                    <th className="px-6 py-4 font-medium">Image</th>
-                    <th className="px-6 py-4 font-medium">Name</th>
-                    <th className="px-6 py-4 font-medium text-right">Actions</th>
+                    <th className="px-4 py-2.5 font-medium">Order</th>
+                    <th className="px-4 py-2.5 font-medium">Image</th>
+                    <th className="px-4 py-2.5 font-medium">Name</th>
+                    <th className="px-4 py-2.5 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                   {categories.map(cat => (
                     <tr key={cat.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                      <td className="px-6 py-4">{cat.order}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">{cat.order}</td>
+                      <td className="px-4 py-2.5">
                         {cat.imageUrl ? (
                           <img src={cat.imageUrl} alt={cat.name} className="w-10 h-10 object-cover rounded-md" />
                         ) : (
                           <div className="w-10 h-10 bg-neutral-100 dark:bg-neutral-800 rounded-md flex items-center justify-center text-xs text-neutral-400">N/A</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 font-medium">{cat.name}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-2.5 font-medium">{cat.name}</td>
+                      <td className="px-4 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => handleEdit(cat)}
