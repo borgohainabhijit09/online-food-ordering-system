@@ -21,7 +21,7 @@ export default function SuperAdminTenants() {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('superAdminToken');
       
       const [tenantsRes, packagesRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants`, {
@@ -55,7 +55,7 @@ export default function SuperAdminTenants() {
 
   const handleImpersonate = async (tenantId: string) => {
     try {
-      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('superAdminToken');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}/impersonate`, {
         method: 'POST',
         headers: {
@@ -85,7 +85,7 @@ export default function SuperAdminTenants() {
     if (!editingTenant) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('superAdminToken');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${editingTenant.id}`, {
         method: 'PATCH',
         headers: {
@@ -348,3 +348,4 @@ export default function SuperAdminTenants() {
     </div>
   );
 }
+

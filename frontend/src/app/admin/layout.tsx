@@ -36,15 +36,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       window.history.replaceState(null, '', pathname);
     }
 
+    // Safety: if super admin mode is set but we're in /admin, clear stale SA token from adminToken
+    if (localStorage.getItem('superAdminMode') === 'true') {
+      localStorage.removeItem('superAdminMode');
+    }
+
     const token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken');
-    if (!token && pathname !== '/admin/login') {
-      router.push('/admin/login');
-    } else if (token) {
+    if (!token) {
+      if (pathname !== '/admin/login') router.push('/admin/login');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+
+      // A SUPER_ADMIN token in adminToken is a leftover — remove it and send to login
+      if (payload.role === 'SUPER_ADMIN') {
+        localStorage.removeItem('adminToken');
+        if (pathname !== '/admin/login') router.push('/admin/login');
+        return;
+      }
+
+      // Regular users without a selected store should re-login
+      if (!payload.tenantId && !payload.tenantSlug) {
+        router.push('/admin/login');
+        return;
+      }
+
+      // Valid tenant session — proceed
+      if (payload.tenantSlug) setTenantSlug(payload.tenantSlug);
       setIsAuthenticated(true);
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.tenantSlug) setTenantSlug(payload.tenantSlug);
-      } catch (e) {}
 
       // Fetch Settings and Stores
       const fetchInitialData = async () => {
@@ -63,7 +85,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         } catch (e) {}
       };
       fetchInitialData();
+    } catch (e) {
+      // Token is malformed
+      router.push('/admin/login');
+      return;
     }
+
     setIsLoading(false);
   }, [pathname, router]);
 

@@ -28,7 +28,7 @@ export default function HealthDashboard() {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/bi/health`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -171,3 +171,4 @@ export default function HealthDashboard() {
     </div>
   );
 }
+

@@ -131,14 +131,17 @@ router.post('/tenants/:id/impersonate', async (req: SuperAdminRequest, res: Resp
     }
 
     // Find the first ADMIN of this tenant
-    const admin = await prisma.user.findFirst({
-      where: { tenantId, role: 'ADMIN' }
+    const adminAccess = await prisma.tenantAccess.findFirst({
+      where: { tenantId },
+      include: { user: true }
     });
 
-    if (!admin) {
-      res.status(404).json({ message: 'Tenant has no admin user' });
+    if (!adminAccess || !adminAccess.user) {
+      res.status(404).json({ message: 'Tenant has no assigned user' });
       return;
     }
+
+    const admin = adminAccess.user;
 
     const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
     const token = jwt.sign(
@@ -146,7 +149,7 @@ router.post('/tenants/:id/impersonate', async (req: SuperAdminRequest, res: Resp
         id: admin.id, 
         role: admin.role, 
         phone: admin.phone, 
-        tenantId: admin.tenantId, 
+        tenantId: tenantId, 
         tenantSlug: tenant.slug,
         isImpersonated: true 
       },

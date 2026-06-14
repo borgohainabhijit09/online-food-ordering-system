@@ -16,7 +16,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       return;
     }
 
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('superAdminToken');
     const isSuper = localStorage.getItem('superAdminMode');
     
     if (!token || isSuper !== 'true') {
@@ -33,7 +33,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
+    localStorage.removeItem('superAdminToken');
     localStorage.removeItem('superAdminMode');
     router.push('/super-admin/login');
   };
@@ -89,3 +89,4 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     </div>
   );
 }
+

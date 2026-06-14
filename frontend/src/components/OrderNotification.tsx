@@ -9,6 +9,22 @@ export function OrderNotification() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    const getTokenPayload = () => {
+      const token = localStorage.getItem('activeSessionToken') || localStorage.getItem('adminToken');
+      if (!token) return null;
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const payload = getTokenPayload();
+    if (!payload || !payload.tenantId) {
+      // Do not poll if there's no active tenant context (e.g. Super Admin or pending store selection)
+      return;
+    }
+
     // Create audio element for notification sound
     audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     

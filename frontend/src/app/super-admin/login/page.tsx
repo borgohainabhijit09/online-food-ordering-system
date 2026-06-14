@@ -30,7 +30,7 @@ export default function SuperAdminLogin() {
           setError('Access denied. Super Admin privileges required.');
           return;
         }
-        localStorage.setItem('adminToken', data.token); // Reusing the same token storage as it's an admin token conceptually
+        localStorage.setItem('superAdminToken', data.token);
         localStorage.setItem('superAdminMode', 'true');
         router.push('/super-admin');
       } else {
@@ -92,3 +92,4 @@ export default function SuperAdminLogin() {
     </div>
   );
 }
+

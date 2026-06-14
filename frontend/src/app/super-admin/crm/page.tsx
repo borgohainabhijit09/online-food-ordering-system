@@ -40,7 +40,7 @@ export default function CRMDashboard() {
 
   const fetchLeads = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -71,7 +71,7 @@ export default function CRMDashboard() {
     setLeads(leads.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
 
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken');
       await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads/${leadId}/status`, {
         method: 'PATCH',
         headers: { 
@@ -89,7 +89,7 @@ export default function CRMDashboard() {
   const handleSaveLead = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('superAdminToken');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads`, {
         method: 'POST',
         headers: { 
@@ -236,3 +236,4 @@ export default function CRMDashboard() {
     </div>
   );
 }
+
