@@ -42,3 +42,38 @@ export const getCustomers = async (req: TenantReq, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const getCustomerByPhone = async (req: TenantReq, res: Response, next: NextFunction) => {
+  try {
+    const { phone } = req.params;
+    // Strip leading code or let it be if user types differently, but usually it matches exactly.
+    const customer: any = await prisma.customer.findFirst({
+      where: { tenantId: req.tenantId as string, phone: phone as string },
+      include: {
+        orders: {
+          select: {
+            address: true,
+            latitude: true,
+            longitude: true
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+
+    const lastOrder = customer.orders[0];
+
+    res.status(200).json({
+      name: customer.name,
+      dob: customer.dob,
+      address: lastOrder?.address || ''
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -13,6 +13,7 @@ import settingsRoutes from './routes/settings.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import couponRoutes from './routes/coupon.routes';
 import customerRoutes from './routes/customer.routes';
+import tableRoutes from './routes/table.routes';
 import { errorHandler } from './middlewares/error.middleware';
 const app: Express = express();
 const port = process.env.PORT || 8000;
@@ -47,6 +48,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/tables', tableRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

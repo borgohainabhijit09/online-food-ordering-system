@@ -17,8 +17,10 @@ interface Order {
   customerName: string;
   phone: string;
   address: string;
+  orderType: 'DELIVERY' | 'TAKEAWAY' | 'DINE_IN';
+  table?: { tableNumber: string };
   total: number;
-  status: 'NEW' | 'ACCEPTED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+  status: 'NEW' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'SERVED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
   remarks?: string;
   createdAt: string;
   items: OrderItem[];
@@ -32,6 +34,7 @@ export default function OrdersPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
 
   useEffect(() => {
     fetchOrders();
@@ -68,6 +71,8 @@ export default function OrdersPage() {
       case 'NEW': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
       case 'ACCEPTED': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
       case 'PREPARING': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'READY': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'SERVED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
       case 'OUT_FOR_DELIVERY': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
       case 'DELIVERED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
       case 'CANCELLED': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
@@ -101,9 +106,24 @@ export default function OrdersPage() {
             <option value="NEW">New</option>
             <option value="ACCEPTED">Accepted</option>
             <option value="PREPARING">Preparing</option>
+            <option value="READY">Ready</option>
+            <option value="SERVED">Served</option>
             <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
             <option value="DELIVERED">Delivered</option>
             <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-neutral-500 mb-1">Order Type</label>
+          <select 
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+          >
+            <option value="ALL">All Types</option>
+            <option value="DELIVERY">Delivery</option>
+            <option value="TAKEAWAY">Takeaway</option>
+            <option value="DINE_IN">Dine In</option>
           </select>
         </div>
         <div>
@@ -124,9 +144,9 @@ export default function OrdersPage() {
             className="px-3 py-2 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none"
           />
         </div>
-        {(startDate || endDate || statusFilter !== 'ALL') && (
+        {(startDate || endDate || statusFilter !== 'ALL' || typeFilter !== 'ALL') && (
           <button 
-            onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('ALL'); }}
+            onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter('ALL'); setTypeFilter('ALL'); }}
             className="px-4 py-2 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors"
           >
             Clear Filters
@@ -155,6 +175,7 @@ export default function OrdersPage() {
                 {orders
                   .filter(order => {
                     if (statusFilter !== 'ALL' && order.status !== statusFilter) return false;
+                    if (typeFilter !== 'ALL' && order.orderType !== typeFilter) return false;
                     
                     if (startDate || endDate) {
                       const orderDate = new Date(order.createdAt);
@@ -182,9 +203,19 @@ export default function OrdersPage() {
                       <div className="text-xs text-neutral-500">{new Date(order.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="font-medium">{order.customerName}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {order.customerName}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 font-bold uppercase">
+                          {order.orderType.replace('_', ' ')}
+                        </span>
+                      </div>
                       <div className="text-sm text-neutral-500 mb-1">{order.phone}</div>
-                      <div className="text-xs text-neutral-500 max-w-xs truncate" title={order.address}>{order.address}</div>
+                      {order.orderType === 'DELIVERY' && (
+                        <div className="text-xs text-neutral-500 max-w-xs truncate" title={order.address}>{order.address}</div>
+                      )}
+                      {order.orderType === 'DINE_IN' && order.table && (
+                        <div className="text-xs text-blue-600 font-bold">Table {order.table.tableNumber}</div>
+                      )}
                       {order.remarks && (
                         <div className="mt-2 text-xs bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 p-2 rounded border border-orange-100 dark:border-orange-800/30">
                           <strong>Remarks:</strong> {order.remarks}
@@ -216,6 +247,8 @@ export default function OrdersPage() {
                           <option value="NEW">New</option>
                           <option value="ACCEPTED">Accept</option>
                           <option value="PREPARING">Preparing</option>
+                          <option value="READY">Ready</option>
+                          <option value="SERVED">Served</option>
                           <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
                           <option value="DELIVERED">Delivered</option>
                           <option value="CANCELLED">Cancel</option>

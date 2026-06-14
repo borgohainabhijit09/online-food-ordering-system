@@ -17,9 +17,9 @@ export const getCategories = async (req: TenantReq, res: Response, next: NextFun
 
 export const createCategory = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const { name, order, imageUrl } = req.body;
+    const { name, order, imageUrl, isActive } = req.body;
     const category = await prisma.category.create({
-      data: { name, order, imageUrl, tenantId: req.tenantId! },
+      data: { name, order, imageUrl, isActive: isActive !== undefined ? isActive : true, tenantId: req.tenantId! },
     });
     res.status(201).json(category);
   } catch (error) {
@@ -30,7 +30,7 @@ export const createCategory = async (req: TenantReq, res: Response, next: NextFu
 export const updateCategory = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { name, order, imageUrl } = req.body;
+    const { name, order, imageUrl, isActive } = req.body;
     
     // First verify it belongs to tenant
     const existing = await prisma.category.findFirst({ where: { id: id as string, tenantId: req.tenantId } });
@@ -38,7 +38,7 @@ export const updateCategory = async (req: TenantReq, res: Response, next: NextFu
 
     const category = await prisma.category.update({
       where: { id: id as string },
-      data: { name, order, imageUrl },
+      data: { name, order, imageUrl, isActive },
     });
     res.status(200).json(category);
   } catch (error) {

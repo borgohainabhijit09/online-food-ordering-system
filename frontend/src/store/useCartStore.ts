@@ -26,6 +26,8 @@ export interface AppliedCoupon {
   finalAmount: number;
 }
 
+export type OrderType = 'DELIVERY' | 'TAKEAWAY' | 'DINE_IN';
+
 interface CartState {
   items: CartItem[];
   addItem: (item: Omit<CartItem, 'id'>) => void;
@@ -39,6 +41,11 @@ interface CartState {
   appliedCoupon: AppliedCoupon | null;
   applyCoupon: (coupon: AppliedCoupon) => void;
   removeCoupon: () => void;
+  orderType: OrderType | null;
+  setOrderType: (type: OrderType) => void;
+  tableId: string | null;
+  tableNumber: string | null;
+  setTableInfo: (tableId: string | null, tableNumber: string | null) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -47,6 +54,12 @@ export const useCartStore = create<CartState>()(
       items: [],
       remarks: '',
       appliedCoupon: null,
+      orderType: null,
+      tableId: null,
+      tableNumber: null,
+      
+      setOrderType: (type) => set({ orderType: type }),
+      setTableInfo: (tableId, tableNumber) => set({ tableId, tableNumber }),
       
       applyCoupon: (coupon) => set({ appliedCoupon: coupon }),
       removeCoupon: () => set({ appliedCoupon: null }),

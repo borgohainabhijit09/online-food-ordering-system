@@ -9,6 +9,7 @@ interface Category {
   name: string;
   order: number;
   imageUrl?: string;
+  isActive: boolean;
 }
 
 export default function CategoriesPage() {
@@ -16,7 +17,7 @@ export default function CategoriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', order: 0, imageUrl: '' });
+  const [formData, setFormData] = useState({ name: '', order: 0, imageUrl: '', isActive: true });
 
   useEffect(() => {
     fetchCategories();
@@ -25,8 +26,12 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     try {
       const res = await apiClient.get('/api/categories');
-      const data = await res.json();
-      setCategories(data);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      } else {
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Failed to fetch categories', error);
     } finally {
@@ -48,7 +53,7 @@ export default function CategoriesPage() {
         : await apiClient.post('/api/categories', formData);
 
       if (res.ok) {
-        setFormData({ name: '', order: 0, imageUrl: '' });
+        setFormData({ name: '', order: 0, imageUrl: '', isActive: true });
         setEditingId(null);
         fetchCategories();
       }
@@ -63,7 +68,8 @@ export default function CategoriesPage() {
     setFormData({
       name: category.name,
       order: category.order,
-      imageUrl: category.imageUrl || ''
+      imageUrl: category.imageUrl || '',
+      isActive: category.isActive !== undefined ? category.isActive : true
     });
     setEditingId(category.id);
   };
@@ -75,6 +81,24 @@ export default function CategoriesPage() {
       fetchCategories();
     } catch (error) {
       console.error('Failed to delete category', error);
+    }
+  };
+
+  const handleToggleStatus = async (category: Category) => {
+    try {
+      // Just put the flipped isActive with the same details
+      const payload = {
+        name: category.name,
+        order: category.order,
+        imageUrl: category.imageUrl,
+        isActive: !category.isActive
+      };
+      const res = await apiClient.put(`/api/categories/${category.id}`, payload);
+      if (res.ok) {
+        fetchCategories();
+      }
+    } catch (error) {
+      console.error('Failed to toggle category status', error);
     }
   };
 
@@ -91,7 +115,7 @@ export default function CategoriesPage() {
             <h3 className="font-bold text-lg">{editingId ? 'Edit Category' : 'Add New Category'}</h3>
             {editingId && (
               <button 
-                onClick={() => { setEditingId(null); setFormData({ name: '', order: 0, imageUrl: '' }); }}
+                onClick={() => { setEditingId(null); setFormData({ name: '', order: 0, imageUrl: '', isActive: true }); }}
                 className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
               >
                 Cancel
@@ -129,6 +153,12 @@ export default function CategoriesPage() {
                 placeholder="https://example.com/image.jpg"
               />
             </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={formData.isActive} onChange={e => setFormData({ ...formData, isActive: e.target.checked })} className="rounded accent-orange-600 w-4 h-4" />
+                <span className="text-sm font-medium">Active (Visible)</span>
+              </label>
+            </div>
             <button 
               type="submit"
               disabled={isSubmitting}
@@ -154,6 +184,7 @@ export default function CategoriesPage() {
                     <th className="px-4 py-2.5 font-medium">Order</th>
                     <th className="px-4 py-2.5 font-medium">Image</th>
                     <th className="px-4 py-2.5 font-medium">Name</th>
+                    <th className="px-4 py-2.5 font-medium text-center">Status</th>
                     <th className="px-4 py-2.5 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
@@ -169,6 +200,15 @@ export default function CategoriesPage() {
                         )}
                       </td>
                       <td className="px-4 py-2.5 font-medium">{cat.name}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <button
+                          onClick={() => handleToggleStatus(cat)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900 ${cat.isActive ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                          title={cat.isActive ? 'Active' : 'Hidden'}
+                        >
+                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${cat.isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </button>
+                      </td>
                       <td className="px-4 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button 

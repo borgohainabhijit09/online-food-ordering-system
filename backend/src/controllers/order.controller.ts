@@ -6,10 +6,23 @@ interface TenantReq extends Request { tenantId?: string; }
 
 export const getOrders = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
+    const { tableId, status } = req.query;
+    const whereClause: any = { tenantId: req.tenantId };
+    
+    if (tableId) whereClause.tableId = tableId as string;
+    if (status) {
+      if (status === 'ACTIVE') {
+        whereClause.status = { notIn: ['DELIVERED', 'CANCELLED'] };
+      } else {
+        whereClause.status = status as string;
+      }
+    }
+
     const orders = await prisma.order.findMany({
-      where: { tenantId: req.tenantId },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
+        table: true,
         items: {
           include: { addons: true }
         }
@@ -27,6 +40,7 @@ export const getOrderById = async (req: TenantReq, res: Response, next: NextFunc
     const order = await prisma.order.findFirst({
       where: { id: id as string, tenantId: req.tenantId },
       include: {
+        table: true,
         items: {
           include: { addons: true }
         }
@@ -71,6 +85,14 @@ export const updateOrderStatus = async (req: TenantReq, res: Response, next: Nex
       data: { status }
     });
     
+    // Free the table if order is completed or cancelled
+    if (existing.tableId && (status === 'SERVED' || status === 'CANCELLED' || status === 'DELIVERED')) {
+      await prisma.restaurantTable.update({
+        where: { id: existing.tableId },
+        data: { status: 'AVAILABLE' }
+      });
+    }
+
     res.status(200).json(order);
   } catch (error) {
     next(error);
@@ -79,26 +101,31 @@ export const updateOrderStatus = async (req: TenantReq, res: Response, next: Nex
 
 export const createOrder = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const { customerName, phone, address, latitude, longitude, total, items, remarks, couponCode, dob } = req.body;
+    const { customerName, phone, address, latitude, longitude, total, items, remarks, couponCode, dob, orderType, tableId } = req.body;
 
     let finalTotal = total;
     let appliedDiscount = 0;
 
     // Validate Coupon Server-Side
     if (couponCode) {
+      const rawCartTotal = items.reduce((sum: number, item: any) => {
+        const addonTotal = item.addons?.reduce((a: number, addon: any) => a + addon.price, 0) || 0;
+        return sum + (item.price + addonTotal) * item.quantity;
+      }, 0);
+
       const couponResult = await validateCoupon({
         tenantId: req.tenantId!,
         couponCode,
         phone,
-        cartTotal: total
+        cartTotal: rawCartTotal
       });
 
       if (!couponResult.valid) {
         return res.status(400).json({ message: couponResult.message });
       }
 
-      finalTotal = couponResult.finalAmount!;
       appliedDiscount = couponResult.discountAmount!;
+      // Note: we don't overwrite finalTotal with couponResult.finalAmount because finalTotal includes delivery fees sent by frontend.
     }
 
     // Upsert Customer Profile
@@ -118,41 +145,95 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
       }
     });
 
-    const order = await prisma.order.create({
-      data: {
-        customerName,
-        phone,
-        address,
-        latitude,
-        longitude,
-        total: finalTotal,
-        couponCode: couponCode || null,
-        discountAmount: appliedDiscount,
-        remarks,
-        status: 'NEW',
-        tenant: { connect: { id: req.tenantId! } },
-        customer: { connect: { id: customer.id } },
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-            variant: item.variant,
-            addons: {
-              create: item.addons?.map((addon: any) => ({
-                addonName: addon.addonName,
-                price: addon.price
-              })) || []
-            }
-          }))
+    let existingActiveOrder = null;
+    if (orderType === 'DINE_IN' && tableId) {
+      existingActiveOrder = await prisma.order.findFirst({
+        where: {
+          tableId,
+          tenantId: req.tenantId!,
+          status: { notIn: ['DELIVERED', 'CANCELLED', 'SERVED'] }
         }
-      },
-      include: {
-        items: {
-          include: { addons: true }
+      });
+    }
+
+    let order;
+
+    if (existingActiveOrder) {
+      order = await prisma.order.update({
+        where: { id: existingActiveOrder.id },
+        data: {
+          total: existingActiveOrder.total + finalTotal,
+          discountAmount: (existingActiveOrder.discountAmount || 0) + appliedDiscount,
+          remarks: remarks ? (existingActiveOrder.remarks ? `${existingActiveOrder.remarks} | Appended: ${remarks}` : remarks) : existingActiveOrder.remarks,
+          status: 'NEW', // Alert kitchen of new items
+          items: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              variant: item.variant,
+              addons: {
+                create: item.addons?.map((addon: any) => ({
+                  addonName: addon.addonName,
+                  price: addon.price
+                })) || []
+              }
+            }))
+          }
+        },
+        include: {
+          items: {
+            include: { addons: true }
+          }
         }
-      }
-    });
+      });
+    } else {
+      order = await prisma.order.create({
+        data: {
+          customerName,
+          phone,
+          address,
+          latitude,
+          longitude,
+          orderType: orderType || 'DELIVERY',
+          table: tableId ? { connect: { id: tableId } } : undefined,
+          total: finalTotal,
+          couponCode: couponCode || null,
+          discountAmount: appliedDiscount,
+          remarks,
+          status: 'NEW',
+          tenant: { connect: { id: req.tenantId! } },
+          customer: { connect: { id: customer.id } },
+          items: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              variant: item.variant,
+              addons: {
+                create: item.addons?.map((addon: any) => ({
+                  addonName: addon.addonName,
+                  price: addon.price
+                })) || []
+              }
+            }))
+          }
+        },
+        include: {
+          items: {
+            include: { addons: true }
+          }
+        }
+      });
+    }
+
+    // Set table status to occupied if it's a new Dine-In order or appended
+    if (tableId && orderType === 'DINE_IN') {
+      await prisma.restaurantTable.update({
+        where: { id: tableId },
+        data: { status: 'OCCUPIED' }
+      });
+    }
 
     res.status(201).json(order);
   } catch (error) {

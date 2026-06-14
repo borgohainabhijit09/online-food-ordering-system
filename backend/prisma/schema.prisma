@@ -20,6 +20,8 @@ model Tenant {
   products       Product[]
   addons         Addon[]
   orders         Order[]
+  tables         RestaurantTable[]
+  events         RestaurantEvent[]
   settings       Settings?
   subscription   TenantSubscription?
   billingRecords BillingRecord[]
@@ -57,6 +59,7 @@ model Category {
   name     String
   imageUrl String?
   order    Int       @default(0)
+  isActive Boolean   @default(true)
   products Product[]
 
   tenantId String
@@ -150,9 +153,12 @@ model Order {
   customer       Customer?   @relation(fields: [customerId], references: [id])
   customerName   String
   phone          String
-  address        String
-  latitude       Float
-  longitude      Float
+  orderType      OrderType   @default(DELIVERY)
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  tableId        String?
+  table          RestaurantTable? @relation(fields: [tableId], references: [id])
   status         OrderStatus @default(NEW)
   total          Float
   remarks        String?
@@ -165,10 +171,18 @@ model Order {
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 }
 
+enum OrderType {
+  DELIVERY
+  TAKEAWAY
+  DINE_IN
+}
+
 enum OrderStatus {
   NEW
   ACCEPTED
   PREPARING
+  READY
+  SERVED
   OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
@@ -273,4 +287,49 @@ model Coupon {
   updatedAt      DateTime     @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model RestaurantTable {
+  id           String      @id @default(uuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  tableNumber  String
+  tableName    String?
+  capacity     Int         @default(4)
+  status       TableStatus @default(AVAILABLE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  orders       Order[]
+  events       RestaurantEvent[]
+
+  @@unique([tenantId, tableNumber])
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+}
+
+model RestaurantEvent {
+  id           String      @id @default(uuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  tableId      String
+  table        RestaurantTable @relation(fields: [tableId], references: [id])
+  type         EventType
+  status       EventStatus @default(PENDING)
+  createdAt    DateTime    @default(now())
+  resolvedAt   DateTime?
+}
+
+enum EventType {
+  CALL_WAITER
+  REQUEST_BILL
+}
+
+enum EventStatus {
+  PENDING
+  RESOLVED
 }

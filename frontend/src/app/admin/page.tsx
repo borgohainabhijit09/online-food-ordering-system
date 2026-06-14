@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { IndianRupee, ShoppingBag, CalendarDays, Calendar, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
+const COLORS = ['#ea580c', '#10b981', '#3b82f6'];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -69,9 +71,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* Trend Graphs */}
-      {stats?.trendData && stats.trendData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+      {/* Trend Graphs & Pie Chart */}
+      {stats && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
             <h3 className="text-lg font-bold mb-6">Order Trends (Last 6 Months)</h3>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -99,6 +102,49 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+            <h3 className="text-lg font-bold mb-6">Orders by Type</h3>
+            <div className="h-72 w-full flex items-center justify-center">
+              {stats.ordersByType && stats.ordersByType.some((d: any) => d.value > 0) ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.ordersByType}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {stats.ordersByType.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
+                      itemStyle={{ color: '#fff' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-neutral-500">No data available</div>
+              )}
+            </div>
+            <div className="flex justify-center gap-4 mt-4">
+              {stats.ordersByType?.map((entry: any, index: number) => (
+                <div key={entry.name} className="flex items-center gap-2 text-sm">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                  <span className="text-neutral-600 dark:text-neutral-400">{entry.name} ({entry.value})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revenue Graph */}
+      {stats?.trendData && stats.trendData.length > 0 && (
+        <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
             <h3 className="text-lg font-bold mb-6">Revenue Trends (Last 6 Months)</h3>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -124,7 +170,6 @@ export default function AdminDashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
         </div>
       )}
 

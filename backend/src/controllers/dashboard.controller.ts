@@ -25,7 +25,8 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
       ordersThisWeek,
       ordersThisMonth,
       sixMonthsOrders,
-      recentOrders
+      recentOrders,
+      ordersByTypeGroup
     ] = await Promise.all([
       prisma.order.findMany({
         where: { tenantId, createdAt: { gte: today } }
@@ -44,6 +45,11 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
         where: { tenantId },
         take: 5,
         orderBy: { createdAt: 'desc' }
+      }),
+      prisma.order.groupBy({
+        by: ['orderType'],
+        where: { tenantId },
+        _count: { id: true }
       })
     ]);
 
@@ -76,13 +82,20 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
 
     const trendData = Array.from(trendMap.entries()).map(([name, data]) => ({ name, ...data }));
 
+    const ordersByType = [
+      { name: 'Delivery', value: ordersByTypeGroup?.find((g: any) => g.orderType === 'DELIVERY')?._count.id || 0 },
+      { name: 'Takeaway', value: ordersByTypeGroup?.find((g: any) => g.orderType === 'TAKEAWAY')?._count.id || 0 },
+      { name: 'Dine In', value: ordersByTypeGroup?.find((g: any) => g.orderType === 'DINE_IN')?._count.id || 0 }
+    ];
+
     res.status(200).json({
       revenueToday,
       ordersToday: todaysOrders.length,
       ordersThisWeek,
       ordersThisMonth,
       trendData,
-      recentOrders
+      recentOrders,
+      ordersByType
     });
   } catch (error) {
     next(error);

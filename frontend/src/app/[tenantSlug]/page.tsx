@@ -6,8 +6,10 @@ import { Search, MapPin, Clock, Phone, ChevronRight, Star, Plus, MessageCircle, 
 import Image from 'next/image';
 import { ProductDrawer } from '../../components/ProductDrawer';
 import { ScrollToTop } from '../../components/ScrollToTop';
+import { CallWaiterButton } from '../../components/CallWaiterButton';
 import { useCartStore } from '../../store/useCartStore';
 import { apiClient } from '../../lib/apiClient';
+import { Coffee } from 'lucide-react';
 
 interface Variant { id: string; name: string; price: number; offerPrice?: number | null; }
 interface Product {
@@ -28,6 +30,8 @@ export default function Home() {
   const [isSpicyFilter, setIsSpicyFilter] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
+  const { orderType, setOrderType, setTableInfo, tableNumber } = useCartStore();
+
   const [categories, setCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<any>(null);
@@ -43,8 +47,12 @@ export default function Home() {
           apiClient.get('/api/products'),
           apiClient.get('/api/settings')
         ]);
-        if (catRes.ok) setCategories(await catRes.json());
-        else setCategories([]);
+        if (catRes.ok) {
+          const allCategories = await catRes.json();
+          setCategories(allCategories.filter((c: any) => c.isActive !== false));
+        } else {
+          setCategories([]);
+        }
 
         if (prodRes.ok) {
           const allProducts = await prodRes.json();
@@ -64,6 +72,15 @@ export default function Home() {
     };
     fetchData();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableParam = urlParams.get('table');
+    if (tableParam) {
+      setOrderType('DINE_IN');
+      setTableInfo(null, tableParam);
+    } else if (!useCartStore.getState().orderType) {
+      setOrderType('DELIVERY');
+    }
+
     // Check for active order
     const savedOrderId = localStorage.getItem('activeOrderId');
     if (savedOrderId) {
@@ -80,6 +97,8 @@ export default function Home() {
   const cartTotal = useCartStore(state => state.getTotalPrice());
 
   const restaurantName = settings?.restaurantName || 'Loading...';
+
+
 
   return (
     <div className="">
@@ -135,6 +154,42 @@ export default function Home() {
             </a>
           </div>
         </div>
+        
+        {/* Order Type Toggle Tabs */}
+        {isMounted && !tableNumber && (
+          <div className="bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800 py-3 px-4 shadow-sm">
+            <div className="max-w-5xl mx-auto flex bg-neutral-100 dark:bg-neutral-900 p-1 rounded-xl">
+              <button
+                onClick={() => setOrderType('DELIVERY')}
+                className={`flex-1 flex flex-col items-center justify-center py-2 text-xs font-bold rounded-lg transition-all ${orderType === 'DELIVERY' || !orderType ? 'bg-white dark:bg-neutral-800 shadow-sm text-orange-600 dark:text-orange-500' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+              >
+                <MapPin className="w-5 h-5 mb-1" /> Delivery
+              </button>
+              <button
+                onClick={() => setOrderType('TAKEAWAY')}
+                className={`flex-1 flex flex-col items-center justify-center py-2 text-xs font-bold rounded-lg transition-all ${orderType === 'TAKEAWAY' ? 'bg-white dark:bg-neutral-800 shadow-sm text-emerald-600 dark:text-emerald-500' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+              >
+                <Clock className="w-5 h-5 mb-1" /> Takeaway
+              </button>
+              <button
+                onClick={() => setOrderType('DINE_IN')}
+                className={`flex-1 flex flex-col items-center justify-center py-2 text-xs font-bold rounded-lg transition-all ${orderType === 'DINE_IN' ? 'bg-white dark:bg-neutral-800 shadow-sm text-blue-600 dark:text-blue-500' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+              >
+                <Coffee className="w-5 h-5 mb-1" /> Dine-In
+              </button>
+            </div>
+          </div>
+        )}
+        {/* If tableNumber is set, just show Dine In fixed banner */}
+        {isMounted && tableNumber && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-t border-blue-100 dark:border-blue-900/50 py-2 px-4 text-sm">
+            <div className="max-w-5xl mx-auto w-full flex justify-center items-center">
+              <div className="flex items-center gap-2 font-medium text-blue-700 dark:text-blue-400">
+                <Coffee className="w-4 h-4" /> Dine In - Table {tableNumber}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-5xl mx-auto px-4 pt-6">
@@ -336,6 +391,7 @@ export default function Home() {
       </footer>
 
       <ScrollToTop />
+      <CallWaiterButton tenantSlug={tenantSlug} />
 
       <ProductDrawer
         isOpen={isDrawerOpen}

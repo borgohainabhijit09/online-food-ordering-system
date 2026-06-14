@@ -10,12 +10,19 @@ import Link from 'next/link';
 export default function CartPage() {
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
-  const { items, remarks, setRemarks, updateQuantity, removeItem, getTotalPrice, appliedCoupon, applyCoupon, removeCoupon } = useCartStore();
+  const { items, remarks, setRemarks, updateQuantity, removeItem, getTotalPrice, appliedCoupon, applyCoupon, removeCoupon, orderType } = useCartStore();
   const total = getTotalPrice();
+
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [couponInput, setCouponInput] = React.useState('');
   const [couponLoading, setCouponLoading] = React.useState(false);
   const [couponError, setCouponError] = React.useState<string | null>(null);
+  const [cartPhone, setCartPhone] = React.useState('');
   const [availableCoupons, setAvailableCoupons] = React.useState<any[]>([]);
   const [settings, setSettings] = React.useState<any>(null);
 
@@ -51,29 +58,18 @@ export default function CartPage() {
     const code = typeof codeToApply === 'string' ? codeToApply : couponInput;
     if (!code) return;
     
-    // Check if it's a first order coupon locally if it's in the list
-    const foundCoupon = availableCoupons.find(c => c.code === code);
-    if (foundCoupon?.firstOrderOnly) {
-      setCouponError("Please proceed to checkout to apply First Order coupons (requires phone verification).");
-      return;
-    }
-    
     setCouponLoading(true);
     setCouponError(null);
     try {
       const res = await apiClient.post('/api/coupons/validate', {
         couponCode: code,
-        phone: '', // Phone is collected at checkout
+        phone: cartPhone,
         cartTotal: getTotalPrice()
       });
       const data = await res.json();
       
       if (!res.ok || !data.valid) {
-        if (data.message?.includes('Phone')) {
-          setCouponError("Please proceed to checkout to apply this coupon (requires phone verification).");
-        } else {
-          setCouponError(data.message || 'Invalid coupon.');
-        }
+        setCouponError(data.message || 'Invalid coupon.');
       } else {
         applyCoupon({
           code: data.coupon.code,
@@ -91,8 +87,12 @@ export default function CartPage() {
   };
 
   const subtotal = appliedCoupon ? appliedCoupon.finalAmount : total;
-  const deliveryFee = settings?.hasDeliveryCharge ? (settings.deliveryChargeAmount || 0) : 0;
+  const deliveryFee = (settings?.hasDeliveryCharge && orderType === 'DELIVERY') ? (settings.deliveryChargeAmount || 0) : 0;
   const displayTotal = subtotal + deliveryFee;
+
+  if (!mounted) {
+    return null;
+  }
 
   if (items.length === 0) {
     return (
@@ -211,6 +211,27 @@ export default function CartPage() {
                   {couponLoading ? '...' : 'Apply'}
                 </button>
               </div>
+              {couponError?.toLowerCase().includes('phone') && (
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-neutral-500 mb-1">Phone number required for this coupon</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="tel" 
+                      value={cartPhone}
+                      onChange={(e) => setCartPhone(e.target.value)}
+                      placeholder="Enter mobile number" 
+                      className="flex-1 px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                    />
+                    <button 
+                      onClick={() => handleApplyCoupon()}
+                      disabled={!cartPhone || couponLoading}
+                      className="px-6 py-3 bg-orange-600 text-white font-bold rounded-xl disabled:opacity-50"
+                    >
+                      Verify
+                    </button>
+                  </div>
+                </div>
+              )}
               {couponError && <p className="text-red-500 text-sm mb-4">{couponError}</p>}
               
               {availableCoupons.length > 0 && (
@@ -240,7 +261,10 @@ export default function CartPage() {
                           </div>
                         </div>
                         <button 
-                          onClick={() => handleApplyCoupon(coupon.code)}
+                          onClick={() => {
+                            setCouponInput(coupon.code);
+                            handleApplyCoupon(coupon.code);
+                          }}
                           disabled={couponLoading}
                           className="text-orange-600 dark:text-orange-500 font-bold text-sm bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 px-4 py-2.5 rounded-lg transition-colors shrink-0 w-full sm:w-auto mt-2 sm:mt-0"
                         >
@@ -267,16 +291,18 @@ export default function CartPage() {
               <span>-₹{appliedCoupon.discountAmount}</span>
             </div>
           )}
-          {settings?.hasDeliveryCharge && settings.deliveryChargeAmount > 0 ? (
-            <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-              <span>Delivery Fee</span>
-              <span>₹{settings.deliveryChargeAmount}</span>
-            </div>
-          ) : (
-            <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
-              <span>Delivery Fee</span>
-              <span className="text-emerald-600 dark:text-emerald-500 font-medium">Free</span>
-            </div>
+          {orderType === 'DELIVERY' && (
+            settings?.hasDeliveryCharge && settings.deliveryChargeAmount > 0 ? (
+              <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+                <span>Delivery Fee</span>
+                <span>₹{settings.deliveryChargeAmount}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-neutral-600 dark:text-neutral-400 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+                <span>Delivery Fee</span>
+                <span className="text-emerald-600 dark:text-emerald-500 font-medium">Free</span>
+              </div>
+            )
           )}
           <div className="flex justify-between font-bold text-lg pt-1">
             <span>To Pay</span>
