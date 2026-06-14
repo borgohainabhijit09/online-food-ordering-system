@@ -11,6 +11,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [topItemsPeriod, setTopItemsPeriod] = useState<'1m' | '6m' | 'all'>('all');
+  const [ordersByTypePeriod, setOrdersByTypePeriod] = useState<'1m' | '6m' | 'all'>('all');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -103,13 +104,20 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
-            <h3 className="text-lg font-bold mb-6">Orders by Type</h3>
+            <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+              <h3 className="text-lg font-bold">Orders by Type</h3>
+              <div className="flex gap-2">
+                <button onClick={() => setOrdersByTypePeriod('1m')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${ordersByTypePeriod === '1m' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}>1 Month</button>
+                <button onClick={() => setOrdersByTypePeriod('6m')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${ordersByTypePeriod === '6m' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}>6 Months</button>
+                <button onClick={() => setOrdersByTypePeriod('all')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${ordersByTypePeriod === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}>All Time</button>
+              </div>
+            </div>
             <div className="h-72 w-full flex items-center justify-center">
-              {stats.ordersByType && stats.ordersByType.some((d: any) => d.value > 0) ? (
+              {stats.ordersByType?.[ordersByTypePeriod] && stats.ordersByType[ordersByTypePeriod].some((d: any) => d.value > 0) ? (
                 <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <PieChart>
                     <Pie
-                      data={stats.ordersByType}
+                      data={stats.ordersByType[ordersByTypePeriod]}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
@@ -117,13 +125,14 @@ export default function AdminDashboard() {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {stats.ordersByType.map((entry: any, index: number) => (
+                      {stats.ordersByType[ordersByTypePeriod].map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
                       itemStyle={{ color: '#fff' }}
+                      formatter={(value: any, name: any, props: any) => [`${value} Orders (₹${props.payload.revenue.toLocaleString()})`, name]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -131,11 +140,14 @@ export default function AdminDashboard() {
                 <div className="text-neutral-500">No data available</div>
               )}
             </div>
-            <div className="flex justify-center gap-4 mt-4">
-              {stats.ordersByType?.map((entry: any, index: number) => (
-                <div key={entry.name} className="flex items-center gap-2 text-sm">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
-                  <span className="text-neutral-600 dark:text-neutral-400">{entry.name} ({entry.value})</span>
+            <div className="flex justify-center flex-wrap gap-4 mt-4">
+              {stats.ordersByType?.[ordersByTypePeriod]?.map((entry: any, index: number) => (
+                <div key={entry.name} className="flex flex-col items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                    <span className="text-neutral-600 dark:text-neutral-400 font-medium">{entry.name}</span>
+                  </div>
+                  <span className="text-xs text-neutral-500 mt-1">{entry.value} (₹{entry.revenue.toLocaleString()})</span>
                 </div>
               ))}
             </div>
