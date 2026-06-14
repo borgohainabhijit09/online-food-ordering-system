@@ -220,7 +220,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </nav>
         
-        <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
+        <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
+          {tenantSlug && (
+            <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 border border-neutral-200 dark:border-neutral-800">
+              <p className="text-[10px] font-bold uppercase text-neutral-400 mb-1.5 tracking-wider">Your Store Link</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 truncate flex-1">/{tenantSlug}</span>
+                <button onClick={handleCopyLink} className="p-1.5 text-neutral-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors shrink-0" title="Copy link">
+                  {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                <Link href={`/${tenantSlug}`} target="_blank" className="p-1.5 text-neutral-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors shrink-0" title="Visit store">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          )}
           <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 w-full text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors">
             <LogOut className="w-4 h-4" />
             <span className="font-medium">Log out</span>
@@ -231,36 +245,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden w-full">
         {/* Top Header */}
-        <header className="h-14 flex items-center justify-between px-4 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
-          <div className="flex items-center gap-3 md:hidden">
+        <header className="h-14 flex items-center px-4 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 shrink-0 gap-2">
+          {/* Left: Hamburger + Admin (mobile only) */}
+          <div className="flex items-center gap-2 md:hidden shrink-0">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
               className="p-2 -ml-2 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5" />
             </button>
-            <span className="font-bold tracking-tight">Admin</span>
           </div>
-          <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm overflow-hidden">
+
+          {/* Center: Store URL */}
+          {tenantSlug && (
+            <div className="hidden sm:flex items-center gap-1 md:gap-2 bg-neutral-100 dark:bg-neutral-900 py-1 md:py-1.5 px-2 md:px-3 rounded-full border border-neutral-200 dark:border-neutral-800 text-xs md:text-sm min-w-0">
+              <span className="hidden md:inline text-neutral-500 dark:text-neutral-400 shrink-0">Store URL:</span>
+              <Link href={`/${tenantSlug}`} target="_blank" className="font-medium hover:text-orange-600 transition-colors flex items-center gap-1 min-w-0">
+                <span className="truncate">/{tenantSlug}</span> <ExternalLink className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
+              </Link>
+              <button onClick={handleCopyLink} className="ml-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors shrink-0" title="Copy link">
+                {copied ? <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-emerald-500" /> : <Copy className="w-3 h-3 md:w-4 md:h-4" />}
+              </button>
+            </div>
+          )}
+
+          {/* Right: Store Switcher + Avatar */}
+          <div className="ml-auto flex items-center gap-2 md:gap-4 shrink-0">
+            {/* Mobile-only: small store link icon */}
             {tenantSlug && (
-              <div className="flex items-center gap-1 md:gap-2 bg-neutral-100 dark:bg-neutral-900 py-1 md:py-1.5 px-2 md:px-3 rounded-full border border-neutral-200 dark:border-neutral-800 shrink max-w-[140px] sm:max-w-none">
-                <span className="hidden md:inline text-neutral-500 dark:text-neutral-400">Store URL:</span>
-                <Link href={`/${tenantSlug}`} target="_blank" className="font-medium hover:text-orange-600 transition-colors flex items-center gap-1 truncate">
-                  <span className="truncate">/{tenantSlug}</span> <ExternalLink className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
-                </Link>
-                <button onClick={handleCopyLink} className="ml-1 md:ml-2 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors shrink-0" title="Copy link">
-                  {copied ? <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-emerald-500" /> : <Copy className="w-3 h-3 md:w-4 md:h-4" />}
-                </button>
-              </div>
+              <Link href={`/${tenantSlug}`} target="_blank" className="sm:hidden p-2 text-neutral-500 hover:text-orange-600 transition-colors" title={`Visit /${tenantSlug}`}>
+                <ExternalLink className="w-4 h-4" />
+              </Link>
             )}
-          </div>
-          <div className="ml-auto flex items-center gap-4">
             {availableStores.length > 1 && (
               <div className="relative flex items-center">
                 {isSwitching && <Loader2 className="w-4 h-4 mr-2 animate-spin text-orange-500 absolute -left-6" />}
                 <select
                   disabled={isSwitching}
-                  className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-500"
+                  className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs md:text-sm rounded-lg px-2 md:px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-500 max-w-[120px] md:max-w-none"
                   value={availableStores.find(s => s.slug === tenantSlug)?.id || ''}
                   onChange={(e) => handleSwitchStore(e.target.value)}
                 >
@@ -272,7 +294,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </select>
               </div>
             )}
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0 text-sm">
               A
             </div>
           </div>
