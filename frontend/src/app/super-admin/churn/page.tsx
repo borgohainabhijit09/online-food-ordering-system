@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, AlertCircle, Calendar, MessageSquare, PhoneCall } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Calendar, MessageSquare, PhoneCall, HeartPulse } from 'lucide-react';
 
 interface ChurnData {
   id: string;
