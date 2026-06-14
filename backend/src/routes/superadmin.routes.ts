@@ -222,4 +222,50 @@ router.get('/billing', async (req: SuperAdminRequest, res: Response) => {
   }
 });
 
+// Get Tenant Performance
+router.get('/performance', async (req: SuperAdminRequest, res: Response) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      select: {
+        id: true,
+        businessName: true,
+        slug: true,
+        orders: {
+          where: { status: { not: 'CANCELLED' } },
+          select: {
+            id: true,
+            total: true,
+            orderType: true
+          }
+        }
+      }
+    });
+
+    const performance = tenants.map(t => {
+      const totalOrders = t.orders.length;
+      const totalRevenue = t.orders.reduce((sum, o) => sum + o.total, 0);
+      const deliveryOrders = t.orders.filter(o => o.orderType === 'DELIVERY').length;
+      const takeawayOrders = t.orders.filter(o => o.orderType === 'TAKEAWAY').length;
+      const dineInOrders = t.orders.filter(o => o.orderType === 'DINE_IN').length;
+      
+      return {
+        id: t.id,
+        businessName: t.businessName,
+        slug: t.slug,
+        totalOrders,
+        totalRevenue,
+        source: {
+          delivery: deliveryOrders,
+          takeaway: takeawayOrders,
+          dineIn: dineInOrders
+        }
+      };
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+    res.json(performance);
+  } catch (err: any) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 export default router;

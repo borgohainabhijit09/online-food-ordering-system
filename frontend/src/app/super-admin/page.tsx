@@ -54,7 +54,7 @@ export default function SuperAdminDashboard() {
             </div>
             <div>
               <div className="text-sm text-neutral-500 font-medium">Total Businesses</div>
-              <div className="text-2xl font-bold">{stats.totalTenants}</div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.totalTenants}</div>
             </div>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function SuperAdminDashboard() {
             </div>
             <div>
               <div className="text-sm text-neutral-500 font-medium">Monthly Revenue</div>
-              <div className="text-2xl font-bold">₹{Number(stats.mrr || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold text-neutral-900">₹{Number(stats.mrr || 0).toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function SuperAdminDashboard() {
             </div>
             <div>
               <div className="text-sm text-neutral-500 font-medium">Active Subs</div>
-              <div className="text-2xl font-bold">{stats.activeSubsCount}</div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.activeSubsCount}</div>
             </div>
           </div>
         </div>

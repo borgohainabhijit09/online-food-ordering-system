@@ -32,9 +32,13 @@ app.get('/', (req: Request, res: Response) => {
 import { resolveTenant } from './middlewares/tenant.middleware';
 
 import superadminRoutes from './routes/superadmin.routes';
+import biRoutes from './routes/bi.routes';
+import leadsRoutes from './routes/leads.routes';
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/super-admin/bi', biRoutes);
+app.use('/api/super-admin/leads', leadsRoutes);
 app.use('/api/super-admin', superadminRoutes);
 
 // Apply Tenant Resolution for all business routes

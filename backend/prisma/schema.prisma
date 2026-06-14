@@ -40,6 +40,7 @@ model User {
 
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
+  lastLoginAt DateTime?
 }
 
 enum Role {
@@ -236,6 +237,7 @@ model SubscriptionPackage {
 
 enum SubscriptionStatus {
   ACTIVE
+  TRIAL
   PAST_DUE
   CANCELLED
 }
@@ -333,4 +335,30 @@ enum EventType {
 enum EventStatus {
   PENDING
   RESOLVED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  DEMO_SCHEDULED
+  DEMO_COMPLETED
+  TRIAL_STARTED
+  PAID_CUSTOMER
+  LOST
+}
+
+model Lead {
+  id               String     @id @default(uuid())
+  restaurantName   String
+  ownerName        String
+  phone            String
+  email            String?
+  city             String?
+  source           String?
+  assignedTo       String?
+  status           LeadStatus @default(NEW)
+  notes            String?
+  nextFollowUpDate DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 }
