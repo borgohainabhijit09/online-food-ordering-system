@@ -14,7 +14,7 @@ export function CallWaiterButton({ tenantSlug }: { tenantSlug: string }) {
     setLoadingAction(action);
     try {
       const endpoint = action === 'CALL_WAITER' ? '/api/tables/call-waiter' : '/api/tables/request-bill';
-      const res = await apiClient.post(endpoint, { tableNumber }, tenantSlug);
+      const res = await apiClient.post(endpoint, { tableNumber });
       
       if (res.ok) {
         setSuccessAction(action);
