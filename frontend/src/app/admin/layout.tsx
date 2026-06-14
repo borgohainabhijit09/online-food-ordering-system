@@ -16,6 +16,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [copied, setCopied] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+  
+  // Store switcher state
+  const [availableStores, setAvailableStores] = useState<any[]>([]);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   // Close mobile menu when pathname changes
   useEffect(() => {
@@ -42,19 +46,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (payload.tenantSlug) setTenantSlug(payload.tenantSlug);
       } catch (e) {}
 
-      // Fetch Settings
-      const fetchSettings = async () => {
+      // Fetch Settings and Stores
+      const fetchInitialData = async () => {
         try {
-          const res = await apiClient.get('/api/settings');
-          if (res.ok) {
-            setSettings(await res.json());
+          const [settingsRes, storesRes] = await Promise.all([
+            apiClient.get('/api/settings'),
+            apiClient.get('/api/auth/me/stores')
+          ]);
+          
+          if (settingsRes.ok) {
+            setSettings(await settingsRes.json());
+          }
+          if (storesRes.ok) {
+            setAvailableStores(await storesRes.json());
           }
         } catch (e) {}
       };
-      fetchSettings();
+      fetchInitialData();
     }
     setIsLoading(false);
   }, [pathname, router]);
+
+  const handleSwitchStore = async (newTenantId: string) => {
+    setIsSwitching(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/select-store`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ tenantId: newTenantId })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('adminToken', data.token);
+        window.location.reload(); // Reload the whole app to clear React state and fetch new store data
+      }
+    } catch (e) {
+      console.error('Failed to switch store', e);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
 
   const handleLogout = () => {
     if (sessionStorage.getItem('impersonatedToken')) {
@@ -192,7 +228,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </div>
           <div className="ml-auto flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold">
+            {availableStores.length > 1 && (
+              <div className="relative flex items-center">
+                {isSwitching && <Loader2 className="w-4 h-4 mr-2 animate-spin text-orange-500 absolute -left-6" />}
+                <select
+                  disabled={isSwitching}
+                  className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-500"
+                  value={availableStores.find(s => s.slug === tenantSlug)?.id || ''}
+                  onChange={(e) => handleSwitchStore(e.target.value)}
+                >
+                  {availableStores.map(store => (
+                    <option key={store.id} value={store.id}>
+                      {store.businessName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0">
               A
             </div>
           </div>

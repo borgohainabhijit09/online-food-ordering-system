@@ -15,7 +15,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const user = await prisma.user.findUnique({ 
       where: { phone },
-      include: { tenant: true }
+      include: { tenantAccess: { include: { tenant: true } }, tenant: true }
     });
     
     if (!user || !user.password) {
@@ -32,22 +32,72 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       data: { lastLoginAt: new Date() }
     });
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, role: user.role, phone: user.phone, tenantId: user.tenantId, tenantSlug: user.tenant?.slug },
+    if (user.role === 'SUPER_ADMIN') {
+      const token = jwt.sign(
+        { id: user.id, role: user.role, phone: user.phone },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      return res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          phone: user.phone
+        }
+      });
+    }
+
+    const accessibleStores = user.tenantAccess.map(a => ({
+      id: a.tenant.id,
+      slug: a.tenant.slug,
+      businessName: a.tenant.businessName,
+      role: a.role
+    }));
+
+    if (accessibleStores.length === 0) {
+      return res.status(403).json({ message: 'User does not have access to any restaurants' });
+    }
+
+    if (accessibleStores.length === 1) {
+      const store = accessibleStores[0]!;
+      const token = jwt.sign(
+        { id: user.id, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      return res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          role: store.role,
+          phone: user.phone,
+          tenantId: store.id,
+          tenantSlug: store.slug
+        },
+        stores: accessibleStores
+      });
+    }
+
+    // Multiple stores: Issue partial token and prompt for selection
+    const partialToken = jwt.sign(
+      { id: user.id, phone: user.phone },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '1h' }
     );
 
-    res.status(200).json({
-      token,
+    return res.status(200).json({
+      partialToken,
+      requiresStoreSelection: true,
+      stores: accessibleStores,
       user: {
         id: user.id,
         name: user.name,
-        role: user.role,
-        phone: user.phone,
-        tenantId: user.tenantId,
-        tenantSlug: user.tenant?.slug
+        phone: user.phone
       }
     });
   } catch (error) {
@@ -74,15 +124,10 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
       return res.status(500).json({ message: 'Default subscription package not found in system.' });
     }
     
-    // Check if phone or email is already taken
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { phone } });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Phone number already registered.' });
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create Tenant, Admin User, and default Settings in one transaction
     const result = await prisma.$transaction(async (tx) => {
       const newTenant = await tx.tenant.create({
         data: {
@@ -93,13 +138,26 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
         }
       });
 
-      const newAdmin = await tx.user.create({
+      let adminUser = existingUser;
+      
+      if (!adminUser) {
+        adminUser = await tx.user.create({
+          data: {
+            name: ownerName,
+            phone,
+            password: hashedPassword,
+            role: 'ADMIN',
+            tenantId: newTenant.id // Keeping for backward compat
+          }
+        });
+      }
+
+      // Always create TenantAccess
+      await tx.tenantAccess.create({
         data: {
-          name: ownerName,
-          phone,
-          password: hashedPassword,
-          role: 'ADMIN',
-          tenantId: newTenant.id
+          userId: adminUser.id,
+          tenantId: newTenant.id,
+          role: 'ADMIN'
         }
       });
 
@@ -113,7 +171,6 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
         }
       });
 
-      // Assign default subscription package
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
@@ -126,11 +183,11 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
         }
       });
 
-      return { tenant: newTenant, admin: newAdmin };
+      return { tenant: newTenant, admin: adminUser };
     });
 
     const token = jwt.sign(
-      { id: result.admin.id, role: result.admin.role, phone: result.admin.phone, tenantId: result.admin.tenantId, tenantSlug: result.tenant.slug },
+      { id: result.admin.id, role: 'ADMIN', phone: result.admin.phone, tenantId: result.tenant.id, tenantSlug: result.tenant.slug },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -141,6 +198,79 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
       token
     });
 
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const selectStore = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    if (!decoded || !decoded.id) return res.status(401).json({ message: 'Invalid token' });
+
+    const { tenantId } = req.body;
+    if (!tenantId) return res.status(400).json({ message: 'tenantId is required' });
+
+    const access = await prisma.tenantAccess.findUnique({
+      where: { userId_tenantId: { userId: decoded.id, tenantId } },
+      include: { tenant: true, user: true }
+    });
+
+    if (!access || !access.tenant.isActive) {
+      return res.status(403).json({ message: 'Access denied or restaurant suspended' });
+    }
+
+    const newToken = jwt.sign(
+      { id: access.user.id, role: access.role, phone: access.user.phone, tenantId: access.tenant.id, tenantSlug: access.tenant.slug },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      token: newToken,
+      user: {
+        id: access.user.id,
+        name: access.user.name,
+        role: access.role,
+        phone: access.user.phone,
+        tenantId: access.tenant.id,
+        tenantSlug: access.tenant.slug
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStores = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userReq = req as any;
+    if (!userReq.user || !userReq.user.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const accesses = await prisma.tenantAccess.findMany({
+      where: { userId: userReq.user.id },
+      include: { tenant: true }
+    });
+
+    const stores = accesses.map(a => ({
+      id: a.tenant.id,
+      slug: a.tenant.slug,
+      businessName: a.tenant.businessName,
+      role: a.role
+    }));
+
+    res.status(200).json(stores);
   } catch (error) {
     next(error);
   }
