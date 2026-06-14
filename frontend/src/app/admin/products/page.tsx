@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Loader2, Image as ImageIcon, Star, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, Image as ImageIcon, Star, X, Upload, Download } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +18,7 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
   // Filter State
@@ -178,20 +179,28 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Products</h2>
-        <button 
-          onClick={() => {
-            if (showForm && editingId) {
-              // If we are editing and click "Add Product", we should switch to Create mode
-              resetForm();
-            } else {
-              setShowForm(!showForm);
-              if (!showForm) resetForm();
-            }
-          }}
-          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> Add Product
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowBulkUpload(true)}
+            className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" /> Bulk Upload
+          </button>
+          <button 
+            onClick={() => {
+              if (showForm && editingId) {
+                // If we are editing and click "Add Product", we should switch to Create mode
+                resetForm();
+              } else {
+                setShowForm(!showForm);
+                if (!showForm) resetForm();
+              }
+            }}
+            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -421,6 +430,117 @@ export default function ProductsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+      <BulkUploadModal 
+        isOpen={showBulkUpload} 
+        onClose={() => setShowBulkUpload(false)} 
+        onSuccess={() => { setShowBulkUpload(false); fetchData(); }} 
+      />
+    </div>
+  );
+}
+
+function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [result, setResult] = useState<{ imported: number, errors: number } | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleDownloadTemplate = () => {
+    const csvContent = "CategoryName,ProductName,Description,BasePrice,OfferPrice,DietaryPreference,IsSpicy,IsActive,ImageUrl\nMain Course,Butter Chicken,Creamy curry,350,,NON_VEG,FALSE,TRUE,";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'menu_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setIsUploading(true);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await apiClient.post('/api/products/bulk-upload', formData);
+      if (res.ok) {
+        const data = await res.json();
+        setResult(data);
+      } else {
+        alert('Upload failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-bold text-lg">Bulk Upload Menu</h3>
+          <button onClick={onClose} className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md"><X className="w-5 h-5"/></button>
+        </div>
+
+        {!result ? (
+          <div className="space-y-6">
+            <div className="text-sm text-neutral-600 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              Download the template, fill in your products, and upload the CSV file. Categories will be automatically created if they don't exist.
+            </div>
+
+            <button 
+              onClick={handleDownloadTemplate}
+              className="w-full flex items-center justify-center gap-2 py-2 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <Download className="w-4 h-4" /> Download CSV Template
+            </button>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Upload Completed CSV</label>
+              <input 
+                type="file" 
+                accept=".csv"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer border border-neutral-200 dark:border-neutral-800 rounded-lg p-2"
+              />
+            </div>
+
+            <button 
+              onClick={handleUpload}
+              disabled={!file || isUploading}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-medium disabled:opacity-50 flex justify-center items-center gap-2"
+            >
+              {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Upload & Import'}
+            </button>
+          </div>
+        ) : (
+          <div className="text-center space-y-4 py-4">
+            <div className="mx-auto w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+              <Upload className="w-6 h-6" />
+            </div>
+            <h4 className="text-xl font-bold">Import Complete!</h4>
+            <div className="text-neutral-600 dark:text-neutral-400">
+              Successfully imported <strong>{result.imported}</strong> products.
+              {result.errors > 0 && <p className="text-red-500 mt-2">Failed to import {result.errors} rows. Check if required fields were missing.</p>}
+            </div>
+            <button 
+              onClick={onSuccess}
+              className="mt-6 w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg font-medium"
+            >
+              Close & Refresh
+            </button>
           </div>
         )}
       </div>

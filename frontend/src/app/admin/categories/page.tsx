@@ -184,6 +184,7 @@ export default function CategoriesPage() {
                     <th className="px-4 py-2.5 font-medium">Order</th>
                     <th className="px-4 py-2.5 font-medium">Image</th>
                     <th className="px-4 py-2.5 font-medium">Name</th>
+                    <th className="px-4 py-2.5 font-medium">Products</th>
                     <th className="px-4 py-2.5 font-medium text-center">Status</th>
                     <th className="px-4 py-2.5 font-medium text-right">Actions</th>
                   </tr>
@@ -200,6 +201,7 @@ export default function CategoriesPage() {
                         )}
                       </td>
                       <td className="px-4 py-2.5 font-medium">{cat.name}</td>
+                      <td className="px-4 py-2.5 text-neutral-500">{cat._count?.products || 0}</td>
                       <td className="px-4 py-2.5 text-center">
                         <button
                           onClick={() => handleToggleStatus(cat)}

@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { Readable } from 'stream';
+import csvParser from 'csv-parser';
 import prisma from '../services/prisma';
 
 interface TenantReq extends Request { tenantId?: string; }
@@ -193,3 +195,76 @@ export const toggleProductStatus = async (req: TenantReq, res: Response, next: N
   }
 };
 
+export const bulkUploadProducts = async (req: TenantReq, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No CSV file uploaded' });
+    }
+
+    const results: any[] = [];
+    const stream = Readable.from(req.file.buffer.toString('utf-8'));
+    
+    stream
+      .pipe(csvParser())
+      .on('data', (data) => results.push(data))
+      .on('end', async () => {
+        let imported = 0;
+        let errors = 0;
+        
+        for (const row of results) {
+          try {
+            const categoryName = row.CategoryName?.trim();
+            const productName = row.ProductName?.trim();
+            const basePrice = parseFloat(row.BasePrice);
+            
+            if (!categoryName || !productName || isNaN(basePrice)) {
+              errors++;
+              continue;
+            }
+
+            // Find or create category
+            let category = await prisma.category.findFirst({
+              where: { name: { equals: categoryName, mode: 'insensitive' }, tenantId: req.tenantId! }
+            });
+            if (!category) {
+              category = await prisma.category.create({
+                data: {
+                  name: categoryName,
+                  tenant: { connect: { id: req.tenantId! } }
+                }
+              });
+            }
+
+            const offerPrice = row.OfferPrice ? parseFloat(row.OfferPrice) : null;
+            const isSpicy = row.IsSpicy?.toUpperCase() === 'TRUE';
+            const isActive = row.IsActive?.toUpperCase() !== 'FALSE';
+            const dietaryPreference = ['VEG', 'NON_VEG', 'VEGAN'].includes(row.DietaryPreference?.toUpperCase()) 
+              ? row.DietaryPreference.toUpperCase() : 'VEG';
+
+            await prisma.product.create({
+              data: {
+                name: productName,
+                description: row.Description || null,
+                basePrice,
+                offerPrice: isNaN(offerPrice as number) ? null : offerPrice,
+                isSpicy,
+                isActive,
+                dietaryPreference: dietaryPreference as 'VEG' | 'NON_VEG' | 'VEGAN',
+                category: { connect: { id: category.id } },
+                tenant: { connect: { id: req.tenantId! } },
+                images: row.ImageUrl ? { create: [{ url: row.ImageUrl }] } : undefined,
+                inventory: { create: { currentStock: 0, minimumStock: 5 } }
+              }
+            });
+            imported++;
+          } catch (e) {
+            console.error('Row import error:', e);
+            errors++;
+          }
+        }
+        res.status(200).json({ imported, errors });
+      });
+  } catch (error) {
+    next(error);
+  }
+};

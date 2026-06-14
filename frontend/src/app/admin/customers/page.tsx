@@ -19,6 +19,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Customer; direction: 'asc' | 'desc' } | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -38,38 +39,51 @@ export default function CustomersPage() {
     }
   };
 
-  // Calculate upcoming birthdays
+  // Calculate today's birthdays
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const thirtyDaysFromNow = new Date(today);
-  thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-  const upcomingBirthdays = customers.filter(c => {
+  const todaysBirthdays = customers.filter(c => {
     if (!c.dob) return false;
     const dob = new Date(c.dob);
-    const nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-    
-    // If birthday already passed this year, look at next year
-    if (nextBirthday < today) {
-      nextBirthday.setFullYear(today.getFullYear() + 1);
-    }
-
-    return nextBirthday >= today && nextBirthday <= thirtyDaysFromNow;
-  }).sort((a, b) => {
-    const dobA = new Date(a.dob!);
-    const dobB = new Date(b.dob!);
-    const nextA = new Date(today.getFullYear(), dobA.getMonth(), dobA.getDate());
-    const nextB = new Date(today.getFullYear(), dobB.getMonth(), dobB.getDate());
-    if (nextA < today) nextA.setFullYear(today.getFullYear() + 1);
-    if (nextB < today) nextB.setFullYear(today.getFullYear() + 1);
-    return nextA.getTime() - nextB.getTime();
+    return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
   });
 
-  const filteredCustomers = customers.filter(c => 
+  const handleSort = (key: keyof Customer) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  let sortedCustomers = [...customers];
+  if (sortConfig !== null) {
+    sortedCustomers.sort((a, b) => {
+      let aVal: any = a[sortConfig.key];
+      let bVal: any = b[sortConfig.key];
+      
+      // Handle nulls
+      if (aVal === null) aVal = '';
+      if (bVal === null) bVal = '';
+
+      if (aVal < bVal) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aVal > bVal) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }
+
+  const filteredCustomers = sortedCustomers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.phone.includes(searchTerm)
   );
+
+  const threeMonthsAgo = new Date(today);
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -88,14 +102,14 @@ export default function CustomersPage() {
         </div>
       ) : (
         <>
-          {/* Upcoming Birthdays Widget */}
+          {/* Today's Birthdays Widget */}
           <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-200 dark:border-orange-900/50 rounded-2xl p-6">
             <h2 className="text-lg font-bold text-orange-800 dark:text-orange-400 mb-4 flex items-center gap-2">
-              <Gift className="w-5 h-5" /> Upcoming Birthdays (Next 30 Days)
+              <Gift className="w-5 h-5" /> Today's Birthdays
             </h2>
-            {upcomingBirthdays.length > 0 ? (
+            {todaysBirthdays.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {upcomingBirthdays.map(c => {
+                {todaysBirthdays.map(c => {
                   const dob = new Date(c.dob!);
                   return (
                     <div key={c.id} className="bg-white dark:bg-neutral-900 border border-orange-100 dark:border-orange-900/30 p-4 rounded-xl shadow-sm">
@@ -123,7 +137,7 @@ export default function CustomersPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-orange-700/70 dark:text-orange-500/70">No upcoming birthdays in the next 30 days.</p>
+              <p className="text-sm text-orange-700/70 dark:text-orange-500/70">No birthdays today.</p>
             )}
           </div>
 
@@ -146,17 +160,33 @@ export default function CustomersPage() {
               <table className="w-full text-left text-sm">
                 <thead className="bg-neutral-50 dark:bg-neutral-950/50 text-neutral-500 dark:text-neutral-400 font-medium">
                   <tr>
-                    <th className="px-4 py-2.5">Customer</th>
-                    <th className="px-4 py-2.5">Phone</th>
-                    <th className="px-4 py-2.5">Birthday</th>
-                    <th className="px-4 py-2.5">Total Orders</th>
-                    <th className="px-4 py-2.5">Lifetime Spend</th>
-                    <th className="px-4 py-2.5">Last Order</th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('name')}>
+                      Customer {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('phone')}>
+                      Phone {sortConfig?.key === 'phone' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('dob')}>
+                      Birthday {sortConfig?.key === 'dob' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('totalOrders')}>
+                      Total Orders {sortConfig?.key === 'totalOrders' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('lifetimeSpend')}>
+                      Lifetime Spend {sortConfig?.key === 'lifetimeSpend' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('lastOrderDate')}>
+                      Last Order {sortConfig?.key === 'lastOrderDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                   {filteredCustomers.length > 0 ? (
-                    filteredCustomers.map((customer) => (
+                    filteredCustomers.map((customer) => {
+                      const isInactive = customer.lastOrderDate ? new Date(customer.lastOrderDate) < threeMonthsAgo : true;
+                      
+                      return (
                       <tr key={customer.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                         <td className="px-4 py-2.5 font-medium text-neutral-900 dark:text-white">
                           {customer.name}
@@ -179,11 +209,18 @@ export default function CustomersPage() {
                         <td className="px-4 py-2.5 text-neutral-600 dark:text-neutral-400 text-xs">
                           {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '-'}
                         </td>
+                        <td className="px-4 py-2.5">
+                          {isInactive && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                              Inactive (&gt;3m)
+                            </span>
+                          )}
+                        </td>
                       </tr>
-                    ))
+                    )})
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-neutral-500">
+                      <td colSpan={7} className="px-6 py-8 text-center text-neutral-500">
                         No customers found.
                       </td>
                     </tr>

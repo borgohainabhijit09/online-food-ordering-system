@@ -8,6 +8,9 @@ export const getCategories = async (req: TenantReq, res: Response, next: NextFun
     const categories = await prisma.category.findMany({
       where: { tenantId: req.tenantId },
       orderBy: { order: 'asc' },
+      include: {
+        _count: { select: { products: true } }
+      }
     });
     res.status(200).json(categories);
   } catch (error) {

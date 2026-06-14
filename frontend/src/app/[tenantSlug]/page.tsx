@@ -384,6 +384,11 @@ export default function Home() {
             Freshly prepared food delivered to your door.<br />
             Contact: +{settings?.whatsappNumber || '919876543210'}
           </p>
+          {settings?.fssaiNumber && (
+            <p className="text-neutral-400 dark:text-neutral-500 text-xs font-medium">
+              FSSAI Lic. No. {settings.fssaiNumber}
+            </p>
+          )}
           <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 text-xs text-neutral-400">
             &copy; {new Date().getFullYear()} {restaurantName}. All rights reserved.
           </div>

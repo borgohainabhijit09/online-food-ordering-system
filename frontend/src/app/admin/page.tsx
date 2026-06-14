@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { IndianRupee, ShoppingBag, CalendarDays, Calendar, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 
 const COLORS = ['#ea580c', '#10b981', '#3b82f6'];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [topItemsPeriod, setTopItemsPeriod] = useState<'1m' | '6m' | 'all'>('all');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -77,7 +78,7 @@ export default function AdminDashboard() {
           <div className="lg:col-span-2 bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
             <h3 className="text-lg font-bold mb-6">Order Trends (Last 6 Months)</h3>
             <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <LineChart data={stats.trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                   <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
@@ -105,7 +106,7 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-bold mb-6">Orders by Type</h3>
             <div className="h-72 w-full flex items-center justify-center">
               {stats.ordersByType && stats.ordersByType.some((d: any) => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <PieChart>
                     <Pie
                       data={stats.ordersByType}
@@ -142,36 +143,70 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Revenue Graph */}
-      {stats?.trendData && stats.trendData.length > 0 && (
-        <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
-            <h3 className="text-lg font-bold mb-6">Revenue Trends (Last 6 Months)</h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats.trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
-                    itemStyle={{ color: '#fff' }}
-                    cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }}
-                    formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#10b981" 
-                    strokeWidth={3} 
-                    dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }} 
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                    animationDuration={1500}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+      {/* Revenue Graph & Top Selling Items */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {stats?.trendData && stats.trendData.length > 0 && (
+          <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+              <h3 className="text-lg font-bold mb-6">Revenue Trends (Last 6 Months)</h3>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                  <LineChart data={stats.trendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
+                      itemStyle={{ color: '#fff' }}
+                      cursor={{ stroke: '#e5e7eb', strokeWidth: 1, strokeDasharray: '5 5' }}
+                      formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#10b981" 
+                      strokeWidth={3} 
+                      dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }} 
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                      animationDuration={1500}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+          </div>
+        )}
+
+        {stats?.topProducts && (
+          <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+              <h3 className="text-lg font-bold">Highest Sold Items</h3>
+              <div className="flex gap-2">
+                <button onClick={() => setTopItemsPeriod('1m')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${topItemsPeriod === '1m' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}>1 Month</button>
+                <button onClick={() => setTopItemsPeriod('6m')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${topItemsPeriod === '6m' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}>6 Months</button>
+                <button onClick={() => setTopItemsPeriod('all')} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${topItemsPeriod === 'all' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}>All Time</button>
+              </div>
             </div>
-        </div>
-      )}
+            <div className="h-[300px]">
+              {stats.topProducts[topItemsPeriod]?.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-neutral-500">No data available for this period.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                  <BarChart data={stats.topProducts[topItemsPeriod]} margin={{ top: 5, right: 20, bottom: 25, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickMargin={10} />
+                    <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1f2937', color: '#fff', borderRadius: '8px', border: 'none' }}
+                      itemStyle={{ color: '#fff' }}
+                      cursor={{ fill: 'transparent' }}
+                    />
+                    <Bar dataKey="quantity" fill="#ea580c" radius={[4, 4, 0, 0]} name="Quantity Sold" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Recent Orders Table */}
       <div className="bg-white dark:bg-neutral-950 rounded-xl border border-neutral-200 dark:border-neutral-800 p-6">

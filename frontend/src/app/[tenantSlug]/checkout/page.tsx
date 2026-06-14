@@ -279,15 +279,15 @@ export default function CheckoutPage() {
           <h2 className="font-bold text-lg mb-4">Personal Details</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Full Name</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all" placeholder="John Doe" />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1 flex justify-between">
                 Phone Number
                 {isFetchingCustomer && <span className="text-xs text-orange-500 animate-pulse">Looking up details...</span>}
               </label>
               <input type="tel" name="phone" value={formData.phone} onChange={handleChange} onBlur={handlePhoneBlur} className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all" placeholder="9876543210" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Full Name</label>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all" placeholder="John Doe" />
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Date of Birth (For Birthday Surprises! 🎉)</label>

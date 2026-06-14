@@ -15,6 +15,7 @@ interface Settings {
   hasDeliveryCharge: boolean;
   deliveryChargeAmount: number;
   logoUrl?: string;
+  fssaiNumber?: string;
 }
 
 export default function SettingsPage() {
@@ -27,7 +28,8 @@ export default function SettingsPage() {
     whatsappNumber: '',
     hasDeliveryCharge: false,
     deliveryChargeAmount: 0,
-    logoUrl: ''
+    logoUrl: '',
+    fssaiNumber: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -51,7 +53,8 @@ export default function SettingsPage() {
           whatsappNumber: data.whatsappNumber || '',
           hasDeliveryCharge: data.hasDeliveryCharge ?? false,
           deliveryChargeAmount: data.deliveryChargeAmount || 0,
-          logoUrl: data.logoUrl || ''
+          logoUrl: data.logoUrl || '',
+          fssaiNumber: data.fssaiNumber || ''
         });
       }
     } catch (error) {
@@ -114,6 +117,19 @@ export default function SettingsPage() {
               required
             />
             <p className="text-xs text-neutral-500 mt-1">This number will receive the WhatsApp orders from customers.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">FSSAI Registration Number (Mandatory) <span className="text-red-500">*</span></label>
+            <input 
+              type="text" 
+              value={settings.fssaiNumber || ''}
+              onChange={e => setSettings({ ...settings, fssaiNumber: e.target.value })}
+              className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" 
+              placeholder="e.g. 12345678901234"
+              required
+            />
+            <p className="text-xs text-neutral-500 mt-1">This will be displayed in the footer of your menu to comply with regulations.</p>
           </div>
 
           <div>

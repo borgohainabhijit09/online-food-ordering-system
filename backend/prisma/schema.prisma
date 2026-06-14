@@ -218,6 +218,7 @@ model Settings {
   hasDeliveryCharge    Boolean @default(false)
   deliveryChargeAmount Float   @default(0)
   logoUrl              String?
+  fssaiNumber          String?
 
   tenantId String @unique
   tenant   Tenant @relation(fields: [tenantId], references: [id])

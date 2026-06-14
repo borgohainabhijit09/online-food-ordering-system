@@ -88,6 +88,35 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
       { name: 'Dine In', value: ordersByTypeGroup?.find((g: any) => g.orderType === 'DINE_IN')?._count.id || 0 }
     ];
 
+    const getTopProducts = async (fromDate?: Date) => {
+      const orderItems = await prisma.orderItem.groupBy({
+        by: ['productId'],
+        where: {
+          order: {
+            tenantId,
+            status: { not: 'CANCELLED' },
+            ...(fromDate ? { createdAt: { gte: fromDate } } : {})
+          }
+        },
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 5
+      });
+      const productIds = orderItems.map(i => i.productId);
+      const products = await prisma.product.findMany({ where: { id: { in: productIds } }});
+      return orderItems.map(item => ({
+        name: products.find(p => p.id === item.productId)?.name || 'Unknown',
+        quantity: item._sum?.quantity || 0,
+        revenue: 0
+      }));
+    };
+
+    const [topProducts1M, topProducts6M, topProductsAll] = await Promise.all([
+      getTopProducts(thirtyDaysAgo),
+      getTopProducts(sixMonthsAgo),
+      getTopProducts()
+    ]);
+
     res.status(200).json({
       revenueToday,
       ordersToday: todaysOrders.length,
@@ -95,7 +124,12 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
       ordersThisMonth,
       trendData,
       recentOrders,
-      ordersByType
+      ordersByType,
+      topProducts: {
+        '1m': topProducts1M,
+        '6m': topProducts6M,
+        'all': topProductsAll
+      }
     });
   } catch (error) {
     next(error);
