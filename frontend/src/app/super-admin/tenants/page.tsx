@@ -10,6 +10,7 @@ export default function SuperAdminTenants() {
   const [search, setSearch] = useState('');
 
   const [editingTenant, setEditingTenant] = useState<any | null>(null);
+  const [viewingProfile, setViewingProfile] = useState<any | null>(null);
   const [editIsActive, setEditIsActive] = useState(true);
   const [editPackageId, setEditPackageId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -138,26 +139,31 @@ export default function SuperAdminTenants() {
         <table className="w-full text-left text-sm">
           <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-500">
             <tr>
-              <th className="font-medium p-4">Business</th>
-              <th className="font-medium p-4">Slug</th>
+              <th className="font-medium p-4">Customer / Business</th>
+              <th className="font-medium p-4">Contact Info</th>
               <th className="font-medium p-4">Package</th>
-              <th className="font-medium p-4">Next Billing</th>
               <th className="font-medium p-4">Billing Status</th>
               <th className="font-medium p-4">Access</th>
-              <th className="font-medium p-4 w-32 text-right">Actions</th>
+              <th className="font-medium p-4 w-48 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {filtered.map(t => (
               <tr key={t.id} className="hover:bg-neutral-50 transition-colors">
-                <td className="p-4 text-neutral-700 font-bold">{t.businessName}</td>
-                <td className="p-4 text-neutral-500 font-mono text-xs">{t.slug}</td>
-                <td className="p-4 font-medium text-neutral-700">
-                  {t.subscription?.package?.name || 'No Subscription'}
-                  {t.subscription?.package?.price && <span className="block text-xs text-neutral-400">₹{t.subscription.package.price}/mo</span>}
+                <td className="p-4">
+                  <div className="font-bold text-neutral-900">{t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</div>
+                  <div className="text-sm text-neutral-500">{t.businessName} (/{t.slug})</div>
                 </td>
-                <td className="p-4 text-neutral-500">
-                  {t.subscription?.nextBillingDate ? new Date(t.subscription.nextBillingDate).toLocaleDateString() : 'N/A'}
+                <td className="p-4">
+                  <div className="text-sm text-neutral-700">{t.email}</div>
+                  <div className="text-sm text-neutral-500">{t.phone}</div>
+                </td>
+                <td className="p-4">
+                  <div className="font-medium text-neutral-700">{t.subscription?.package?.name || 'No Subscription'}</div>
+                  <div className="text-xs text-neutral-500">
+                    {t.subscription?.package?.price ? `₹${t.subscription.package.price}/mo` : ''} 
+                    {t.subscription?.nextBillingDate ? ` (Next: ${new Date(t.subscription.nextBillingDate).toLocaleDateString()})` : ''}
+                  </div>
                 </td>
                 <td className="p-4">
                   {getStatusBadge(t.subscription?.status || 'NONE')}
@@ -170,6 +176,12 @@ export default function SuperAdminTenants() {
                   )}
                 </td>
                 <td className="p-4 text-right whitespace-nowrap flex items-center justify-end gap-2">
+                  <button 
+                    onClick={() => setViewingProfile(t)}
+                    className="text-blue-600 bg-blue-50 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg transition-colors text-xs uppercase"
+                  >
+                    Profile
+                  </button>
                   <button 
                     onClick={() => handleImpersonate(t.id)}
                     className="text-orange-600 bg-orange-50 hover:bg-orange-100 font-bold px-3 py-1.5 rounded-lg transition-colors text-xs uppercase"
@@ -195,6 +207,70 @@ export default function SuperAdminTenants() {
           </tbody>
         </table>
       </div>
+
+      {viewingProfile && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-neutral-900">Customer Profile</h2>
+              <button onClick={() => setViewingProfile(null)} className="text-neutral-400 hover:text-neutral-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                  {viewingProfile.tenantAccess?.[0]?.user?.name?.charAt(0) || viewingProfile.businessName?.charAt(0) || 'C'}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-neutral-900">{viewingProfile.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</h3>
+                  <p className="text-neutral-500">Joined {new Date(viewingProfile.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Contact Email</p>
+                  <p className="text-neutral-900 font-medium truncate">{viewingProfile.email}</p>
+                </div>
+                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Phone Number</p>
+                  <p className="text-neutral-900 font-medium truncate">{viewingProfile.phone || 'N/A'}</p>
+                </div>
+                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Business Name</p>
+                  <p className="text-neutral-900 font-medium truncate">{viewingProfile.businessName}</p>
+                </div>
+                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Store URL</p>
+                  <p className="text-neutral-900 font-medium truncate">/{viewingProfile.slug}</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-blue-900">Current Plan</p>
+                  <p className="text-sm text-blue-700">{viewingProfile.subscription?.package?.name || 'No Plan'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-blue-900">Status</p>
+                  <p className="text-sm text-blue-700">{viewingProfile.isActive ? 'Active' : 'Suspended'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end">
+              <button 
+                onClick={() => setViewingProfile(null)}
+                className="px-6 py-2 bg-black text-white font-bold rounded-xl hover:bg-neutral-800 transition-colors"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editingTenant && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">

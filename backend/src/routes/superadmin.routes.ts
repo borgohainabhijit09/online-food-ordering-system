@@ -105,6 +105,9 @@ router.get('/tenants', async (req: SuperAdminRequest, res: Response) => {
       include: {
         subscription: {
           include: { package: true }
+        },
+        tenantAccess: {
+          include: { user: true }
         }
       },
       orderBy: { createdAt: 'desc' }
