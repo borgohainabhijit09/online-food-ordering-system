@@ -10,6 +10,7 @@ interface Category {
   order: number;
   imageUrl?: string;
   isActive: boolean;
+  _count?: { products: number };
 }
 
 export default function CategoriesPage() {
