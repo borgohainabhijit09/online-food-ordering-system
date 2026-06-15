@@ -274,7 +274,7 @@ export default function Home() {
             searchQuery ? (
               <section className="mb-12">
                 <h2 className="text-xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
                   {products
                     .filter(p => dietFilter === 'ALL' || p.dietaryPreference === dietFilter || (dietFilter === 'VEG' && p.dietaryPreference === 'VEGAN'))
                     .filter(p => !isSpicyFilter || p.isSpicy)
@@ -296,7 +296,7 @@ export default function Home() {
                       <h2 className="text-2xl font-bold tracking-tight text-orange-600 dark:text-orange-500">Today's Offers</h2>
                       <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">HOT</span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
                       {products
                         .filter(p => p.offerPrice)
                         .filter(p => dietFilter === 'ALL' || p.dietaryPreference === dietFilter || (dietFilter === 'VEG' && p.dietaryPreference === 'VEGAN'))
@@ -318,7 +318,7 @@ export default function Home() {
                       <h2 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-500">Trending Now</h2>
                       <Star className="w-5 h-5 text-emerald-500 fill-emerald-500 animate-pulse" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
                       {products
                         .filter(p => p.isTrending)
                         .filter(p => dietFilter === 'ALL' || p.dietaryPreference === dietFilter || (dietFilter === 'VEG' && p.dietaryPreference === 'VEGAN'))
@@ -339,7 +339,7 @@ export default function Home() {
                     return (
                       <section key={cat.id} id={`category-${cat.id}`} className="scroll-mt-24 mb-12">
                         <h2 className="text-2xl font-bold tracking-tight mb-6">{cat.name}</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
                           {catProducts.map((product, index) => (
                             <ProductCard key={product.id} product={product} index={index} settings={settings} onAdd={handleAddClick} />
                           ))}
@@ -350,7 +350,7 @@ export default function Home() {
                   {products.filter(p => !p.categoryId).length > 0 && (
                     <section id="category-uncategorized" className="scroll-mt-24">
                       <h2 className="text-2xl font-bold tracking-tight mb-6">Other Items</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
                         {products.filter(p => !p.categoryId).map((product, index) => (
                           <ProductCard key={product.id} product={product} index={index} settings={settings} onAdd={handleAddClick} />
                         ))}
@@ -411,32 +411,9 @@ function ProductCard({ product, index, settings, onAdd }: { product: any, index:
   const imageUrl = product.images?.[0]?.url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop';
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-4 border border-neutral-100 dark:border-neutral-800 shadow-sm hover:shadow-md transition-shadow flex gap-4">
-      <div className="flex-1 flex flex-col justify-between">
-        <div>
-          {product.category?.name && (
-            <div className="flex items-center gap-1 mb-1">
-              <span className="text-xs font-bold px-1.5 py-0.5 rounded text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-900/50">
-                {product.category.name}
-              </span>
-            </div>
-          )}
-          <h3 className="font-bold text-lg text-neutral-900 dark:text-white leading-tight mb-1">{product.name}</h3>
-          <p className="text-neutral-500 dark:text-neutral-400 text-sm line-clamp-2 mb-2">{product.description}</p>
-        </div>
-        <div className="flex items-center justify-between mt-auto pt-2">
-          {product.offerPrice ? (
-            <div className="flex flex-col">
-              <div className="font-bold text-lg text-orange-600 dark:text-orange-500">₹{product.offerPrice}</div>
-              <div className="text-xs text-neutral-400 line-through">₹{product.basePrice}</div>
-            </div>
-          ) : (
-            <div className="font-bold text-lg">₹{product.basePrice}</div>
-          )}
-        </div>
-      </div>
-
-      <div className="w-32 h-32 relative rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+    <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-100 dark:border-neutral-800 shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden relative group">
+      {/* Image Container */}
+      <div className="w-full relative pt-[75%] bg-neutral-50 dark:bg-neutral-800">
         {product.offerPrice ? (
           <div className="absolute top-0 left-0 bg-red-500 text-white text-[10px] font-bold px-2 py-1 z-10 rounded-br-lg shadow-sm">
             SALE
@@ -446,21 +423,73 @@ function ProductCard({ product, index, settings, onAdd }: { product: any, index:
             <Star className="w-3 h-3 fill-white" /> TRENDING
           </div>
         ) : null}
+
+        {product.dietaryPreference === 'VEG' && (
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-0.5 rounded shadow-sm z-10">
+            <div className="w-3 h-3 border border-green-600 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>
+            </div>
+          </div>
+        )}
+        {product.dietaryPreference === 'NON_VEG' && (
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-0.5 rounded shadow-sm z-10">
+            <div className="w-3 h-3 border border-red-600 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
+            </div>
+          </div>
+        )}
+
         <Image
           src={imageUrl}
           alt={product.name}
           fill
-          className="object-cover w-full h-full"
-          sizes="(max-width: 768px) 128px, 128px"
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           priority={index < 4}
         />
-        <button
-          onClick={() => onAdd(product)}
-          disabled={settings?.isAcceptingOrders === false}
-          className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white dark:bg-neutral-950 text-orange-600 font-bold uppercase text-sm px-4 py-2 rounded-lg shadow-md border border-neutral-200 dark:border-neutral-800 hover:bg-orange-50 dark:hover:bg-neutral-900 transition-colors active:scale-95 flex items-center justify-center min-w-[80px] disabled:opacity-50 disabled:active:scale-100 disabled:hover:bg-white"
-        >
-          ADD
-        </button>
+        
+        {/* ADD Button positioned over image bottom right, Swiggy Instamart style */}
+        <div className="absolute -bottom-3.5 right-2 z-20">
+          <button
+            onClick={() => onAdd(product)}
+            disabled={settings?.isAcceptingOrders === false}
+            className="bg-white dark:bg-neutral-900 text-green-600 dark:text-green-500 font-bold uppercase text-[11px] md:text-xs px-4 py-1.5 md:px-5 md:py-2 rounded-lg shadow-md border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ADD
+          </button>
+        </div>
+      </div>
+
+      {/* Content Container */}
+      <div className="p-3 md:p-4 flex flex-col flex-1 pt-5">
+        <div className="flex-1">
+          {product.category?.name && (
+            <div className="mb-1 hidden md:block">
+              <span className="text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded text-neutral-500 bg-neutral-100 dark:text-neutral-400 dark:bg-neutral-800">
+                {product.category.name}
+              </span>
+            </div>
+          )}
+          <h3 className="font-semibold text-sm md:text-[15px] text-neutral-900 dark:text-white leading-tight mb-1 line-clamp-2">
+            {product.name}
+          </h3>
+          <p className="text-[11px] md:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-snug">
+            {product.description}
+          </p>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            {product.offerPrice ? (
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-sm md:text-[15px] text-neutral-900 dark:text-white">₹{product.offerPrice}</span>
+                <span className="text-[10px] md:text-[11px] text-neutral-400 line-through">₹{product.basePrice}</span>
+              </div>
+            ) : (
+              <span className="font-bold text-sm md:text-[15px] text-neutral-900 dark:text-white">₹{product.basePrice}</span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
