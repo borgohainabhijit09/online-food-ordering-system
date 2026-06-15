@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
 import { apiClient } from '../../lib/apiClient';
 
@@ -36,10 +36,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       window.history.replaceState(null, '', pathname);
     }
 
-    // Safety: if super admin mode is set but we're in /admin, clear stale SA token from adminToken
-    if (localStorage.getItem('superAdminMode') === 'true') {
-      localStorage.removeItem('superAdminMode');
-    }
+    // We do not clear superAdminMode here because it breaks the Super Admin session 
+    // if the user has both panels open in different tabs.
 
     const token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken');
     if (!token) {
@@ -218,6 +216,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Settings className="w-4 h-4" />
             <span>Settings</span>
           </Link>
+          <Link href="/admin/support" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/support') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+            <LifeBuoy className="w-4 h-4" />
+            <span>Support</span>
+          </Link>
         </nav>
         
         <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
@@ -229,9 +231,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <button onClick={handleCopyLink} className="p-1.5 text-neutral-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors shrink-0" title="Copy link">
                   {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
-                <Link href={`/${tenantSlug}`} target="_blank" className="p-1.5 text-neutral-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors shrink-0" title="Visit store">
+                <a href={`/${tenantSlug}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-neutral-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors shrink-0" title="Visit store">
                   <ExternalLink className="w-3.5 h-3.5" />
-                </Link>
+                </a>
               </div>
             </div>
           )}
@@ -260,9 +262,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {tenantSlug && (
             <div className="hidden sm:flex items-center gap-1 md:gap-2 bg-neutral-100 dark:bg-neutral-900 py-1 md:py-1.5 px-2 md:px-3 rounded-full border border-neutral-200 dark:border-neutral-800 text-xs md:text-sm min-w-0">
               <span className="hidden md:inline text-neutral-500 dark:text-neutral-400 shrink-0">Store URL:</span>
-              <Link href={`/${tenantSlug}`} target="_blank" className="font-medium hover:text-orange-600 transition-colors flex items-center gap-1 min-w-0">
+              <a href={`/${tenantSlug}`} target="_blank" rel="noopener noreferrer" className="font-medium hover:text-orange-600 transition-colors flex items-center gap-1 min-w-0">
                 <span className="truncate">/{tenantSlug}</span> <ExternalLink className="w-3 h-3 md:w-3.5 md:h-3.5 shrink-0" />
-              </Link>
+              </a>
               <button onClick={handleCopyLink} className="ml-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors shrink-0" title="Copy link">
                 {copied ? <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 text-emerald-500" /> : <Copy className="w-3 h-3 md:w-4 md:h-4" />}
               </button>
@@ -273,9 +275,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="ml-auto flex items-center gap-2 md:gap-4 shrink-0">
             {/* Mobile-only: small store link icon */}
             {tenantSlug && (
-              <Link href={`/${tenantSlug}`} target="_blank" className="sm:hidden p-2 text-neutral-500 hover:text-orange-600 transition-colors" title={`Visit /${tenantSlug}`}>
+              <a href={`/${tenantSlug}`} target="_blank" rel="noopener noreferrer" className="sm:hidden p-2 text-neutral-500 hover:text-orange-600 transition-colors" title={`Visit /${tenantSlug}`}>
                 <ExternalLink className="w-4 h-4" />
-              </Link>
+              </a>
             )}
             {availableStores.length > 1 && (
               <div className="relative flex items-center">

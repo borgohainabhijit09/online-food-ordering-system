@@ -102,7 +102,7 @@ export const useCartStore = create<CartState>()(
         }));
       },
       
-      clearCart: () => set({ items: [], remarks: '', appliedCoupon: null }),
+      clearCart: () => set({ items: [], remarks: '', appliedCoupon: null, orderType: null, tableId: null, tableNumber: null }),
       
       getTotalPrice: () => {
         const { items } = get();

@@ -4,6 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Tenant {
@@ -28,6 +30,7 @@ model Tenant {
   coupons        Coupon[]
   customers      Customer[]
   tenantAccess   TenantAccess[]
+  supportTickets SupportTicket[]
 }
 
 model User {
@@ -43,6 +46,7 @@ model User {
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
   lastLoginAt DateTime?
   tenantAccess TenantAccess[]
+  supportMessages SupportMessage[]
 }
 
 model TenantAccess {
@@ -376,4 +380,43 @@ model Lead {
   nextFollowUpDate DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  subject     String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  messages    SupportMessage[]
+}
+
+model SupportMessage {
+  id           String        @id @default(uuid())
+  ticketId     String
+  ticket       SupportTicket @relation(fields: [ticketId], references: [id])
+  senderId     String
+  user         User          @relation(fields: [senderId], references: [id])
+  isSuperAdmin Boolean       @default(false)
+  content      String
+  createdAt    DateTime      @default(now())
 }

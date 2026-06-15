@@ -15,13 +15,19 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   let tenantSlug = null;
   
   if (typeof window !== 'undefined') {
-    token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken');
-    
-    // Extract tenant slug from URL (e.g. /demo-restaurant/checkout -> demo-restaurant)
-    // If it's not admin and not root
+    // Check if we are in the super-admin section
     const pathParts = window.location.pathname.split('/').filter(Boolean);
-    if (pathParts.length > 0 && pathParts[0] !== 'admin' && pathParts[0] !== 'login' && pathParts[0] !== 'signup') {
-      tenantSlug = pathParts[0];
+    const isSuperAdminRoute = pathParts[0] === 'super-admin';
+    
+    if (isSuperAdminRoute) {
+      token = localStorage.getItem('superAdminToken');
+    } else {
+      token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken');
+      
+      // Extract tenant slug from URL (e.g. /demo-restaurant/checkout -> demo-restaurant)
+      if (pathParts.length > 0 && pathParts[0] !== 'admin' && pathParts[0] !== 'login' && pathParts[0] !== 'signup') {
+        tenantSlug = pathParts[0];
+      }
     }
   }
 

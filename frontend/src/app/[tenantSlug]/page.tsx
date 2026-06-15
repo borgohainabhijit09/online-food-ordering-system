@@ -274,7 +274,7 @@ export default function Home() {
             searchQuery ? (
               <section className="mb-12">
                 <h2 className="text-xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                   {products
                     .filter(p => dietFilter === 'ALL' || p.dietaryPreference === dietFilter || (dietFilter === 'VEG' && p.dietaryPreference === 'VEGAN'))
                     .filter(p => !isSpicyFilter || p.isSpicy)
@@ -296,7 +296,7 @@ export default function Home() {
                       <h2 className="text-2xl font-bold tracking-tight text-orange-600 dark:text-orange-500">Today's Offers</h2>
                       <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">HOT</span>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                       {products
                         .filter(p => p.offerPrice)
                         .filter(p => dietFilter === 'ALL' || p.dietaryPreference === dietFilter || (dietFilter === 'VEG' && p.dietaryPreference === 'VEGAN'))
@@ -318,7 +318,7 @@ export default function Home() {
                       <h2 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-500">Trending Now</h2>
                       <Star className="w-5 h-5 text-emerald-500 fill-emerald-500 animate-pulse" />
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                       {products
                         .filter(p => p.isTrending)
                         .filter(p => dietFilter === 'ALL' || p.dietaryPreference === dietFilter || (dietFilter === 'VEG' && p.dietaryPreference === 'VEGAN'))
@@ -339,7 +339,7 @@ export default function Home() {
                     return (
                       <section key={cat.id} id={`category-${cat.id}`} className="scroll-mt-24 mb-12">
                         <h2 className="text-2xl font-bold tracking-tight mb-6">{cat.name}</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                           {catProducts.map((product, index) => (
                             <ProductCard key={product.id} product={product} index={index} settings={settings} onAdd={handleAddClick} />
                           ))}
@@ -350,7 +350,7 @@ export default function Home() {
                   {products.filter(p => !p.categoryId).length > 0 && (
                     <section id="category-uncategorized" className="scroll-mt-24">
                       <h2 className="text-2xl font-bold tracking-tight mb-6">Other Items</h2>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                         {products.filter(p => !p.categoryId).map((product, index) => (
                           <ProductCard key={product.id} product={product} index={index} settings={settings} onAdd={handleAddClick} />
                         ))}
@@ -389,8 +389,11 @@ export default function Home() {
               FSSAI Lic. No. {settings.fssaiNumber}
             </p>
           )}
-          <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 text-xs text-neutral-400">
-            &copy; {new Date().getFullYear()} {restaurantName}. All rights reserved.
+          <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 text-xs text-neutral-400 flex flex-col items-center gap-2">
+            <div>&copy; {new Date().getFullYear()} {restaurantName}. All rights reserved.</div>
+            <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
+              Restaurant Login
+            </a>
           </div>
         </div>
       </footer>
@@ -449,11 +452,11 @@ function ProductCard({ product, index, settings, onAdd }: { product: any, index:
         />
         
         {/* ADD Button positioned over image bottom right, Swiggy Instamart style */}
-        <div className="absolute -bottom-3.5 right-2 z-20">
+        <div className="absolute -bottom-3 right-2 z-20">
           <button
             onClick={() => onAdd(product)}
             disabled={settings?.isAcceptingOrders === false}
-            className="bg-white dark:bg-neutral-900 text-green-600 dark:text-green-500 font-bold uppercase text-[11px] md:text-xs px-4 py-1.5 md:px-5 md:py-2 rounded-lg shadow-md border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white dark:bg-neutral-900 text-green-600 dark:text-green-500 font-bold uppercase text-[10px] md:text-xs px-3 py-1.5 md:px-4 md:py-1.5 rounded-lg shadow-md border border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ADD
           </button>
@@ -461,32 +464,32 @@ function ProductCard({ product, index, settings, onAdd }: { product: any, index:
       </div>
 
       {/* Content Container */}
-      <div className="p-3 md:p-4 flex flex-col flex-1 pt-5">
+      <div className="p-2.5 md:p-3 flex flex-col flex-1 pt-4">
         <div className="flex-1">
           {product.category?.name && (
             <div className="mb-1 hidden md:block">
-              <span className="text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 rounded text-neutral-500 bg-neutral-100 dark:text-neutral-400 dark:bg-neutral-800">
+              <span className="text-[9px] md:text-[10px] font-bold px-1 py-0.5 rounded text-neutral-500 bg-neutral-100 dark:text-neutral-400 dark:bg-neutral-800">
                 {product.category.name}
               </span>
             </div>
           )}
-          <h3 className="font-semibold text-sm md:text-[15px] text-neutral-900 dark:text-white leading-tight mb-1 line-clamp-2">
+          <h3 className="font-semibold text-[13px] md:text-sm text-neutral-900 dark:text-white leading-tight mb-1 line-clamp-2">
             {product.name}
           </h3>
-          <p className="text-[11px] md:text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-snug">
+          <p className="text-[10px] md:text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-2 leading-snug">
             {product.description}
           </p>
         </div>
 
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-2 flex items-center justify-between">
           <div className="flex flex-col">
             {product.offerPrice ? (
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm md:text-[15px] text-neutral-900 dark:text-white">₹{product.offerPrice}</span>
-                <span className="text-[10px] md:text-[11px] text-neutral-400 line-through">₹{product.basePrice}</span>
+                <span className="font-bold text-[13px] md:text-sm text-neutral-900 dark:text-white">₹{product.offerPrice}</span>
+                <span className="text-[9px] md:text-[10px] text-neutral-400 line-through">₹{product.basePrice}</span>
               </div>
             ) : (
-              <span className="font-bold text-sm md:text-[15px] text-neutral-900 dark:text-white">₹{product.basePrice}</span>
+              <span className="font-bold text-[13px] md:text-sm text-neutral-900 dark:text-white">₹{product.basePrice}</span>
             )}
           </div>
         </div>

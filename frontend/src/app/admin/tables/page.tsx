@@ -14,6 +14,7 @@ export default function AdminTables() {
   const [qrModalTable, setQrModalTable] = useState<any>(null);
   const [activeOrderModal, setActiveOrderModal] = useState<any>(null);
   const [fetchingOrder, setFetchingOrder] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const qrRef = useRef<SVGSVGElement>(null);
 
@@ -150,7 +151,10 @@ export default function AdminTables() {
               setActiveOrderModal({ table, order: await orderRes.json() });
             }
           } else {
-            alert('No active order found for this table.');
+            if (window.confirm(`No active order found for Table ${table.tableNumber}. Would you like to mark it as AVAILABLE?`)) {
+              const patchRes = await apiClient.patch(`/api/tables/${table.id}`, { status: 'AVAILABLE' });
+              if (patchRes.ok) fetchData();
+            }
           }
         }
       } catch (error) {
@@ -158,6 +162,20 @@ export default function AdminTables() {
       } finally {
         setFetchingOrder(null);
       }
+    }
+  };
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    setIsUpdatingStatus(true);
+    try {
+      const res = await apiClient.patch(`/api/orders/${orderId}/status`, { status: newStatus });
+      if (res.ok) {
+        setActiveOrderModal({ ...activeOrderModal, order: { ...activeOrderModal.order, status: newStatus } });
+      }
+    } catch (error) {
+      console.error('Failed to update status', error);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -289,7 +307,21 @@ export default function AdminTables() {
             <div className="mb-4">
               <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Table {activeOrderModal.table.tableNumber} Order</h2>
               <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                <span className="font-medium text-blue-600 dark:text-blue-500">{activeOrderModal.order.status}</span>
+                <select
+                  disabled={isUpdatingStatus}
+                  className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-xs font-medium rounded py-1 px-2 outline-none focus:ring-1 focus:ring-orange-500"
+                  value={activeOrderModal.order.status}
+                  onChange={(e) => handleStatusChange(activeOrderModal.order.id, e.target.value)}
+                >
+                  <option value="NEW">New</option>
+                  <option value="ACCEPTED">Accept</option>
+                  <option value="PREPARING">Preparing</option>
+                  <option value="READY">Ready</option>
+                  <option value="SERVED">Served</option>
+                  <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                  <option value="DELIVERED">Delivered</option>
+                  <option value="CANCELLED">Cancel</option>
+                </select>
                 &bull;
                 <span>{new Date(activeOrderModal.order.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>

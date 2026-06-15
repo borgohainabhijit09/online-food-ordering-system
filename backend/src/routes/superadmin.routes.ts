@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../services/prisma';
 import { isSuperAdmin, SuperAdminRequest } from '../middlewares/superAdmin.middleware';
+import { getAllTickets, getTicketDetails, updateTicketStatus, addMessage } from '../controllers/support.controller';
 
 const router = Router();
 
@@ -273,5 +274,11 @@ router.get('/performance', async (req: SuperAdminRequest, res: Response) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+// Support Tickets
+router.get('/support/tickets', getAllTickets);
+router.get('/support/tickets/:id', getTicketDetails);
+router.patch('/support/tickets/:id/status', updateTicketStatus);
+router.post('/support/tickets/:id/messages', addMessage);
 
 export default router;
