@@ -102,11 +102,11 @@ export default function TicketDetailsPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin/support" className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+          <Link href="/admin/support" className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-neutral-900 dark:text-neutral-100">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">{ticket.subject}</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{ticket.subject}</h2>
             <div className="text-sm text-neutral-500 flex items-center gap-2 mt-1">
               <span>#{ticket.id.split('-')[0]}</span>
               <span>•</span>

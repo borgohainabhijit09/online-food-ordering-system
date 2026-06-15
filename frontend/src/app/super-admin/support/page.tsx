@@ -19,6 +19,7 @@ interface Ticket {
   _count: {
     messages: number;
   };
+  hasUnreadSuperAdmin: boolean;
 }
 
 export default function SuperAdminSupportPage() {
@@ -136,11 +137,14 @@ export default function SuperAdminSupportPage() {
                 {filteredTickets.map(ticket => {
                   const daysOpened = Math.floor((Date.now() - new Date(ticket.createdAt).getTime()) / (1000 * 60 * 60 * 24));
                   return (
-                  <tr key={ticket.id} className="hover:bg-neutral-50 transition-colors">
+                  <tr key={ticket.id} className={`transition-colors hover:bg-neutral-50/50 dark:hover:bg-neutral-800/20 ${ticket.hasUnreadSuperAdmin ? 'font-semibold' : ''}`}>
                     <td className="px-6 py-4">
-                      <span className="font-mono text-sm bg-neutral-100 px-2 py-1 rounded text-neutral-600">
-                        #{ticket.id.split('-')[0]}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {ticket.hasUnreadSuperAdmin && <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>}
+                        <span className="font-mono text-sm bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded text-neutral-600 dark:text-neutral-400">
+                          #{ticket.id.split('-')[0]}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-black">{ticket.tenant?.businessName || 'Unknown Business'}</div>

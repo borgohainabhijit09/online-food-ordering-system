@@ -109,11 +109,11 @@ export default function SuperAdminTicketDetailsPage() {
     <div className="p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/super-admin/support" className="p-2 hover:bg-neutral-200 rounded-lg transition-colors">
+          <Link href="/super-admin/support" className="p-2 hover:bg-neutral-200 rounded-lg transition-colors text-neutral-900 dark:text-neutral-100">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">{ticket.subject}</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">{ticket.subject}</h2>
             <div className="text-sm text-neutral-500 flex items-center gap-2 mt-1">
               <span>Tenant: {ticket.tenant?.businessName || 'Unknown'}</span>
               <span>•</span>

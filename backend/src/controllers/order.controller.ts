@@ -34,6 +34,17 @@ export const getOrders = async (req: TenantReq, res: Response, next: NextFunctio
   }
 };
 
+export const getNewOrdersCount = async (req: TenantReq, res: Response, next: NextFunction) => {
+  try {
+    const count = await prisma.order.count({
+      where: { tenantId: req.tenantId, status: 'NEW' }
+    });
+    res.status(200).json({ count });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getOrderById = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;

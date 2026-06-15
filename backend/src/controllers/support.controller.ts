@@ -20,6 +20,8 @@ export const createTicket = async (req: Request, res: Response) => {
         subject,
         description,
         priority: priority || 'MEDIUM',
+        hasUnreadSuperAdmin: true,
+        hasUnreadTenant: false,
       },
     });
 
@@ -48,6 +50,19 @@ export const getTenantTickets = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching tenant tickets:', error);
     res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+};
+
+export const getUnreadCount = async (req: Request, res: Response) => {
+  try {
+    const { tenantId } = (req as any).user;
+    const count = await prisma.supportTicket.count({
+      where: { tenantId, hasUnreadTenant: true }
+    });
+    res.json({ count });
+  } catch (error: any) {
+    console.error('Error fetching unread count:', error);
+    res.status(500).json({ error: 'Failed to fetch unread count', details: error.message });
   }
 };
 
@@ -81,6 +96,21 @@ export const getTicketDetails = async (req: Request, res: Response) => {
     // If not super admin, check tenant access
     if (user.role !== 'SUPER_ADMIN' && ticket.tenantId !== user.tenantId) {
       return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // Clear unread status based on who is reading
+    if (user.role === 'SUPER_ADMIN' && ticket.hasUnreadSuperAdmin) {
+      await prisma.supportTicket.update({
+        where: { id: ticket.id },
+        data: { hasUnreadSuperAdmin: false }
+      });
+      ticket.hasUnreadSuperAdmin = false;
+    } else if (user.role !== 'SUPER_ADMIN' && ticket.hasUnreadTenant) {
+      await prisma.supportTicket.update({
+        where: { id: ticket.id },
+        data: { hasUnreadTenant: false }
+      });
+      ticket.hasUnreadTenant = false;
     }
 
     res.json(ticket);
@@ -128,11 +158,19 @@ export const addMessage = async (req: Request, res: Response) => {
       }
     });
 
-    // Optionally update ticket status if super admin replies
-    if (isSuperAdmin && ticket.status === 'OPEN') {
+    // Update ticket status and unread flags
+    const ticketUpdateData: any = {};
+    if (isSuperAdmin) {
+      ticketUpdateData.hasUnreadTenant = true;
+      if (ticket.status === 'OPEN') ticketUpdateData.status = 'IN_PROGRESS';
+    } else {
+      ticketUpdateData.hasUnreadSuperAdmin = true;
+    }
+
+    if (Object.keys(ticketUpdateData).length > 0) {
       await prisma.supportTicket.update({
         where: { id: id as string },
-        data: { status: 'IN_PROGRESS' }
+        data: ticketUpdateData
       });
     }
 
@@ -176,7 +214,19 @@ export const getAllTickets = async (req: Request, res: Response) => {
     res.json(tickets);
   } catch (error) {
     console.error('Error fetching all tickets:', error);
-    res.status(500).json({ error: 'Failed to fetch tickets' });
+    res.status(500).json({ error: 'Failed to fetch all tickets' });
+  }
+};
+
+export const getSuperAdminUnreadCount = async (req: Request, res: Response) => {
+  try {
+    const count = await prisma.supportTicket.count({
+      where: { hasUnreadSuperAdmin: true }
+    });
+    res.json({ count });
+  } catch (error) {
+    console.error('Error fetching unread count:', error);
+    res.status(500).json({ error: 'Failed to fetch unread count' });
   }
 };
 

@@ -3,7 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../services/prisma';
 import { isSuperAdmin, SuperAdminRequest } from '../middlewares/superAdmin.middleware';
-import { getAllTickets, getTicketDetails, updateTicketStatus, addMessage } from '../controllers/support.controller';
+import { getAllTickets, getTicketDetails, updateTicketStatus, addMessage, getSuperAdminUnreadCount } from '../controllers/support.controller';
+
+import superadminMarketplaceRoutes from './superadmin.marketplace.routes';
 
 const router = Router();
 
@@ -277,8 +279,11 @@ router.get('/performance', async (req: SuperAdminRequest, res: Response) => {
 
 // Support Tickets
 router.get('/support/tickets', getAllTickets);
+router.get('/support/tickets/unread-count', getSuperAdminUnreadCount);
 router.get('/support/tickets/:id', getTicketDetails);
 router.patch('/support/tickets/:id/status', updateTicketStatus);
 router.post('/support/tickets/:id/messages', addMessage);
+
+router.use('/marketplace', superadminMarketplaceRoutes);
 
 export default router;

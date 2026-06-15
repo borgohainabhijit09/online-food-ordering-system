@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
 import { apiClient } from '../../lib/apiClient';
 
@@ -20,6 +20,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Store switcher state
   const [availableStores, setAvailableStores] = useState<any[]>([]);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
 
   // Close mobile menu when pathname changes
   useEffect(() => {
@@ -78,19 +80,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             setSettings(await settingsRes.json());
           }
           if (storesRes.ok) {
-            setAvailableStores(await storesRes.json());
+            const myStores = await storesRes.json();
+            setAvailableStores(myStores);
+
+            if (myStores.length > 0) {
+              const defaultTenant = myStores[0];
+              setTenantSlug(defaultTenant.slug);
+            }
           }
+          fetchCounts();
         } catch (e) {}
       };
       fetchInitialData();
+
+      setIsLoading(false);
+      const interval = setInterval(fetchCounts, 30000);
+      return () => clearInterval(interval);
     } catch (e) {
       // Token is malformed
       router.push('/admin/login');
       return;
     }
-
-    setIsLoading(false);
   }, [pathname, router]);
+
+  const fetchCounts = async () => {
+    try {
+      const [ordersRes, supportRes] = await Promise.all([
+        apiClient.get('/api/orders/new-count'),
+        apiClient.get('/api/support/unread-count')
+      ]);
+      if (ordersRes.ok) {
+        const data = await ordersRes.json();
+        setNewOrdersCount(data.count || 0);
+      }
+      if (supportRes.ok) {
+        const data = await supportRes.json();
+        setUnreadSupportCount(data.count || 0);
+      } else {
+        const errData = await supportRes.json().catch(() => ({}));
+        console.error('Support unread count error:', errData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notification counts', error);
+    }
+  };
 
   const handleSwitchStore = async (newTenantId: string) => {
     setIsSwitching(true);
@@ -184,9 +217,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <LayoutDashboard className="w-4 h-4" />
             <span>Dashboard</span>
           </Link>
-          <Link href="/admin/orders" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/orders' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-            <ListOrdered className="w-4 h-4" />
-            <span>Orders</span>
+          <Link href="/admin/orders" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/orders' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+            <div className="flex items-center gap-2">
+              <ListOrdered className="w-4 h-4" />
+              <span>Orders</span>
+            </div>
+            {newOrdersCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                {newOrdersCount}
+              </span>
+            )}
           </Link>
           <Link href="/admin/categories" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/categories' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
             <LayoutDashboard className="w-4 h-4" />
@@ -216,11 +256,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Settings className="w-4 h-4" />
             <span>Settings</span>
           </Link>
-          <Link href="/admin/support" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/support') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-            <LifeBuoy className="w-4 h-4" />
-            <span>Support</span>
-          </Link>
-        </nav>
+          <Link href="/admin/support" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/support') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+            <div className="flex items-center gap-2">
+               <LifeBuoy className="w-4 h-4" />
+               <span>Support</span>
+             </div>
+             {unreadSupportCount > 0 && (
+               <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                 {unreadSupportCount}
+               </span>
+             )}
+           </Link>
+           <Link href="/admin/marketplace/products" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/marketplace') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+             <Store className="w-4 h-4" />
+             <span>Marketplace</span>
+           </Link>
+         </nav>
         
         <div className="p-3 border-t border-neutral-200 dark:border-neutral-800 space-y-2">
           {tenantSlug && (

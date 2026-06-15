@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Users, LogOut, ShieldAlert, Receipt, TrendingUp, HeartPulse, Contact, ListChecks, AlertTriangle, Briefcase, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ShieldAlert, Receipt, TrendingUp, HeartPulse, Contact, ListChecks, AlertTriangle, Briefcase, LifeBuoy, Store } from 'lucide-react';
+import { apiClient } from '../../lib/apiClient';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
 
   useEffect(() => {
     if (pathname.includes('/login') || pathname.includes('/hidden-setup')) {
@@ -25,6 +27,26 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       setIsAuthorized(true);
     }
   }, [pathname]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    const fetchCounts = async () => {
+      try {
+        const res = await apiClient.get('/api/super-admin/support/tickets/unread-count');
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadSupportCount(data.count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread support count', error);
+      }
+    };
+
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthorized, pathname, router]);
 
   if (!isAuthorized) return null;
 
@@ -75,8 +97,18 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           <Link href="/super-admin/billing" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${pathname === '/super-admin/billing' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
             <Receipt className="w-5 h-5" /> Billing & Invoices
           </Link>
-          <Link href="/super-admin/support" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${pathname.startsWith('/super-admin/support') ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
-            <LifeBuoy className="w-5 h-5" /> Support Tickets
+          <Link href="/super-admin/marketplace/products" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${pathname.startsWith('/super-admin/marketplace') ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
+            <Store className="w-5 h-5" /> Marketplace
+          </Link>
+          <Link href="/super-admin/support" className={`flex justify-between items-center px-4 py-3 rounded-xl font-medium transition-colors ${pathname.startsWith('/super-admin/support') ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
+            <div className="flex items-center gap-3">
+              <LifeBuoy className="w-5 h-5" /> Support Tickets
+            </div>
+            {unreadSupportCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                {unreadSupportCount}
+              </span>
+            )}
           </Link>
         </nav>
 
@@ -86,7 +118,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto text-neutral-900">
         {children}
       </div>
     </div>

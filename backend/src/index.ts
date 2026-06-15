@@ -56,6 +56,9 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/support', supportRoutes);
 
+import marketplaceRoutes from './routes/marketplace.routes';
+app.use('/api/marketplace', marketplaceRoutes);
+
 // Error Handling Middleware
 app.use(errorHandler);
 
@@ -67,3 +70,4 @@ initBillingCron();
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
+
