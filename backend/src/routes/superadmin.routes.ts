@@ -90,11 +90,64 @@ router.get('/dashboard', async (req: SuperAdminRequest, res: Response) => {
       where: { status: 'PAST_DUE' }
     });
 
+    // Calculate 6-month trends
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sixMonthsAgo = new Date(today);
+    sixMonthsAgo.setMonth(today.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+
+    const recentTenants = await prisma.tenant.findMany({
+      where: { createdAt: { gte: sixMonthsAgo } },
+      select: { createdAt: true }
+    });
+
+    const recentSubs = await prisma.tenantSubscription.findMany({
+      where: { 
+        startDate: { gte: sixMonthsAgo },
+        status: 'ACTIVE'
+      },
+      include: { package: true }
+    });
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const trendMap = new Map();
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today);
+      d.setMonth(today.getMonth() - i);
+      const key = `${monthNames[d.getMonth()]}`;
+      trendMap.set(key, { signups: 0, newMrr: 0 });
+    }
+
+    recentTenants.forEach(t => {
+      const d = new Date(t.createdAt);
+      const key = `${monthNames[d.getMonth()]}`;
+      if (trendMap.has(key)) {
+        const current = trendMap.get(key);
+        current.signups += 1;
+        trendMap.set(key, current);
+      }
+    });
+
+    recentSubs.forEach(s => {
+      const d = new Date(s.startDate);
+      const key = `${monthNames[d.getMonth()]}`;
+      if (trendMap.has(key)) {
+        const current = trendMap.get(key);
+        current.newMrr += s.package?.price || 0;
+        trendMap.set(key, current);
+      }
+    });
+
+    const trendData = Array.from(trendMap.entries()).map(([name, data]) => ({ name, ...data }));
+
     res.json({
       totalTenants,
       mrr,
       pastDueCount,
-      activeSubsCount: activeSubs.length
+      activeSubsCount: activeSubs.length,
+      trendData
     });
   } catch (err: any) {
     res.status(500).json({ message: 'Server error', error: err.message });
