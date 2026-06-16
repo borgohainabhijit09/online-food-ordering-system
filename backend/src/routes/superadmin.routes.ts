@@ -171,7 +171,8 @@ router.get('/tenants', async (req: SuperAdminRequest, res: Response) => {
     });
     res.json(tenants);
   } catch (err: any) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Super Admin Tenants Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

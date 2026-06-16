@@ -11,6 +11,7 @@ model Tenant {
   slug         String   @unique
   businessName String
   email        String   @unique
+  restaurantId String?  @unique
   phone        String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())

@@ -9,6 +9,7 @@ export default function SuperAdminTenants() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [idSearch, setIdSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [packageFilter, setPackageFilter] = useState('ALL');
   const [billingFilter, setBillingFilter] = useState('ALL');
@@ -50,6 +51,7 @@ export default function SuperAdminTenants() {
 
   const filtered = tenants
     .filter(t => t.businessName.toLowerCase().includes(search.toLowerCase()) || t.slug.toLowerCase().includes(search.toLowerCase()))
+    .filter(t => idSearch ? (t.restaurantId && t.restaurantId.toLowerCase().includes(idSearch.toLowerCase())) : true)
     .filter(t => {
       if (statusFilter === 'ALL') return true;
       if (statusFilter === 'ACTIVE') return t.isActive === true;
@@ -170,46 +172,60 @@ export default function SuperAdminTenants() {
           <h1 className="text-neutral-700 text-3xl font-bold mb-2">Registered Businesses</h1>
           <p className="text-neutral-500">Manage tenants and their subscription status.</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <select
-            className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="ALL">All Accounts</option>
-            <option value="ACTIVE">Active Access</option>
-            <option value="SUSPENDED">Suspended</option>
-          </select>
-          <select
-            className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
-            value={packageFilter}
-            onChange={(e) => setPackageFilter(e.target.value)}
-          >
-            <option value="ALL">All Packages</option>
-            <option value="NONE">No Package</option>
-            {packages.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <select
-            className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
-            value={billingFilter}
-            onChange={(e) => setBillingFilter(e.target.value)}
-          >
-            <option value="ALL">All Billing</option>
-            <option value="ACTIVE">Active Billing</option>
-            <option value="PAST_DUE">Past Due</option>
-            <option value="NONE">No Billing</option>
-          </select>
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="Search businesses..."
-              className="pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm w-64"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            <select
+              className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">All Accounts</option>
+              <option value="ACTIVE">Active Access</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+            <select
+              className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
+              value={packageFilter}
+              onChange={(e) => setPackageFilter(e.target.value)}
+            >
+              <option value="ALL">All Packages</option>
+              <option value="NONE">No Package</option>
+              {packages.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
+              value={billingFilter}
+              onChange={(e) => setBillingFilter(e.target.value)}
+            >
+              <option value="ALL">All Billing</option>
+              <option value="ACTIVE">Active Billing</option>
+              <option value="PAST_DUE">Past Due</option>
+              <option value="NONE">No Billing</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search businesses..."
+                className="pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm w-64"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search by ID..."
+                className="pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm w-40"
+                value={idSearch}
+                onChange={(e) => setIdSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -231,7 +247,7 @@ export default function SuperAdminTenants() {
               <tr key={t.id} className="hover:bg-neutral-50 transition-colors">
                 <td className="px-4 py-2">
                   <div className="font-bold text-neutral-900 text-sm">{t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</div>
-                  <div className="text-neutral-500">{t.businessName} (/{t.slug})</div>
+                  <div className="text-neutral-500">{t.businessName} <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 rounded text-[10px] font-mono text-neutral-400">{t.restaurantId || 'No ID'}</span> (/{t.slug})</div>
                 </td>
                 <td className="px-4 py-2">
                   <div className="font-medium text-neutral-700">{t.email}</div>

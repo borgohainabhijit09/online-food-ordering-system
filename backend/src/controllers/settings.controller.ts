@@ -11,7 +11,7 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
       where: { tenantId: req.tenantId },
       include: {
         tenant: {
-          select: { slug: true, businessName: true }
+          select: { slug: true, businessName: true, restaurantId: true }
         }
       }
     });
@@ -31,7 +31,7 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
         },
         include: {
           tenant: {
-            select: { slug: true, businessName: true }
+            select: { slug: true, businessName: true, restaurantId: true }
           }
         }
       });
@@ -39,7 +39,8 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
     
     res.status(200).json({
       ...settings,
-      tenantSlug: settings?.tenant?.slug
+      tenantSlug: settings?.tenant?.slug,
+      restaurantId: settings?.tenant?.restaurantId
     });
   } catch (error) {
     next(error);
@@ -62,18 +63,19 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
       settings = await prisma.settings.update({
         where: { id: existing.id },
         data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber },
-        include: { tenant: { select: { slug: true } } }
+        include: { tenant: { select: { slug: true, restaurantId: true } } }
       });
     } else {
       settings = await prisma.settings.create({
         data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId },
-        include: { tenant: { select: { slug: true } } }
+        include: { tenant: { select: { slug: true, restaurantId: true } } }
       });
     }
 
     res.status(200).json({
       ...settings,
-      tenantSlug: settings?.tenant?.slug
+      tenantSlug: settings?.tenant?.slug,
+      restaurantId: settings?.tenant?.restaurantId
     });
   } catch (error) {
     next(error);

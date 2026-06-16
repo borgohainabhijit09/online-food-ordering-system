@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../services/prisma';
 import { PasswordService } from '../services/password.service';
+import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
@@ -148,13 +149,20 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const generateId = () => 'RB-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+    let restaurantId = generateId();
+    while (await prisma.tenant.findUnique({ where: { restaurantId } })) {
+      restaurantId = generateId();
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const newTenant = await tx.tenant.create({
         data: {
           slug,
           businessName,
           email,
-          phone
+          phone,
+          restaurantId
         }
       });
 

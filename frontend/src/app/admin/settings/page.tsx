@@ -19,6 +19,7 @@ interface Settings {
   logoUrl?: string;
   fssaiNumber?: string;
   tenantSlug?: string;
+  restaurantId?: string;
 }
 
 export default function SettingsPage() {
@@ -60,7 +61,8 @@ export default function SettingsPage() {
           minOrderValueForDelivery: data.minOrderValueForDelivery || 0,
           logoUrl: data.logoUrl || '',
           fssaiNumber: data.fssaiNumber || '',
-          tenantSlug: data.tenantSlug || ''
+          tenantSlug: data.tenantSlug || '',
+          restaurantId: data.restaurantId || ''
         });
       }
     } catch (error) {
@@ -144,6 +146,15 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 shadow-sm space-y-6">
         
         <div className="space-y-4">
+          <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Unique Restaurant ID</label>
+            <div className="flex items-center gap-2">
+              <code className="text-lg font-mono font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-lg">
+                {settings.restaurantId || 'N/A'}
+              </code>
+              <span className="text-xs text-neutral-400 font-medium">Your global identification ID</span>
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Restaurant Name</label>
             <input 
