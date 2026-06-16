@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, MapPin } from 'lucide-react';
+import { Save, Loader2, MapPin, Download, Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { apiClient } from '@/lib/apiClient';
 
 interface Settings {
@@ -17,6 +18,7 @@ interface Settings {
   minOrderValueForDelivery: number;
   logoUrl?: string;
   fssaiNumber?: string;
+  tenantSlug?: string;
 }
 
 export default function SettingsPage() {
@@ -83,6 +85,49 @@ export default function SettingsPage() {
       setSaveMessage('Error saving settings');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const downloadStoreQR = () => {
+    if (!settings.tenantSlug) return;
+    const svg = document.getElementById('store-qr-code');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        const a = document.createElement('a');
+        a.download = `store-${settings.tenantSlug}-qr.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+      }
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  const printStoreQR = () => {
+    if (!settings.tenantSlug) return;
+    const svg = document.getElementById('store-qr-code');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const windowContent = '<!DOCTYPE html><html><head><title>Print Store QR</title><style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;}svg{width:300px;height:300px;}</style></head><body><h2>' + settings.restaurantName + '</h2>' + svgData + '</body></html>';
+    const printWin = window.open('', '', 'width=600,height=600');
+    if (printWin) {
+      printWin.document.open();
+      printWin.document.write(windowContent);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => {
+        printWin.print();
+        printWin.close();
+      }, 500);
     }
   };
 
@@ -181,6 +226,40 @@ export default function SettingsPage() {
                   </div>
           </div>
         </div>
+        </div>
+
+        {settings.tenantSlug && (
+          <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
+            <h3 className="font-bold text-lg">Store Link & QR Code</h3>
+            <div className="bg-neutral-50 dark:bg-neutral-950 p-6 rounded-xl border border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row items-center gap-6">
+              <div className="bg-white p-4 rounded-xl shadow-sm">
+                <QRCodeSVG 
+                  id="store-qr-code"
+                  value={typeof window !== 'undefined' ? `${window.location.origin}/${settings.tenantSlug}` : `https://restobuddy.in/${settings.tenantSlug}`} 
+                  size={160} 
+                  level="H" 
+                  includeMargin={true}
+                />
+              </div>
+              <div className="flex flex-col flex-1 w-full text-center md:text-left">
+                <p className="text-sm font-bold text-neutral-500 mb-2 uppercase tracking-wider">Your Customer Portal</p>
+                <div className="flex items-center gap-2 mb-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-lg break-all text-sm">
+                  <a href={`/${settings.tenantSlug}`} target="_blank" rel="noreferrer" className="text-orange-600 hover:underline">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/${settings.tenantSlug}` : `https://restobuddy.in/${settings.tenantSlug}`}
+                  </a>
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={downloadStoreQR} className="flex-1 flex justify-center items-center gap-2 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+                    <Download className="w-4 h-4" /> Download
+                  </button>
+                  <button type="button" onClick={printStoreQR} className="flex-1 flex justify-center items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm text-sm">
+                    <Printer className="w-4 h-4" /> Print
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
           <div className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-950 p-4 rounded-lg border border-neutral-200 dark:border-neutral-800">

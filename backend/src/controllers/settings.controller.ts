@@ -8,14 +8,22 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
     if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
 
     const settings = await prisma.settings.findFirst({
-      where: { tenantId: req.tenantId }
+      where: { tenantId: req.tenantId },
+      include: {
+        tenant: {
+          select: { slug: true }
+        }
+      }
     });
     
     if (!settings) {
       return res.status(404).json({ message: 'Settings not found' });
     }
     
-    res.status(200).json(settings);
+    res.status(200).json({
+      ...settings,
+      tenantSlug: settings.tenant?.slug
+    });
   } catch (error) {
     next(error);
   }
