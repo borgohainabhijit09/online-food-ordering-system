@@ -34,7 +34,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
       token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken') || cookieToken;
       
       // Sync cookie back to localStorage if it was wiped
-      if (token === cookieToken && !localStorage.getItem('adminToken') && !sessionStorage.getItem('impersonatedToken')) {
+      if (token && token === cookieToken && !localStorage.getItem('adminToken') && !sessionStorage.getItem('impersonatedToken')) {
         localStorage.setItem('adminToken', token);
       }
       
