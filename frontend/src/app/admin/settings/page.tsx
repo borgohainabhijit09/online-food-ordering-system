@@ -226,7 +226,6 @@ export default function SettingsPage() {
                   </div>
           </div>
         </div>
-        </div>
 
         {settings.tenantSlug && (
           <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-4">
