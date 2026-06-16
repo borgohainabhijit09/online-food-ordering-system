@@ -7,17 +7,33 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
   try {
     if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
 
-    const settings = await prisma.settings.findFirst({
+    let settings = await prisma.settings.findFirst({
       where: { tenantId: req.tenantId },
       include: {
         tenant: {
-          select: { slug: true }
+          select: { slug: true, businessName: true }
         }
       }
     });
     
     if (!settings) {
-      return res.status(404).json({ message: 'Settings not found' });
+      // Auto-create settings if they don't exist yet
+      const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
+      settings = await prisma.settings.create({
+        data: {
+          tenantId: req.tenantId,
+          restaurantName: tenant?.businessName || 'My Restaurant',
+          isAcceptingOrders: true,
+          deliveryRadiusKm: 5,
+          restaurantLat: 0,
+          restaurantLng: 0,
+        },
+        include: {
+          tenant: {
+            select: { slug: true, businessName: true }
+          }
+        }
+      });
     }
     
     res.status(200).json({
@@ -44,15 +60,20 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
     if (existing) {
       settings = await prisma.settings.update({
         where: { id: existing.id },
-        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber }
+        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber },
+        include: { tenant: { select: { slug: true } } }
       });
     } else {
       settings = await prisma.settings.create({
-        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId }
+        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId },
+        include: { tenant: { select: { slug: true } } }
       });
     }
 
-    res.status(200).json(settings);
+    res.status(200).json({
+      ...settings,
+      tenantSlug: settings.tenant?.slug
+    });
   } catch (error) {
     next(error);
   }
