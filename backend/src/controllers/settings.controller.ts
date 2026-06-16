@@ -27,6 +27,7 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
           deliveryRadiusKm: 5,
           restaurantLat: 0,
           restaurantLng: 0,
+          whatsappNumber: '',
         },
         include: {
           tenant: {
@@ -38,7 +39,7 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
     
     res.status(200).json({
       ...settings,
-      tenantSlug: settings.tenant?.slug
+      tenantSlug: settings?.tenant?.slug
     });
   } catch (error) {
     next(error);
@@ -72,7 +73,7 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
 
     res.status(200).json({
       ...settings,
-      tenantSlug: settings.tenant?.slug
+      tenantSlug: settings?.tenant?.slug
     });
   } catch (error) {
     next(error);
