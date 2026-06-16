@@ -8,6 +8,9 @@ export default function SuperAdminTenants() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [packageFilter, setPackageFilter] = useState('ALL');
+  const [billingFilter, setBillingFilter] = useState('ALL');
 
   const [editingTenant, setEditingTenant] = useState<any | null>(null);
   const [viewingProfile, setViewingProfile] = useState<any | null>(null);
@@ -43,7 +46,24 @@ export default function SuperAdminTenants() {
     }
   };
 
-  const filtered = tenants.filter(t => t.businessName.toLowerCase().includes(search.toLowerCase()) || t.slug.toLowerCase().includes(search.toLowerCase()));
+  const filtered = tenants
+    .filter(t => t.businessName.toLowerCase().includes(search.toLowerCase()) || t.slug.toLowerCase().includes(search.toLowerCase()))
+    .filter(t => {
+      if (statusFilter === 'ALL') return true;
+      if (statusFilter === 'ACTIVE') return t.isActive === true;
+      if (statusFilter === 'SUSPENDED') return t.isActive === false;
+      return true;
+    })
+    .filter(t => {
+      if (packageFilter === 'ALL') return true;
+      if (packageFilter === 'NONE') return !t.subscription?.packageId;
+      return t.subscription?.packageId === packageFilter;
+    })
+    .filter(t => {
+      if (billingFilter === 'ALL') return true;
+      if (billingFilter === 'NONE') return !t.subscription?.status || t.subscription.status === 'NONE';
+      return t.subscription?.status === billingFilter;
+    });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -123,83 +143,114 @@ export default function SuperAdminTenants() {
           <h1 className="text-neutral-700 text-3xl font-bold mb-2">Registered Businesses</h1>
           <p className="text-neutral-500">Manage tenants and their subscription status.</p>
         </div>
-        <div className="relative">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search businesses..."
-            className="pl-10 pr-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex items-center gap-3 flex-wrap">
+          <select
+            className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="ALL">All Accounts</option>
+            <option value="ACTIVE">Active Access</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
+          <select
+            className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
+            value={packageFilter}
+            onChange={(e) => setPackageFilter(e.target.value)}
+          >
+            <option value="ALL">All Packages</option>
+            <option value="NONE">No Package</option>
+            {packages.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <select
+            className="px-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm"
+            value={billingFilter}
+            onChange={(e) => setBillingFilter(e.target.value)}
+          >
+            <option value="ALL">All Billing</option>
+            <option value="ACTIVE">Active Billing</option>
+            <option value="PAST_DUE">Past Due</option>
+            <option value="NONE">No Billing</option>
+          </select>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search businesses..."
+              className="pl-9 pr-4 py-2 bg-white border border-neutral-200 rounded-xl outline-none focus:border-black transition-colors text-sm w-64"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-500">
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 uppercase tracking-wider">
             <tr>
-              <th className="font-medium p-4">Customer / Business</th>
-              <th className="font-medium p-4">Contact Info</th>
-              <th className="font-medium p-4">Package</th>
-              <th className="font-medium p-4">Billing Status</th>
-              <th className="font-medium p-4">Access</th>
-              <th className="font-medium p-4 w-48 text-right">Actions</th>
+              <th className="font-semibold px-4 py-3">Customer / Business</th>
+              <th className="font-semibold px-4 py-3">Contact Info</th>
+              <th className="font-semibold px-4 py-3">Package</th>
+              <th className="font-semibold px-4 py-3">Billing Status</th>
+              <th className="font-semibold px-4 py-3">Access</th>
+              <th className="font-semibold px-4 py-3 w-48 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {filtered.map(t => (
               <tr key={t.id} className="hover:bg-neutral-50 transition-colors">
-                <td className="p-4">
-                  <div className="font-bold text-neutral-900">{t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</div>
-                  <div className="text-sm text-neutral-500">{t.businessName} (/{t.slug})</div>
+                <td className="px-4 py-2">
+                  <div className="font-bold text-neutral-900 text-sm">{t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</div>
+                  <div className="text-neutral-500">{t.businessName} (/{t.slug})</div>
                 </td>
-                <td className="p-4">
-                  <div className="text-sm text-neutral-700">{t.email}</div>
-                  <div className="text-sm text-neutral-500">{t.phone}</div>
+                <td className="px-4 py-2">
+                  <div className="font-medium text-neutral-700">{t.email}</div>
+                  <div className="text-neutral-500">{t.phone || '-'}</div>
                 </td>
-                <td className="p-4">
+                <td className="px-4 py-2">
                   <div className="font-medium text-neutral-700">{t.subscription?.package?.name || 'No Subscription'}</div>
-                  <div className="text-xs text-neutral-500">
+                  <div className="text-neutral-500">
                     {t.subscription?.package?.price ? `₹${t.subscription.package.price}/mo` : ''} 
-                    {t.subscription?.nextBillingDate ? ` (Next: ${new Date(t.subscription.nextBillingDate).toLocaleDateString()})` : ''}
                   </div>
                 </td>
-                <td className="p-4">
+                <td className="px-4 py-2">
                   {getStatusBadge(t.subscription?.status || 'NONE')}
                 </td>
-                <td className="p-4">
+                <td className="px-4 py-2">
                   {t.isActive === false ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-neutral-200 text-neutral-600">SUSPENDED</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-neutral-200 text-neutral-600">SUSPENDED</span>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">ACTIVE</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">ACTIVE</span>
                   )}
                 </td>
-                <td className="p-4 text-right whitespace-nowrap flex items-center justify-end gap-2">
+                <td className="px-4 py-2 text-right whitespace-nowrap flex items-center justify-end gap-1.5">
                   <button 
                     onClick={() => setViewingProfile(t)}
-                    className="text-blue-600 bg-blue-50 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg transition-colors text-xs uppercase"
+                    className="text-blue-600 bg-blue-50 hover:bg-blue-100 font-bold px-2 py-1 rounded transition-colors text-[10px] uppercase"
                   >
                     Profile
                   </button>
                   <button 
                     onClick={() => handleImpersonate(t.id)}
-                    className="text-orange-600 bg-orange-50 hover:bg-orange-100 font-bold px-3 py-1.5 rounded-lg transition-colors text-xs uppercase"
+                    className="text-orange-600 bg-orange-50 hover:bg-orange-100 font-bold px-2 py-1 rounded transition-colors text-[10px] uppercase"
                   >
                     Login As
                   </button>
                   <button 
                     onClick={() => openEditModal(t)}
-                    className="text-neutral-600 bg-neutral-100 hover:bg-neutral-200 font-bold p-1.5 rounded-lg transition-colors"
+                    className="text-neutral-600 bg-neutral-100 hover:bg-neutral-200 font-bold p-1 rounded transition-colors"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5" />
                   </button>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-neutral-500">
+                <td colSpan={7} className="p-8 text-center text-neutral-500 text-sm">
                   No businesses found.
                 </td>
               </tr>

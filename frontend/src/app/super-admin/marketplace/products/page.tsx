@@ -22,6 +22,11 @@ export default function MarketplaceProductsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // Filters
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -116,13 +121,59 @@ export default function MarketplaceProductsPage() {
     }
   };
 
+  const categories = Array.from(
+    new Set(
+      products
+        .filter(p => typeFilter === 'ALL' || p.type === typeFilter)
+        .map(p => p.category)
+    )
+  );
+
+  const filteredProducts = products.filter(p => {
+    if (search && !p.title.toLowerCase().includes(search.toLowerCase()) && !p.description.toLowerCase().includes(search.toLowerCase())) return false;
+    if (typeFilter !== 'ALL' && p.type !== typeFilter) return false;
+    if (categoryFilter !== 'ALL' && p.category !== categoryFilter) return false;
+    return true;
+  });
+
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-black" /></div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            placeholder="Search products..."
+            className="px-4 py-2 border border-neutral-200 rounded-lg outline-none focus:border-black transition-colors text-sm w-64"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="px-4 py-2 border border-neutral-200 rounded-lg outline-none focus:border-black transition-colors text-sm"
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setCategoryFilter('ALL'); // Reset category when type changes
+            }}
+          >
+            <option value="ALL">All Types</option>
+            <option value="PHYSICAL">Physical Goods</option>
+            <option value="SERVICE">Services</option>
+          </select>
+          <select
+            className="px-4 py-2 border border-neutral-200 rounded-lg outline-none focus:border-black transition-colors text-sm"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="ALL">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
         <button 
           onClick={() => openModal()}
           className="bg-black hover:bg-neutral-800 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -144,9 +195,9 @@ export default function MarketplaceProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <tr><td colSpan={6} className="text-center py-8 text-neutral-500">No products found.</td></tr>
-            ) : products.map(product => (
+            ) : filteredProducts.map(product => (
               <tr key={product.id} className="hover:bg-neutral-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="font-medium text-black">{product.title}</div>

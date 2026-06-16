@@ -10,6 +10,8 @@ export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<{slug: string, businessName: string} | null>(null);
   
   const [formData, setFormData] = useState({
     businessName: '',
@@ -59,9 +61,14 @@ export default function SignupPage() {
 
       // Automatically log them in by setting the token
       localStorage.setItem('adminToken', data.token);
+      document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
       
-      // Redirect to their new dashboard
-      router.push('/admin');
+      // Instead of redirecting immediately, show success state with QR code
+      setSuccessData({
+        slug: formData.slug,
+        businessName: formData.businessName
+      });
+      setIsSuccess(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -89,9 +96,43 @@ export default function SignupPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="bg-white dark:bg-neutral-900 py-6 px-4 shadow-xl shadow-neutral-200/20 dark:shadow-none sm:rounded-3xl sm:px-10 border border-neutral-100 dark:border-neutral-800">
-          <form className="space-y-5" onSubmit={handleSubmit}>
+      {isSuccess && successData ? (
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white dark:bg-neutral-900 py-8 px-6 shadow-xl sm:rounded-3xl border border-neutral-100 dark:border-neutral-800 text-center">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">Store Created!</h3>
+            <p className="text-neutral-500 mb-6">Welcome to RestoBuddy, {successData.businessName}!</p>
+            
+            <div className="bg-neutral-50 dark:bg-neutral-950 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 mb-6 inline-block">
+              <p className="text-sm font-bold text-neutral-500 mb-4 uppercase tracking-wider">Your Store QR Code</p>
+              <div className="bg-white p-4 rounded-xl shadow-sm inline-block">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/${successData.slug}` : '')}`} 
+                  alt="Store QR Code" 
+                  className="w-40 h-40"
+                />
+              </div>
+              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mt-4 break-all">
+                {typeof window !== 'undefined' ? window.location.origin : ''}/{successData.slug}
+              </p>
+            </div>
+
+            <button
+              onClick={() => router.push('/admin')}
+              className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 transition-colors"
+            >
+              Go to your Admin Dashboard <ArrowRight className="ml-2 w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
+          <div className="bg-white dark:bg-neutral-900 py-6 px-4 shadow-xl shadow-neutral-200/20 dark:shadow-none sm:rounded-3xl sm:px-10 border border-neutral-100 dark:border-neutral-800">
+            <form className="space-y-5" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-3 rounded-r-md">
                 <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
@@ -236,7 +277,7 @@ export default function SignupPage() {
             </div>
           </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -39,6 +39,7 @@ export default function LoginPage() {
       } else {
         // Single store, regular login
         localStorage.setItem('adminToken', data.token);
+        document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
         router.push('/admin');
       }
     } catch (err: any) {
@@ -69,6 +70,7 @@ export default function LoginPage() {
 
       const data = await res.json();
       localStorage.setItem('adminToken', data.token);
+      document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
       router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'Failed to select store');

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Contact, Plus, Phone, Mail, Calendar, MoreVertical, X } from 'lucide-react';
+import { Contact, Plus, Phone, Mail, Calendar, MoreVertical, X, Trash2 } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -86,6 +86,22 @@ export default function CRMDashboard() {
     }
   };
 
+  const handleDeleteLead = async (leadId: string) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+    try {
+      const token = localStorage.getItem('superAdminToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads/${leadId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchLeads();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSaveLead = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -153,9 +169,16 @@ export default function CRMDashboard() {
                     key={lead.id} 
                     draggable
                     onDragStart={(e) => handleDragStart(e, lead.id)}
-                    className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 cursor-grab active:cursor-grabbing hover:border-indigo-300 hover:shadow-md transition-all"
+                    className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 cursor-grab active:cursor-grabbing hover:border-indigo-300 hover:shadow-md transition-all relative group"
                   >
-                    <h3 className="font-bold text-neutral-900 mb-1">{lead.restaurantName}</h3>
+                    <button 
+                      onClick={() => handleDeleteLead(lead.id)}
+                      className="absolute top-3 right-3 text-neutral-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full p-1 shadow-sm"
+                      title="Delete Lead"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <h3 className="font-bold text-neutral-900 mb-1 pr-6">{lead.restaurantName}</h3>
                     <div className="text-sm text-neutral-600 mb-3">{lead.ownerName}</div>
                     
                     <div className="space-y-2 text-xs text-neutral-500">

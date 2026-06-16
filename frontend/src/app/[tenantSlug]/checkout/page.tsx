@@ -201,8 +201,10 @@ export default function CheckoutPage() {
       const whatsappUrl = `https://wa.me/${targetNumber}?text=${encodeURIComponent(message)}`;
       
       clearCart();
-      window.open(whatsappUrl, '_blank');
       router.push(`/${tenantSlug}/track/${createdOrder.id}`);
+      setTimeout(() => {
+        window.location.href = whatsappUrl;
+      }, 500);
     } catch (error: any) {
       console.error("Failed to place order", error);
       alert("Something went wrong. Please try again.");

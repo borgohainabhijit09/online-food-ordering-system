@@ -22,7 +22,21 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     if (isSuperAdminRoute) {
       token = localStorage.getItem('superAdminToken');
     } else {
-      token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken');
+      // Fallback to cookie if localStorage is aggressively cleared by mobile browsers
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+      
+      const cookieToken = getCookie('adminToken');
+      token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken') || cookieToken;
+      
+      // Sync cookie back to localStorage if it was wiped
+      if (token === cookieToken && !localStorage.getItem('adminToken') && !sessionStorage.getItem('impersonatedToken')) {
+        localStorage.setItem('adminToken', token);
+      }
       
       // Extract tenant slug from URL (e.g. /demo-restaurant/checkout -> demo-restaurant)
       if (pathParts.length > 0 && pathParts[0] !== 'admin' && pathParts[0] !== 'login' && pathParts[0] !== 'signup') {
@@ -43,6 +57,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   if (response.status === 401) {
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
       localStorage.removeItem('adminToken');
+      document.cookie = 'adminToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       window.location.href = '/admin/login';
     }
   }

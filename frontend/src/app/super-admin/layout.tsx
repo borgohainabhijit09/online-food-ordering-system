@@ -61,7 +61,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex font-sans">
+    <div className="h-screen overflow-hidden bg-neutral-50 flex font-sans">
       {/* Sidebar */}
       <div className="w-64 bg-black text-white p-6 flex flex-col h-screen overflow-y-auto">
         <div className="flex items-center gap-3 mb-8">

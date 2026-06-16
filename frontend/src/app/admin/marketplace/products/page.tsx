@@ -18,6 +18,7 @@ export default function TenantMarketplaceStorefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedType, setSelectedType] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
@@ -69,8 +70,20 @@ export default function TenantMarketplaceStorefront() {
     return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>;
   }
 
-  // Group by category
-  const categories = Array.from(new Set(products.map(p => p.category)));
+  // Group by category, dependent on type
+  const categories = Array.from(
+    new Set(
+      products
+        .filter(p => selectedType === 'ALL' || p.type === selectedType)
+        .map(p => p.category)
+    )
+  );
+
+  const filteredProducts = products.filter(p => {
+    if (selectedType !== 'ALL' && p.type !== selectedType) return false;
+    if (selectedCategory && p.category !== selectedCategory) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-8 relative">
@@ -81,31 +94,56 @@ export default function TenantMarketplaceStorefront() {
         </div>
       )}
 
-      {products.length > 0 && categories.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              selectedCategory === null
-                ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
-                : 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-700'
-            }`}
-          >
-            All Products
-          </button>
-          {categories.map(category => (
+      {products.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-xl w-fit">
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedCategory === category
-                  ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
-                  : 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-700'
-              }`}
+              onClick={() => { setSelectedType('ALL'); setSelectedCategory(null); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${selectedType === 'ALL' ? 'bg-white dark:bg-neutral-900 shadow-sm text-neutral-900 dark:text-white' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
             >
-              {category}
+              All Types
             </button>
-          ))}
+            <button
+              onClick={() => { setSelectedType('PHYSICAL'); setSelectedCategory(null); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${selectedType === 'PHYSICAL' ? 'bg-white dark:bg-neutral-900 shadow-sm text-orange-600 dark:text-orange-400' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+            >
+              Physical Goods
+            </button>
+            <button
+              onClick={() => { setSelectedType('SERVICE'); setSelectedCategory(null); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${selectedType === 'SERVICE' ? 'bg-white dark:bg-neutral-900 shadow-sm text-blue-600 dark:text-blue-400' : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
+            >
+              Services
+            </button>
+          </div>
+
+          {categories.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  selectedCategory === null
+                    ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                    : 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-700'
+                }`}
+              >
+                All Categories
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                      : 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-700'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -116,52 +154,56 @@ export default function TenantMarketplaceStorefront() {
           <p className="text-neutral-500 dark:text-neutral-400 mt-2">Check back later for exciting new products and services!</p>
         </div>
       ) : (
-        (selectedCategory ? [selectedCategory] : categories).map(category => (
-          <div key={category} className="space-y-4">
-            <h3 className="text-xl font-bold text-neutral-900 dark:text-white pb-2 border-b border-neutral-200 dark:border-neutral-800">
-              {category}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.filter(p => p.category === category).map(product => (
-                <div key={product.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden flex flex-col transition-all hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900/50 group">
-                  {product.imageUrl && (
-                    <div className="w-full h-48 bg-neutral-100 dark:bg-neutral-800 overflow-hidden shrink-0 relative">
-                      <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        (selectedCategory ? [selectedCategory] : categories).map(category => {
+          const catProducts = filteredProducts.filter(p => p.category === category);
+          if (catProducts.length === 0) return null;
+          return (
+            <div key={category} className="space-y-4">
+              <h3 className="text-lg font-bold text-neutral-900 dark:text-white pb-1.5 border-b border-neutral-200 dark:border-neutral-800">
+                {category}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {catProducts.map(product => (
+                  <div key={product.id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden flex flex-col transition-all hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900/50 group">
+                    {product.imageUrl && (
+                      <div className="w-full h-32 bg-neutral-100 dark:bg-neutral-800 overflow-hidden shrink-0 relative">
+                        <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                    )}
+                    <div className="p-4 flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-sm ${
+                          product.type === 'SERVICE' 
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
+                            : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+                        }`}>
+                          {product.type}
+                        </span>
+                        <span className="font-bold text-sm text-neutral-900 dark:text-white">
+                          ₹{product.price.toFixed(2)}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm mb-1 text-neutral-900 dark:text-white group-hover:text-orange-600 transition-colors line-clamp-1">
+                        {product.title}
+                      </h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                        {product.description}
+                      </p>
                     </div>
-                  )}
-                  <div className="p-6 flex-1">
-                    <div className="flex justify-between items-start mb-4">
-                      <span className={`text-xs font-bold tracking-wider uppercase px-2.5 py-1 rounded-full ${
-                        product.type === 'SERVICE' 
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
-                          : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
-                      }`}>
-                        {product.type}
-                      </span>
-                      <span className="font-bold text-lg text-neutral-900 dark:text-white">
-                        ₹{product.price.toFixed(2)}
-                      </span>
+                    <div className="p-3 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/50 mt-auto">
+                      <button 
+                        onClick={() => setSelectedProduct(product)}
+                        className="w-full bg-black dark:bg-white text-white dark:text-black py-2 rounded-lg text-xs font-bold hover:bg-orange-600 dark:hover:bg-orange-500 hover:text-white transition-colors"
+                      >
+                        Request {product.type === 'SERVICE' ? 'Service' : 'Product'}
+                      </button>
                     </div>
-                    <h4 className="font-bold text-xl mb-2 text-neutral-900 dark:text-white group-hover:text-orange-600 transition-colors">
-                      {product.title}
-                    </h4>
-                    <p className="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-3">
-                      {product.description}
-                    </p>
                   </div>
-                  <div className="p-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/50 mt-auto">
-                    <button 
-                      onClick={() => setSelectedProduct(product)}
-                      className="w-full bg-black dark:bg-white text-white dark:text-black py-2.5 rounded-xl font-medium hover:bg-orange-600 dark:hover:bg-orange-500 hover:text-white transition-colors"
-                    >
-                      Request {product.type === 'SERVICE' ? 'Service' : 'Product'}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
 
       {selectedProduct && (

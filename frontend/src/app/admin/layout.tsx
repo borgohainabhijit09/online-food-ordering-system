@@ -84,8 +84,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             setAvailableStores(myStores);
 
             if (myStores.length > 0) {
-              const defaultTenant = myStores[0];
-              setTenantSlug(defaultTenant.slug);
+              // Only set default if we don't already have one from the JWT
+              setTenantSlug(prev => prev || myStores[0].slug);
             }
           }
           fetchCounts();
@@ -141,6 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('adminToken', data.token);
+        document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`;
         window.location.reload(); // Reload the whole app to clear React state and fetch new store data
       }
     } catch (e) {
