@@ -43,9 +43,24 @@ model User {
 
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
-  lastLoginAt DateTime?
-  tenantAccess TenantAccess[]
-  supportMessages SupportMessage[]
+  lastLoginAt           DateTime?
+  tenantAccess          TenantAccess[]
+  supportMessages       SupportMessage[]
+
+  forcePasswordChange   Boolean   @default(false)
+  lastPasswordChangeAt  DateTime?
+  failedLoginAttempts   Int       @default(0)
+  lockedUntil           DateTime?
+}
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  businessId      String?  
+  userId          String?
+  action          String
+  performedBy     String
+  metadata        Json?
+  createdAt       DateTime @default(now())
 }
 
 model TenantAccess {
@@ -71,6 +86,7 @@ enum DietaryPreference {
   VEG
   NON_VEG
   VEGAN
+  EGG
 }
 
 model Category {
@@ -236,6 +252,7 @@ model Settings {
   whatsappNumber       String
   hasDeliveryCharge    Boolean @default(false)
   deliveryChargeAmount Float   @default(0)
+  minOrderValueForDelivery Float @default(0)
   logoUrl              String?
   fssaiNumber          String?
 

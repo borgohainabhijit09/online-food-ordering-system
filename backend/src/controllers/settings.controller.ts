@@ -24,7 +24,7 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
 export const updateSettings = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
-    const { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, logoUrl, fssaiNumber } = req.body;
+    const { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber } = req.body;
     
     // Check if settings exist
     const existing = await prisma.settings.findFirst({
@@ -36,11 +36,11 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
     if (existing) {
       settings = await prisma.settings.update({
         where: { id: existing.id },
-        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, logoUrl, fssaiNumber }
+        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber }
       });
     } else {
       settings = await prisma.settings.create({
-        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, logoUrl, fssaiNumber, tenantId: req.tenantId }
+        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId }
       });
     }
 

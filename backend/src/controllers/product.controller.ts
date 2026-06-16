@@ -169,6 +169,39 @@ export const deleteProduct = async (req: TenantReq, res: Response, next: NextFun
   }
 };
 
+export const bulkDeleteProducts = async (req: TenantReq, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body;
+    
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: 'No product IDs provided' });
+    }
+
+    // Ensure all products belong to this tenant
+    const existingProducts = await prisma.product.findMany({
+      where: { id: { in: ids }, tenantId: req.tenantId },
+      select: { id: true }
+    });
+    
+    const validIds = existingProducts.map(p => p.id);
+
+    if (validIds.length === 0) {
+      return res.status(404).json({ message: 'Products not found or not authorized' });
+    }
+
+    await prisma.$transaction([
+      prisma.productVariant.deleteMany({ where: { productId: { in: validIds } } }),
+      prisma.productImage.deleteMany({ where: { productId: { in: validIds } } }),
+      prisma.inventory.deleteMany({ where: { productId: { in: validIds } } }),
+      prisma.productAddon.deleteMany({ where: { productId: { in: validIds } } }),
+      prisma.product.deleteMany({ where: { id: { in: validIds } } })
+    ]);
+    res.status(200).json({ message: `Successfully deleted ${validIds.length} products` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const toggleProductStatus = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -205,7 +238,9 @@ export const bulkUploadProducts = async (req: TenantReq, res: Response, next: Ne
     const stream = Readable.from(req.file.buffer.toString('utf-8'));
     
     stream
-      .pipe(csvParser())
+      .pipe(csvParser({
+        mapHeaders: ({ header }) => header.trim().replace(/^[\uFEFF\u200B]/, '')
+      }))
       .on('data', (data) => results.push(data))
       .on('end', async () => {
         let imported = 0;
@@ -218,6 +253,7 @@ export const bulkUploadProducts = async (req: TenantReq, res: Response, next: Ne
             const basePrice = parseFloat(row.BasePrice);
             
             if (!categoryName || !productName || isNaN(basePrice)) {
+              if (errors === 0) console.log("First error row:", row);
               errors++;
               continue;
             }
@@ -238,7 +274,7 @@ export const bulkUploadProducts = async (req: TenantReq, res: Response, next: Ne
             const offerPrice = row.OfferPrice ? parseFloat(row.OfferPrice) : null;
             const isSpicy = row.IsSpicy?.toUpperCase() === 'TRUE';
             const isActive = row.IsActive?.toUpperCase() !== 'FALSE';
-            const dietaryPreference = ['VEG', 'NON_VEG', 'VEGAN'].includes(row.DietaryPreference?.toUpperCase()) 
+            const dietaryPreference = ['VEG', 'NON_VEG', 'VEGAN', 'EGG'].includes(row.DietaryPreference?.toUpperCase()) 
               ? row.DietaryPreference.toUpperCase() : 'VEG';
 
             await prisma.product.create({
@@ -262,7 +298,7 @@ export const bulkUploadProducts = async (req: TenantReq, res: Response, next: Ne
             errors++;
           }
         }
-        res.status(200).json({ imported, errors });
+        res.status(200).json({ imported, errors, firstErrorRow: errors > 0 ? results[0] : null });
       });
   } catch (error) {
     next(error);

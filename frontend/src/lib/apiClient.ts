@@ -1,14 +1,23 @@
 export const apiClient = {
   get: (url: string) => fetchWithAuth(url, { method: 'GET' }),
-  post: (url: string, data: any) => fetchWithAuth(url, { method: 'POST', body: JSON.stringify(data) }),
-  put: (url: string, data: any) => fetchWithAuth(url, { method: 'PUT', body: JSON.stringify(data) }),
-  patch: (url: string, data: any) => fetchWithAuth(url, { method: 'PATCH', body: JSON.stringify(data) }),
+  post: (url: string, data: any) => {
+    const isFormData = data instanceof FormData;
+    return fetchWithAuth(url, { method: 'POST', body: isFormData ? data : JSON.stringify(data), isFormData } as any);
+  },
+  put: (url: string, data: any) => {
+    const isFormData = data instanceof FormData;
+    return fetchWithAuth(url, { method: 'PUT', body: isFormData ? data : JSON.stringify(data), isFormData } as any);
+  },
+  patch: (url: string, data: any) => {
+    const isFormData = data instanceof FormData;
+    return fetchWithAuth(url, { method: 'PATCH', body: isFormData ? data : JSON.stringify(data), isFormData } as any);
+  },
   delete: (url: string) => fetchWithAuth(url, { method: 'DELETE' }),
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
+async function fetchWithAuth(url: string, options: RequestInit & { isFormData?: boolean } = {}) {
   const finalUrl = url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 
   let token = null;
@@ -21,8 +30,8 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     
     if (isSuperAdminRoute) {
       token = localStorage.getItem('superAdminToken');
-    } else {
-      // Fallback to cookie if localStorage is aggressively cleared by mobile browsers
+    } else if (pathParts[0] === 'admin') {
+      // Admin routes use adminToken or impersonatedToken
       const getCookie = (name: string) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -37,28 +46,40 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
       if (token && token === cookieToken && !localStorage.getItem('adminToken') && !sessionStorage.getItem('impersonatedToken')) {
         localStorage.setItem('adminToken', token);
       }
-      
-      // Extract tenant slug from URL (e.g. /demo-restaurant/checkout -> demo-restaurant)
-      if (pathParts.length > 0 && pathParts[0] !== 'admin' && pathParts[0] !== 'login' && pathParts[0] !== 'signup') {
+    } else {
+      // Customer routes don't use admin auth, just the slug
+      if (pathParts.length > 0 && pathParts[0] !== 'login' && pathParts[0] !== 'signup') {
         tenantSlug = pathParts[0];
       }
     }
   }
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(!options.isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(tenantSlug ? { 'x-tenant-slug': tenantSlug } : {}),
     ...(options.headers as Record<string, string>),
   };
 
-  const response = await fetch(finalUrl, { ...options, headers });
+  const response = await fetch(finalUrl, { cache: 'no-store', ...options, headers });
 
   if (response.status === 401) {
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
       localStorage.removeItem('adminToken');
       document.cookie = 'adminToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       window.location.href = '/admin/login';
+    }
+  }
+
+  if (response.status === 403) {
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/change-password')) {
+      const clone = response.clone();
+      try {
+        const data = await clone.json();
+        if (data.forcePasswordChange) {
+          window.location.href = '/admin/change-password';
+        }
+      } catch (e) {}
     }
   }
 

@@ -90,6 +90,9 @@ export default function CartPage() {
   const deliveryFee = (settings?.hasDeliveryCharge && orderType === 'DELIVERY') ? (settings.deliveryChargeAmount || 0) : 0;
   const displayTotal = subtotal + deliveryFee;
 
+  const minDeliveryValue = settings?.minOrderValueForDelivery || 0;
+  const isBelowMinDelivery = orderType === 'DELIVERY' && minDeliveryValue > 0 && subtotal < minDeliveryValue;
+
   if (!mounted) {
     return null;
   }
@@ -316,10 +319,21 @@ export default function CartPage() {
           <div>
             <div className="text-sm text-neutral-500 font-medium">TOTAL</div>
             <div className="font-bold text-xl sm:text-2xl">₹{displayTotal}</div>
+            {isBelowMinDelivery && (
+              <div className="text-xs text-red-500 mt-1 font-medium">
+                Minimum order for delivery is ₹{minDeliveryValue}
+              </div>
+            )}
           </div>
-          <Link href={`/${tenantSlug}/checkout`} className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4 rounded-xl shadow-lg shadow-orange-600/30 transition-colors flex items-center gap-1 sm:gap-2">
-            Proceed to Pay <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Link>
+          {isBelowMinDelivery ? (
+            <button disabled className="bg-neutral-300 dark:bg-neutral-800 text-neutral-500 font-bold text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4 rounded-xl shadow-lg transition-colors flex items-center gap-1 sm:gap-2">
+              Proceed to Pay <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          ) : (
+            <Link href={`/${tenantSlug}/checkout`} className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4 rounded-xl shadow-lg shadow-orange-600/30 transition-colors flex items-center gap-1 sm:gap-2">
+              Proceed to Pay <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

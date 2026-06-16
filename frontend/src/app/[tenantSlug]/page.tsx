@@ -14,7 +14,7 @@ import { Coffee } from 'lucide-react';
 interface Variant { id: string; name: string; price: number; offerPrice?: number | null; }
 interface Product {
   id: string; name: string; description: string; basePrice: number; offerPrice?: number | null;
-  categoryId: string; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN'; isSpicy: boolean;
+  categoryId: string; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN' | 'EGG'; isSpicy: boolean;
   variants: Variant[];
   images: { url: string }[];
   isActive: boolean;
@@ -26,7 +26,7 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dietFilter, setDietFilter] = useState<'ALL' | 'VEG' | 'NON_VEG' | 'VEGAN'>('ALL');
+  const [dietFilter, setDietFilter] = useState<'ALL' | 'VEG' | 'NON_VEG' | 'VEGAN' | 'EGG'>('ALL');
   const [isSpicyFilter, setIsSpicyFilter] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
@@ -258,6 +258,10 @@ export default function Home() {
             className={`whitespace-nowrap px-4 py-1.5 rounded-full border flex items-center gap-1 transition-colors snap-start ${dietFilter === 'VEGAN' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}
           >🌱 Vegan</button>
           <button 
+            onClick={() => setDietFilter('EGG')}
+            className={`whitespace-nowrap px-4 py-1.5 rounded-full border flex items-center gap-1 transition-colors snap-start ${dietFilter === 'EGG' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}
+          ><span className={`w-2 h-2 rounded-full ${dietFilter === 'EGG' ? 'bg-white' : 'bg-yellow-500'}`}></span> Egg</button>
+          <button 
             onClick={() => setIsSpicyFilter(!isSpicyFilter)}
             className={`whitespace-nowrap px-4 py-1.5 rounded-full border flex items-center gap-1 transition-colors snap-start ${isSpicyFilter ? 'bg-red-500 text-white border-red-500' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800'}`}
           >🌶️ Spicy</button>
@@ -438,6 +442,20 @@ function ProductCard({ product, index, settings, onAdd }: { product: any, index:
           <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-0.5 rounded shadow-sm z-10">
             <div className="w-3 h-3 border border-red-600 flex items-center justify-center">
               <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
+            </div>
+          </div>
+        )}
+        {product.dietaryPreference === 'VEGAN' && (
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-0.5 rounded shadow-sm z-10">
+            <div className="w-3 h-3 border border-emerald-500 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+            </div>
+          </div>
+        )}
+        {product.dietaryPreference === 'EGG' && (
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-0.5 rounded shadow-sm z-10">
+            <div className="w-3 h-3 border border-yellow-500 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
             </div>
           </div>
         )}

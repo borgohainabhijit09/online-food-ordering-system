@@ -14,8 +14,14 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
     req.user = decoded;
+
+    if (decoded.forcePasswordChange && !req.originalUrl.includes('/change-password') && !req.originalUrl.includes('/logout')) {
+      res.status(403).json({ message: 'Password change required', forcePasswordChange: true });
+      return;
+    }
+
     next();
   } catch (error) {
     res.status(401).json({ message: 'Invalid or expired token' });

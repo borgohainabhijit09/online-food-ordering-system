@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface Category { id: string; name: string; }
 interface Addon { id: string; name: string; price: number; }
 interface Variant { name: string; price: number; offerPrice?: number | null; }
-interface Product { id: string; name: string; basePrice: number; offerPrice?: number | null; category: Category; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN'; isSpicy: boolean; isActive: boolean; }
+interface Product { id: string; name: string; basePrice: number; offerPrice?: number | null; category: Category; isTrending: boolean; dietaryPreference: 'VEG' | 'NON_VEG' | 'VEGAN' | 'EGG'; isSpicy: boolean; isActive: boolean; }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,6 +25,9 @@ export default function ProductsPage() {
   const [filterCategoryId, setFilterCategoryId] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Bulk Action State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -33,7 +36,7 @@ export default function ProductsPage() {
   const [categoryId, setCategoryId] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isTrending, setIsTrending] = useState(false);
-  const [dietaryPreference, setDietaryPreference] = useState<'VEG' | 'NON_VEG' | 'VEGAN'>('VEG');
+  const [dietaryPreference, setDietaryPreference] = useState<'VEG' | 'NON_VEG' | 'VEGAN' | 'EGG'>('VEG');
   const [isSpicy, setIsSpicy] = useState(false);
   const [isActive, setIsActive] = useState(true);
   
@@ -159,9 +162,65 @@ export default function ProductsPage() {
     try {
       await apiClient.delete(`/api/products/${id}`);
       fetchData();
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
     } catch (error) {
       console.error('Failed to delete', error);
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected products?`)) return;
+    try {
+      const res = await apiClient.post('/api/products/bulk-delete', { ids: selectedIds });
+      if (res.ok) {
+        setSelectedIds([]);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Failed to delete products');
+      }
+    } catch (error) {
+      console.error('Failed to bulk delete', error);
+      alert('Network error while deleting products');
+    }
+  };
+
+  const handleBulkDownload = () => {
+    const productsToDownload = selectedIds.length > 0 
+      ? products.filter(p => selectedIds.includes(p.id))
+      : products.filter(p => filterCategoryId === 'ALL' || p.category?.id === filterCategoryId).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (productsToDownload.length === 0) return alert('No products to download');
+
+    const headers = ["CategoryName", "ProductName", "Description", "BasePrice", "OfferPrice", "DietaryPreference", "IsSpicy", "IsActive", "ImageUrl"];
+    
+    const rows = productsToDownload.map(p => {
+      // Need description/image from product, wait some might not be fetched in the list
+      // But we can export what we have
+      return [
+        `"${p.category?.name || ''}"`,
+        `"${p.name}"`,
+        `""`, // Description not in summary list
+        p.basePrice,
+        p.offerPrice || '',
+        p.dietaryPreference,
+        p.isSpicy ? 'TRUE' : 'FALSE',
+        p.isActive ? 'TRUE' : 'FALSE',
+        `""`
+      ].join(',');
+    });
+
+    const csvContent = headers.join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleToggleStatus = async (product: Product) => {
@@ -179,7 +238,21 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Products</h2>
-        <div className="flex gap-3">
+                        <div className="flex gap-3">
+          {selectedIds.length > 0 && (
+            <button 
+              onClick={handleBulkDelete}
+              className="bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Delete ({selectedIds.length})
+            </button>
+          )}
+          <button 
+            onClick={handleBulkDownload}
+            className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Download {selectedIds.length > 0 ? `(${selectedIds.length})` : 'All'}
+          </button>
           <button 
             onClick={() => setShowBulkUpload(true)}
             className="bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -260,11 +333,16 @@ export default function ProductsPage() {
                     </select>
                   </div>
                   <div className="col-span-2 lg:col-span-1">
-                    <label className="block text-sm font-medium mb-1">Dietary Preference</label>
-                    <select value={dietaryPreference} onChange={e => setDietaryPreference(e.target.value as any)} className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg" required>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Dietary Preference</label>
+                    <select 
+                      value={dietaryPreference}
+                      onChange={e => setDietaryPreference(e.target.value as any)}
+                      className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" 
+                    >
                       <option value="VEG">Vegetarian</option>
                       <option value="NON_VEG">Non-Vegetarian</option>
                       <option value="VEGAN">Vegan</option>
+                      <option value="EGG">Contains Egg</option>
                     </select>
                   </div>
                   <div className="col-span-2 lg:col-span-1 flex items-center gap-4 mt-6">
@@ -361,6 +439,21 @@ export default function ProductsPage() {
             <table className="w-full text-left text-sm whitespace-nowrap min-w-[600px]">
               <thead className="bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400">
                 <tr>
+                  <th className="px-4 py-2.5 w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="rounded accent-orange-600 w-4 h-4 cursor-pointer"
+                      checked={products.length > 0 && selectedIds.length === products.filter(p => filterCategoryId === 'ALL' || p.category?.id === filterCategoryId).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length}
+                      onChange={(e) => {
+                        const filtered = products.filter(p => filterCategoryId === 'ALL' || p.category?.id === filterCategoryId).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                        if (e.target.checked) {
+                          setSelectedIds(filtered.map(p => p.id));
+                        } else {
+                          setSelectedIds([]);
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="px-4 py-2.5 font-medium">Name</th>
                   <th className="px-4 py-2.5 font-medium">Category</th>
                   <th className="px-4 py-2.5 font-medium">Price</th>
@@ -375,12 +468,27 @@ export default function ProductsPage() {
                   .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(p => (
                   <tr key={p.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
+                    <td className="px-4 py-2.5 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="rounded accent-orange-600 w-4 h-4 cursor-pointer"
+                        checked={selectedIds.includes(p.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, p.id]);
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== p.id));
+                          }
+                        }}
+                      />
+                    </td>
                     <td className="px-4 py-2.5 font-medium">
                       <div className="flex items-center gap-2">
                         {p.name}
-                        {p.dietaryPreference === 'VEG' && <span className="inline-block w-3 h-3 border border-green-600 rounded-sm flex items-center justify-center"><span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span></span>}
-                        {p.dietaryPreference === 'NON_VEG' && <span className="inline-block w-3 h-3 border border-red-600 rounded-sm flex items-center justify-center"><span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span></span>}
-                        {p.dietaryPreference === 'VEGAN' && <span className="inline-block w-3 h-3 border border-emerald-500 rounded-sm flex items-center justify-center"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-sm"></span></span>}
+                        {p.dietaryPreference === 'VEG' && <span className="inline-block w-3 h-3 border border-green-600 rounded-sm flex items-center justify-center" title="Vegetarian"><span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span></span>}
+                        {p.dietaryPreference === 'NON_VEG' && <span className="inline-block w-3 h-3 border border-red-600 rounded-sm flex items-center justify-center" title="Non-Vegetarian"><span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span></span>}
+                        {p.dietaryPreference === 'VEGAN' && <span className="inline-block w-3 h-3 border border-emerald-500 rounded-sm flex items-center justify-center" title="Vegan"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-sm"></span></span>}
+                        {p.dietaryPreference === 'EGG' && <span className="inline-block w-3 h-3 border border-yellow-500 rounded-sm flex items-center justify-center" title="Contains Egg"><span className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span></span>}
                         {p.isSpicy && <span title="Spicy">🌶️</span>}
                       </div>
                     </td>
@@ -533,7 +641,17 @@ function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onCl
             <h4 className="text-xl font-bold">Import Complete!</h4>
             <div className="text-neutral-600 dark:text-neutral-400">
               Successfully imported <strong>{result.imported}</strong> products.
-              {result.errors > 0 && <p className="text-red-500 mt-2">Failed to import {result.errors} rows. Check if required fields were missing.</p>}
+              {result.errors > 0 && (
+                <div className="text-red-500 mt-2 text-left">
+                  <p>Failed to import {result.errors} rows. Check if required fields were missing.</p>
+                  {result.firstErrorRow && (
+                    <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded text-xs overflow-auto">
+                      <strong>Debug Info (First failed row):</strong>
+                      <pre className="mt-1 whitespace-pre-wrap">{JSON.stringify(result.firstErrorRow, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button 
               onClick={onSuccess}

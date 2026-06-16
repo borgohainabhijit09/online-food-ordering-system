@@ -53,8 +53,21 @@ export const deleteCategory = async (req: TenantReq, res: Response, next: NextFu
   try {
     const { id } = req.params;
     
-    const existing = await prisma.category.findFirst({ where: { id: id as string, tenantId: req.tenantId } });
+    const existing = await prisma.category.findFirst({ 
+      where: { id: id as string, tenantId: req.tenantId },
+      include: {
+        _count: {
+          select: { products: true }
+        }
+      }
+    });
     if (!existing) return res.status(404).json({ message: 'Not found' });
+
+    if (existing._count.products > 0) {
+      return res.status(400).json({ 
+        message: `Cannot delete category. It contains ${existing._count.products} products. Please reassign or delete them first.` 
+      });
+    }
 
     await prisma.category.delete({
       where: { id: id as string },

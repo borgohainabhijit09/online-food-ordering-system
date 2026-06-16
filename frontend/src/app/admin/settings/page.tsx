@@ -14,6 +14,7 @@ interface Settings {
   whatsappNumber: string;
   hasDeliveryCharge: boolean;
   deliveryChargeAmount: number;
+  minOrderValueForDelivery: number;
   logoUrl?: string;
   fssaiNumber?: string;
 }
@@ -28,6 +29,7 @@ export default function SettingsPage() {
     whatsappNumber: '',
     hasDeliveryCharge: false,
     deliveryChargeAmount: 0,
+    minOrderValueForDelivery: 0,
     logoUrl: '',
     fssaiNumber: ''
   });
@@ -53,6 +55,7 @@ export default function SettingsPage() {
           whatsappNumber: data.whatsappNumber || '',
           hasDeliveryCharge: data.hasDeliveryCharge ?? false,
           deliveryChargeAmount: data.deliveryChargeAmount || 0,
+          minOrderValueForDelivery: data.minOrderValueForDelivery || 0,
           logoUrl: data.logoUrl || '',
           fssaiNumber: data.fssaiNumber || ''
         });
@@ -266,6 +269,19 @@ export default function SettingsPage() {
                 />
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Minimum Order Value for Delivery (₹)</label>
+              <input 
+                type="number" 
+                step="1"
+                value={settings.minOrderValueForDelivery}
+                onChange={e => setSettings({ ...settings, minOrderValueForDelivery: parseFloat(e.target.value) || 0 })}
+                className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" 
+                placeholder="e.g. 200"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Delivery orders below this amount will not be accepted. Set to 0 to disable.</p>
+            </div>
           </div>
         </div>
 

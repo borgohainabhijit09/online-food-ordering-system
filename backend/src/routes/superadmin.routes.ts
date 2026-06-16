@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../services/prisma';
 import { isSuperAdmin, SuperAdminRequest } from '../middlewares/superAdmin.middleware';
 import { getAllTickets, getTicketDetails, updateTicketStatus, addMessage, getSuperAdminUnreadCount } from '../controllers/support.controller';
+import { resetRestaurantPassword, getSecurityInfo, getAuditLogs } from '../controllers/superadmin.security.controller';
 
 import superadminMarketplaceRoutes from './superadmin.marketplace.routes';
 
@@ -336,6 +337,11 @@ router.get('/support/tickets/unread-count', getSuperAdminUnreadCount);
 router.get('/support/tickets/:id', getTicketDetails);
 router.patch('/support/tickets/:id/status', updateTicketStatus);
 router.post('/support/tickets/:id/messages', addMessage);
+
+// Security & Auditing
+router.post('/restaurants/:id/reset-password', resetRestaurantPassword);
+router.get('/restaurants/:id/security', getSecurityInfo);
+router.get('/restaurants/:id/audit-logs', getAuditLogs);
 
 router.use('/marketplace', superadminMarketplaceRoutes);
 

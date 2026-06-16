@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../services/prisma';
+import { PasswordService } from '../services/password.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
@@ -22,19 +23,35 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      return res.status(403).json({ message: 'Account temporarily locked. Please try again later.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      const attempts = (user.failedLoginAttempts || 0) + 1;
+      const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+      
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: attempts, lockedUntil }
+      });
+
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+      data: { 
+        lastLoginAt: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null
+      }
     });
 
     if (user.role === 'SUPER_ADMIN') {
       const token = jwt.sign(
-        { id: user.id, role: user.role, phone: user.phone },
+        { id: user.id, role: user.role, phone: user.phone, forcePasswordChange: user.forcePasswordChange },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -45,7 +62,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
           id: user.id,
           name: user.name,
           role: user.role,
-          phone: user.phone
+          phone: user.phone,
+          forcePasswordChange: user.forcePasswordChange
         }
       });
     }
@@ -64,7 +82,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     if (accessibleStores.length === 1) {
       const store = accessibleStores[0]!;
       const token = jwt.sign(
-        { id: user.id, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug },
+        { id: user.id, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug, forcePasswordChange: user.forcePasswordChange },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -77,7 +95,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
           role: store.role,
           phone: user.phone,
           tenantId: store.id,
-          tenantSlug: store.slug
+          tenantSlug: store.slug,
+          forcePasswordChange: user.forcePasswordChange
         },
         stores: accessibleStores
       });
@@ -85,7 +104,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     // Multiple stores: Issue partial token and prompt for selection
     const partialToken = jwt.sign(
-      { id: user.id, phone: user.phone },
+      { id: user.id, phone: user.phone, forcePasswordChange: user.forcePasswordChange },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -97,7 +116,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       user: {
         id: user.id,
         name: user.name,
-        phone: user.phone
+        phone: user.phone,
+        forcePasswordChange: user.forcePasswordChange
       }
     });
   } catch (error) {
@@ -230,7 +250,7 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
     }
 
     const newToken = jwt.sign(
-      { id: access.user.id, role: access.role, phone: access.user.phone, tenantId: access.tenant.id, tenantSlug: access.tenant.slug },
+      { id: access.user.id, role: access.role, phone: access.user.phone, tenantId: access.tenant.id, tenantSlug: access.tenant.slug, forcePasswordChange: access.user.forcePasswordChange },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -243,7 +263,8 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
         role: access.role,
         phone: access.user.phone,
         tenantId: access.tenant.id,
-        tenantSlug: access.tenant.slug
+        tenantSlug: access.tenant.slug,
+        forcePasswordChange: access.user.forcePasswordChange
       }
     });
   } catch (error) {
@@ -271,6 +292,50 @@ export const getStores = async (req: Request, res: Response, next: NextFunction)
     }));
 
     res.status(200).json(stores);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userReq = req as any;
+    if (!userReq.user || !userReq.user.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userReq.user.id } });
+    if (!user || !user.password) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect current password' });
+    }
+
+    const validation = PasswordService.validatePassword(newPassword);
+    if (!validation.isValid) {
+      return res.status(400).json({ message: validation.message });
+    }
+
+    const hashedPassword = await PasswordService.hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        forcePasswordChange: false,
+        lastPasswordChangeAt: new Date()
+      }
+    });
+
+    res.status(200).json({ message: 'Password changed successfully' });
   } catch (error) {
     next(error);
   }

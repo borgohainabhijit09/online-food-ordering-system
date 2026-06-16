@@ -217,6 +217,9 @@ export default function CheckoutPage() {
   const deliveryFee = (settings?.hasDeliveryCharge && orderType === 'DELIVERY') ? (settings.deliveryChargeAmount || 0) : 0;
   const displayTotal = subtotal + deliveryFee;
 
+  const minDeliveryValue = settings?.minOrderValueForDelivery || 0;
+  const isBelowMinDelivery = orderType === 'DELIVERY' && minDeliveryValue > 0 && subtotal < minDeliveryValue;
+
   if (!mounted) {
     return null;
   }
@@ -369,10 +372,15 @@ export default function CheckoutPage() {
           <div>
             <div className="text-sm text-neutral-500 font-medium">TOTAL</div>
             <div className="font-bold text-2xl">₹{displayTotal}</div>
+            {isBelowMinDelivery && (
+              <div className="text-xs text-red-500 mt-1 font-medium">
+                Minimum order for delivery is ₹{minDeliveryValue}
+              </div>
+            )}
           </div>
           <button 
             onClick={handlePlaceOrder}
-            disabled={isPlacingOrder || !formData.name || !formData.phone || (orderType === 'DELIVERY' && (!location || !!distanceError || !formData.address))}
+            disabled={isPlacingOrder || isBelowMinDelivery || !formData.name || !formData.phone || (orderType === 'DELIVERY' && (!location || !!distanceError || !formData.address))}
             className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-neutral-300 disabled:dark:bg-neutral-800 disabled:text-neutral-500 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2"
           >
             {isPlacingOrder ? (

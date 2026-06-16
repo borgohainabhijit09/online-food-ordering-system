@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, MoreVertical, CheckCircle2, AlertCircle, Clock, Edit2, X } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle2, AlertCircle, Clock, Edit2, X, Shield } from 'lucide-react';
+import SecurityTab from './SecurityTab';
 
 export default function SuperAdminTenants() {
   const [tenants, setTenants] = useState<any[]>([]);
@@ -14,6 +15,7 @@ export default function SuperAdminTenants() {
 
   const [editingTenant, setEditingTenant] = useState<any | null>(null);
   const [viewingProfile, setViewingProfile] = useState<any | null>(null);
+  const [profileTab, setProfileTab] = useState<'overview' | 'security'>('overview');
   const [editIsActive, setEditIsActive] = useState(true);
   const [editPackageId, setEditPackageId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -228,7 +230,10 @@ export default function SuperAdminTenants() {
                 </td>
                 <td className="px-4 py-2 text-right whitespace-nowrap flex items-center justify-end gap-1.5">
                   <button 
-                    onClick={() => setViewingProfile(t)}
+                    onClick={() => {
+                      setViewingProfile(t);
+                      setProfileTab('overview');
+                    }}
                     className="text-blue-600 bg-blue-50 hover:bg-blue-100 font-bold px-2 py-1 rounded transition-colors text-[10px] uppercase"
                   >
                     Profile
@@ -263,52 +268,74 @@ export default function SuperAdminTenants() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
             <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-neutral-900">Customer Profile</h2>
+              <div className="flex items-center gap-6">
+                <h2 className="text-xl font-bold text-neutral-900">Customer Profile</h2>
+                <div className="flex gap-4 border-l border-neutral-200 pl-6">
+                  <button 
+                    onClick={() => setProfileTab('overview')}
+                    className={`text-sm font-bold transition-colors ${profileTab === 'overview' ? 'text-black' : 'text-neutral-400 hover:text-neutral-600'}`}
+                  >
+                    Overview
+                  </button>
+                  <button 
+                    onClick={() => setProfileTab('security')}
+                    className={`text-sm font-bold flex items-center gap-1.5 transition-colors ${profileTab === 'security' ? 'text-black' : 'text-neutral-400 hover:text-neutral-600'}`}
+                  >
+                    <Shield className="w-4 h-4" /> Security
+                  </button>
+                </div>
+              </div>
               <button onClick={() => setViewingProfile(null)} className="text-neutral-400 hover:text-neutral-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-6 space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold">
-                  {viewingProfile.tenantAccess?.[0]?.user?.name?.charAt(0) || viewingProfile.businessName?.charAt(0) || 'C'}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-neutral-900">{viewingProfile.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</h3>
-                  <p className="text-neutral-500">Joined {new Date(viewingProfile.createdAt).toLocaleDateString()}</p>
-                </div>
-              </div>
+              {profileTab === 'overview' ? (
+                <>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                      {viewingProfile.tenantAccess?.[0]?.user?.name?.charAt(0) || viewingProfile.businessName?.charAt(0) || 'C'}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-neutral-900">{viewingProfile.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</h3>
+                      <p className="text-neutral-500">Joined {new Date(viewingProfile.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
-                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Contact Email</p>
-                  <p className="text-neutral-900 font-medium truncate">{viewingProfile.email}</p>
-                </div>
-                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
-                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Phone Number</p>
-                  <p className="text-neutral-900 font-medium truncate">{viewingProfile.phone || 'N/A'}</p>
-                </div>
-                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
-                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Business Name</p>
-                  <p className="text-neutral-900 font-medium truncate">{viewingProfile.businessName}</p>
-                </div>
-                <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
-                  <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Store URL</p>
-                  <p className="text-neutral-900 font-medium truncate">/{viewingProfile.slug}</p>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                      <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Contact Email</p>
+                      <p className="text-neutral-900 font-medium truncate">{viewingProfile.email}</p>
+                    </div>
+                    <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                      <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Phone Number</p>
+                      <p className="text-neutral-900 font-medium truncate">{viewingProfile.phone || 'N/A'}</p>
+                    </div>
+                    <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                      <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Business Name</p>
+                      <p className="text-neutral-900 font-medium truncate">{viewingProfile.businessName}</p>
+                    </div>
+                    <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-100">
+                      <p className="text-xs text-neutral-500 font-bold uppercase mb-1">Store URL</p>
+                      <p className="text-neutral-900 font-medium truncate">/{viewingProfile.slug}</p>
+                    </div>
+                  </div>
 
-              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-blue-900">Current Plan</p>
-                  <p className="text-sm text-blue-700">{viewingProfile.subscription?.package?.name || 'No Plan'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-blue-900">Status</p>
-                  <p className="text-sm text-blue-700">{viewingProfile.isActive ? 'Active' : 'Suspended'}</p>
-                </div>
-              </div>
+                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-blue-900">Current Plan</p>
+                      <p className="text-sm text-blue-700">{viewingProfile.subscription?.package?.name || 'No Plan'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-blue-900">Status</p>
+                      <p className="text-sm text-blue-700">{viewingProfile.isActive ? 'Active' : 'Suspended'}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <SecurityTab tenant={viewingProfile} />
+              )}
             </div>
 
             <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end">

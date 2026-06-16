@@ -40,7 +40,12 @@ export default function LoginPage() {
         // Single store, regular login
         localStorage.setItem('adminToken', data.token);
         document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
-        router.push('/admin');
+        
+        if (data.user?.forcePasswordChange) {
+          router.push('/admin/change-password');
+        } else {
+          router.push('/admin');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Invalid credentials');
@@ -71,7 +76,12 @@ export default function LoginPage() {
       const data = await res.json();
       localStorage.setItem('adminToken', data.token);
       document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
-      router.push('/admin');
+      
+      if (data.user?.forcePasswordChange) {
+        router.push('/admin/change-password');
+      } else {
+        router.push('/admin');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to select store');
       setIsLoading(false);
