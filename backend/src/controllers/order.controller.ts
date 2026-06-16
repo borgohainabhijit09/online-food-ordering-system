@@ -28,7 +28,24 @@ export const getOrders = async (req: TenantReq, res: Response, next: NextFunctio
         }
       }
     });
-    res.status(200).json(orders);
+
+    // Fetch product names to attach to items
+    const productIds = [...new Set(orders.flatMap(o => o.items.map(i => i.productId)))];
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true }
+    });
+    const productMap = Object.fromEntries(products.map(p => [p.id, p.name]));
+
+    const ordersWithNames = orders.map(order => ({
+      ...order,
+      items: order.items.map(item => ({
+        ...item,
+        product: { name: productMap[item.productId] || `Product #${item.productId.slice(-4).toUpperCase()}` }
+      }))
+    }));
+
+    res.status(200).json(ordersWithNames);
   } catch (error) {
     next(error);
   }
