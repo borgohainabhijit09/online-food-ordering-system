@@ -59,7 +59,8 @@ export default function SettingsPage() {
           deliveryChargeAmount: data.deliveryChargeAmount || 0,
           minOrderValueForDelivery: data.minOrderValueForDelivery || 0,
           logoUrl: data.logoUrl || '',
-          fssaiNumber: data.fssaiNumber || ''
+          fssaiNumber: data.fssaiNumber || '',
+          tenantSlug: data.tenantSlug || ''
         });
       }
     } catch (error) {
