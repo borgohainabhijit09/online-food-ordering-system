@@ -39,14 +39,27 @@ export default function CustomersPage() {
     }
   };
 
-  // Calculate today's birthdays
+  // Calculate upcoming birthdays (next 3 days)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const threeDaysFromNow = new Date(today);
+  threeDaysFromNow.setDate(today.getDate() + 3);
+  threeDaysFromNow.setHours(23, 59, 59, 999);
 
-  const todaysBirthdays = customers.filter(c => {
+  const upcomingBirthdays = customers.filter(c => {
     if (!c.dob) return false;
-    const dob = new Date(c.dob);
-    return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
+    const bdayThisYear = new Date(c.dob);
+    bdayThisYear.setFullYear(today.getFullYear());
+    
+    if (bdayThisYear < today) {
+      bdayThisYear.setFullYear(today.getFullYear() + 1);
+    }
+    
+    return bdayThisYear >= today && bdayThisYear <= threeDaysFromNow;
+  }).sort((a, b) => {
+    const d1 = new Date(a.dob!); d1.setFullYear(today.getFullYear()); if (d1 < today) d1.setFullYear(today.getFullYear() + 1);
+    const d2 = new Date(b.dob!); d2.setFullYear(today.getFullYear()); if (d2 < today) d2.setFullYear(today.getFullYear() + 1);
+    return d1.getTime() - d2.getTime();
   });
 
   const handleSort = (key: keyof Customer) => {
@@ -102,14 +115,14 @@ export default function CustomersPage() {
         </div>
       ) : (
         <>
-          {/* Today's Birthdays Widget */}
+          {/* Upcoming Birthdays Widget */}
           <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-200 dark:border-orange-900/50 rounded-2xl p-6">
             <h2 className="text-lg font-bold text-orange-800 dark:text-orange-400 mb-4 flex items-center gap-2">
-              <Gift className="w-5 h-5" /> Today's Birthdays
+              <Gift className="w-5 h-5" /> Upcoming Birthdays <span className="text-xs font-normal text-orange-700 dark:text-orange-500 bg-orange-100 dark:bg-orange-900/50 px-2 py-1 rounded-full">Next 3 Days</span>
             </h2>
-            {todaysBirthdays.length > 0 ? (
+            {upcomingBirthdays.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {todaysBirthdays.map(c => {
+                {upcomingBirthdays.map(c => {
                   const dob = new Date(c.dob!);
                   return (
                     <div key={c.id} className="bg-white dark:bg-neutral-900 border border-orange-100 dark:border-orange-900/30 p-4 rounded-xl shadow-sm">
@@ -137,7 +150,7 @@ export default function CustomersPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-orange-700/70 dark:text-orange-500/70">No birthdays today.</p>
+              <p className="text-sm text-orange-700/70 dark:text-orange-500/70">No upcoming birthdays in the next 3 days.</p>
             )}
           </div>
 

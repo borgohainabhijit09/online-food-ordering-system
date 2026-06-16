@@ -117,13 +117,48 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
       }));
     };
 
-    const [topProducts1M, topProducts6M, topProductsAll, ordersByType1M, ordersByType6M, ordersByTypeAll] = await Promise.all([
+    const getUpcomingBirthdays = async () => {
+      const customers = await prisma.customer.findMany({
+        where: { tenantId, dob: { not: null } },
+        select: { id: true, name: true, phone: true, dob: true }
+      });
+
+      const start = new Date();
+      start.setHours(0,0,0,0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 3);
+      end.setHours(23,59,59,999);
+
+      return customers.filter(c => {
+        if (!c.dob) return false;
+        const bdayThisYear = new Date(c.dob);
+        bdayThisYear.setFullYear(start.getFullYear());
+        
+        if (bdayThisYear < start) {
+          bdayThisYear.setFullYear(start.getFullYear() + 1);
+        }
+        
+        return bdayThisYear >= start && bdayThisYear <= end;
+      }).map(c => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        dob: c.dob
+      })).sort((a,b) => {
+        const d1 = new Date(a.dob!); d1.setFullYear(start.getFullYear()); if (d1 < start) d1.setFullYear(start.getFullYear() + 1);
+        const d2 = new Date(b.dob!); d2.setFullYear(start.getFullYear()); if (d2 < start) d2.setFullYear(start.getFullYear() + 1);
+        return d1.getTime() - d2.getTime();
+      });
+    };
+
+    const [topProducts1M, topProducts6M, topProductsAll, ordersByType1M, ordersByType6M, ordersByTypeAll, upcomingBirthdays] = await Promise.all([
       getTopProducts(thirtyDaysAgo),
       getTopProducts(sixMonthsAgo),
       getTopProducts(),
       getOrdersByType(thirtyDaysAgo),
       getOrdersByType(sixMonthsAgo),
-      getOrdersByType()
+      getOrdersByType(),
+      getUpcomingBirthdays()
     ]);
 
     res.status(200).json({
@@ -142,7 +177,8 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
         '1m': topProducts1M,
         '6m': topProducts6M,
         'all': topProductsAll
-      }
+      },
+      upcomingBirthdays
     });
   } catch (error) {
     next(error);

@@ -41,6 +41,7 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
   
+  const [isExistingDob, setIsExistingDob] = useState(false);
   const [distanceError, setDistanceError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [settings, setSettings] = useState<any>(null);
@@ -76,15 +77,21 @@ export default function CheckoutPage() {
           setFormData(prev => ({
             ...prev,
             name: prev.name || data.name || '',
-            dob: prev.dob || (data.dob ? new Date(data.dob).toISOString().split('T')[0] : ''),
+            dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : prev.dob,
             address: prev.address || data.address || ''
           }));
+          setIsExistingDob(!!data.dob);
+        } else {
+          setIsExistingDob(false);
         }
       } catch (err) {
+        setIsExistingDob(false);
         // Silently fail if customer not found
       } finally {
         setIsFetchingCustomer(false);
       }
+    } else {
+      setIsExistingDob(false);
     }
   };
 
@@ -296,7 +303,14 @@ export default function CheckoutPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Date of Birth (For Birthday Surprises! 🎉)</label>
-              <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all text-neutral-500 dark:text-neutral-400" />
+              <input 
+                type="date" 
+                name="dob" 
+                value={formData.dob} 
+                onChange={handleChange} 
+                disabled={isExistingDob}
+                className={`w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all text-neutral-500 dark:text-neutral-400 ${isExistingDob ? 'opacity-60 cursor-not-allowed bg-neutral-200 dark:bg-neutral-900' : ''}`} 
+              />
             </div>
             {orderType === 'DELIVERY' && (
               <>
