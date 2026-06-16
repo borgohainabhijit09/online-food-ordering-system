@@ -553,7 +553,7 @@ export default function ProductsPage() {
 function BulkUploadModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [result, setResult] = useState<{ imported: number, errors: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number, errors: number, firstErrorRow?: any } | null>(null);
 
   if (!isOpen) return null;
 
