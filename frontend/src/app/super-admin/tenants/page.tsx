@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, MoreVertical, CheckCircle2, AlertCircle, Clock, Edit2, X, Shield } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle2, AlertCircle, Clock, Edit2, X, Shield, Trash2 } from 'lucide-react';
 import SecurityTab from './SecurityTab';
 
 export default function SuperAdminTenants() {
@@ -134,6 +134,31 @@ export default function SuperAdminTenants() {
     }
   };
 
+  const handleDeleteTenant = async (tenantId: string, businessName: string) => {
+    if (!window.confirm(`Are you absolutely sure you want to permanently delete the restaurant "${businessName}"? This action CANNOT be undone and will erase all their menus, orders, and data.`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('superAdminToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        alert('Restaurant deleted successfully');
+        await fetchData(); // Refresh list
+      } else {
+        const err = await res.json();
+        alert(`Failed to delete: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while deleting');
+    }
+  };
+
   if (loading) {
     return <div className="p-8 flex justify-center"><div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div></div>;
   }
@@ -246,9 +271,17 @@ export default function SuperAdminTenants() {
                   </button>
                   <button 
                     onClick={() => openEditModal(t)}
+                    title="Edit"
                     className="text-neutral-600 bg-neutral-100 hover:bg-neutral-200 font-bold p-1 rounded transition-colors"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteTenant(t.id, t.businessName)}
+                    title="Delete"
+                    className="text-red-600 bg-red-50 hover:bg-red-100 font-bold p-1 rounded transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
               </tr>

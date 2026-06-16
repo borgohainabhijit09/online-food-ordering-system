@@ -268,6 +268,55 @@ router.patch('/tenants/:id', async (req: SuperAdminRequest, res: Response) => {
   }
 });
 
+// Delete a Tenant (Full cleanup)
+router.delete('/tenants/:id', async (req: SuperAdminRequest, res: Response) => {
+  try {
+    const tenantId = req.params.id as string;
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId }
+    });
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant not found' });
+      return;
+    }
+
+    // Delete in dependency order
+    await prisma.$transaction([
+      // Orders and relations
+      prisma.orderItemAddon.deleteMany({ where: { orderItem: { order: { tenantId } } } }),
+      prisma.orderItem.deleteMany({ where: { order: { tenantId } } }),
+      prisma.order.deleteMany({ where: { tenantId } }),
+
+      // Products and relations
+      prisma.productVariant.deleteMany({ where: { product: { tenantId } } }),
+      prisma.productImage.deleteMany({ where: { product: { tenantId } } }),
+      prisma.inventory.deleteMany({ where: { product: { tenantId } } }),
+      prisma.productAddon.deleteMany({ where: { product: { tenantId } } }),
+      prisma.product.deleteMany({ where: { tenantId } }),
+      prisma.addon.deleteMany({ where: { tenantId } }),
+      prisma.category.deleteMany({ where: { tenantId } }),
+
+      // Other entities
+      prisma.customer.deleteMany({ where: { tenantId } }),
+      prisma.restaurantTable.deleteMany({ where: { tenantId } }),
+      prisma.settings.deleteMany({ where: { tenantId } }),
+      prisma.billingRecord.deleteMany({ where: { tenantId } }),
+      prisma.tenantSubscription.deleteMany({ where: { tenantId } }),
+      prisma.tenantAccess.deleteMany({ where: { tenantId } }),
+
+      // Finally the tenant
+      prisma.tenant.delete({ where: { id: tenantId } })
+    ]);
+
+    res.json({ message: 'Tenant and all associated data deleted successfully' });
+  } catch (err: any) {
+    console.error('Delete Tenant Error:', err);
+    res.status(500).json({ message: 'Server error during deletion', error: err.message });
+  }
+});
+
 // Get all billing records for automated billing module
 router.get('/billing', async (req: SuperAdminRequest, res: Response) => {
   try {

@@ -149,7 +149,8 @@ export default function LoginPage() {
           )}
 
           {!requiresStoreSelection ? (
-            <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-1.5">Phone Number</label>
@@ -196,6 +197,20 @@ export default function LoginPage() {
                 </button>
               </div>
             </form>
+            
+            <div className="mt-8 pt-6 border-t border-neutral-100 dark:border-neutral-800 text-center space-y-3">
+              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Trouble logging in or forgot password?</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                <a href="https://wa.me/917002309306" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-600 transition-colors bg-neutral-50 dark:bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:border-orange-200 dark:hover:border-orange-900/50">
+                  <Phone className="w-4 h-4" /> +91 70023 09306
+                </a>
+                <a href="https://wa.me/917760133445" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-orange-600 transition-colors bg-neutral-50 dark:bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:border-orange-200 dark:hover:border-orange-900/50">
+                  <Phone className="w-4 h-4" /> +91 77601 33445
+                </a>
+              </div>
+              <p className="text-xs text-neutral-400">Reach out to us via Phone or WhatsApp for immediate support.</p>
+            </div>
+          </div>
           ) : (
             <div className="space-y-3 pt-2">
               {availableStores.map((store) => (
