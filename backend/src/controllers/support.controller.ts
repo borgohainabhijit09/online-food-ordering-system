@@ -187,15 +187,12 @@ export const addMessage = async (req: Request, res: Response) => {
 
 export const getAllTickets = async (req: Request, res: Response) => {
   try {
-    console.log('[getAllTickets] Request received. Query:', req.query);
     const { status, priority, tenantId } = req.query;
 
     const where: any = {};
     if (status) where.status = status as string;
     if (priority) where.priority = priority as string;
     if (tenantId) where.tenantId = tenantId as string;
-
-    console.log('[getAllTickets] Constructed where clause:', where);
 
     const tickets = await prisma.supportTicket.findMany({
       where,
@@ -210,7 +207,6 @@ export const getAllTickets = async (req: Request, res: Response) => {
       }
     });
 
-    console.log(`[getAllTickets] Found ${tickets.length} tickets`);
     res.json(tickets);
   } catch (error) {
     console.error('Error fetching all tickets:', error);

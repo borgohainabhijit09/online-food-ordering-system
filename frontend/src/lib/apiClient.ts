@@ -64,10 +64,17 @@ async function fetchWithAuth(url: string, options: RequestInit & { isFormData?: 
   const response = await fetch(finalUrl, { cache: 'no-store', ...options, headers });
 
   if (response.status === 401) {
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
-      localStorage.removeItem('adminToken');
-      document.cookie = 'adminToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      window.location.href = '/admin/login';
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/super-admin') && pathname !== '/super-admin/login') {
+        localStorage.removeItem('superAdminToken');
+        localStorage.removeItem('superAdminMode');
+        window.location.href = '/super-admin/login';
+      } else if (pathname.startsWith('/admin') && pathname !== '/admin/login' && !pathname.startsWith('/super-admin')) {
+        localStorage.removeItem('adminToken');
+        document.cookie = 'adminToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        window.location.href = '/admin/login';
+      }
     }
   }
 

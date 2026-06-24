@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Users, LogOut, ShieldAlert, Receipt, TrendingUp, HeartPulse, Contact, ListChecks, AlertTriangle, Briefcase, LifeBuoy, Store } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ShieldAlert, Receipt, TrendingUp, HeartPulse, Contact, ListChecks, AlertTriangle, Briefcase, LifeBuoy, Store, Settings } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
@@ -96,6 +96,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           </Link>
           <Link href="/super-admin/billing" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${pathname === '/super-admin/billing' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
             <Receipt className="w-5 h-5" /> Billing & Invoices
+          </Link>
+          <Link href="/super-admin/plans" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${pathname === '/super-admin/plans' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
+            <Settings className="w-5 h-5" /> Plans & Features
           </Link>
           <Link href="/super-admin/marketplace/products" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${pathname.startsWith('/super-admin/marketplace') ? 'bg-white text-black' : 'text-neutral-400 hover:text-white hover:bg-neutral-900'}`}>
             <Store className="w-5 h-5" /> Marketplace

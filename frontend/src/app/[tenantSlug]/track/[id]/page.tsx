@@ -35,6 +35,8 @@ export default function TrackOrderPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeLeftString, setTimeLeftString] = useState<string>('');
+  const [isDelayed, setIsDelayed] = useState<boolean>(false);
 
   const fetchOrder = async () => {
     try {
@@ -60,6 +62,42 @@ export default function TrackOrderPage() {
     
     return () => clearInterval(intervalId);
   }, [orderId]);
+
+  useEffect(() => {
+    if (order?.status !== 'PREPARING') {
+      setTimeLeftString('');
+      setIsDelayed(false);
+      return;
+    }
+
+    const updateTimer = () => {
+      const estimatedTime = order.estimatedCompletionTime 
+        ? new Date(order.estimatedCompletionTime).getTime() 
+        : new Date(order.createdAt).getTime() + 15 * 60 * 1000;
+        
+      const now = Date.now();
+      const diffMs = estimatedTime - now;
+
+      if (diffMs > 0) {
+        setIsDelayed(false);
+        const diffSecs = Math.floor(diffMs / 1000);
+        const mins = Math.floor(diffSecs / 60);
+        const secs = diffSecs % 60;
+        setTimeLeftString(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+      } else {
+        setIsDelayed(true);
+        const elapsedSecs = Math.floor(Math.abs(diffMs) / 1000);
+        const mins = Math.floor(elapsedSecs / 60);
+        const secs = elapsedSecs % 60;
+        setTimeLeftString(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+      }
+    };
+
+    updateTimer();
+    const intervalId = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [order?.status, order?.estimatedCompletionTime, order?.createdAt]);
 
   const handleClearOrder = () => {
     localStorage.removeItem('activeOrderId');
@@ -110,6 +148,38 @@ export default function TrackOrderPage() {
 
       <main className="max-w-2xl mx-auto px-4 pt-6 space-y-6">
         
+        {/* Countdown Card */}
+        {order.status === 'PREPARING' && timeLeftString && (
+          <div className={`rounded-2xl border p-6 flex flex-col items-center justify-center text-center shadow-sm transition-all duration-300 ${
+            isDelayed 
+              ? 'border-red-500 bg-red-50/40 dark:bg-red-950/10 text-red-600 dark:text-red-400 blink-red-border' 
+              : 'border-orange-200 bg-orange-50/30 dark:border-neutral-800 dark:bg-neutral-900 text-orange-600 dark:text-orange-500'
+          }`}>
+            <style>{`
+              @keyframes blinkRed {
+                0%, 100% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+                50% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
+              }
+              .blink-red-border {
+                animation: blinkRed 1.5s infinite;
+              }
+            `}</style>
+            <ChefHat className={`w-8 h-8 mb-2 ${isDelayed ? 'text-red-500' : 'text-orange-500'}`} />
+            <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+              {isDelayed ? 'Preparation Delayed' : 'Estimated Preparation Time'}
+            </div>
+            <div className="text-4xl font-extrabold mt-1 font-mono tracking-wider">
+              {isDelayed ? `Delayed by ${timeLeftString}` : timeLeftString}
+            </div>
+            <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+              {isDelayed 
+                ? 'Our kitchen is running slightly behind schedule. Apologies for the wait!' 
+                : 'Chef is preparing your delicious meal!'
+              }
+            </div>
+          </div>
+        )}
+
         {/* Status Card */}
         <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 p-6">
           <div className="text-center mb-8">

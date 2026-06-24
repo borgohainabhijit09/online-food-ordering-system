@@ -3,11 +3,20 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
 import { apiClient } from '../../lib/apiClient';
+import { SubscriptionProvider, useSubscription } from '../../components/SubscriptionContext';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SubscriptionProvider>
+      <AdminLayoutInner>{children}</AdminLayoutInner>
+    </SubscriptionProvider>
+  );
+}
+
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -41,11 +50,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // We do not clear superAdminMode here because it breaks the Super Admin session 
     // if the user has both panels open in different tabs.
 
-    const token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken');
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return null;
+    };
+
+    const cookieToken = getCookie('adminToken');
+    const token = sessionStorage.getItem('impersonatedToken') || localStorage.getItem('adminToken') || cookieToken;
+    
     if (!token) {
       if (pathname !== '/admin/login') router.push('/admin/login');
       setIsLoading(false);
       return;
+    }
+
+    // Sync cookie token back to localStorage if it was wiped
+    if (token && token === cookieToken && !localStorage.getItem('adminToken') && !sessionStorage.getItem('impersonatedToken')) {
+      localStorage.setItem('adminToken', token);
     }
 
     try {
@@ -94,14 +117,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       fetchInitialData();
 
       setIsLoading(false);
-      const interval = setInterval(fetchCounts, 30000);
-      return () => clearInterval(interval);
     } catch (e) {
       // Token is malformed
       router.push('/admin/login');
       return;
     }
   }, [pathname, router]);
+
+  // Separate effect for polling — does NOT depend on pathname,
+  // so it persists across navigation instead of restarting every page change.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  const { hasFeature } = useSubscription();
 
   const fetchCounts = async () => {
     try {
@@ -212,8 +244,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <X className="w-5 h-5" />
           </button>
         </div>
-        
-        <nav className="flex-1 px-4 space-y-6 mt-4 overflow-y-auto pb-4">
+              <nav className="flex-1 px-4 space-y-6 mt-4 overflow-y-auto pb-4">
           
           {/* Overview Group */}
           <div>
@@ -223,6 +254,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <LayoutDashboard className="w-4 h-4" />
                 <span>Dashboard</span>
               </Link>
+              
               <Link href="/admin/orders" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/orders' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
                 <div className="flex items-center gap-2">
                   <ListOrdered className="w-4 h-4" />
@@ -234,9 +266,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </span>
                 )}
               </Link>
-              <Link href="/admin/tables" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/tables' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <Grid className="w-4 h-4" />
-                <span>Tables</span>
+              
+              <Link href="/admin/kot" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/kot' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <ChefHat className="w-4 h-4" />
+                  <span>Kitchen (KOT)</span>
+                </div>
+                {newOrdersCount > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                    {newOrdersCount}
+                  </span>
+                )}
+              </Link>
+              
+              <Link href="/admin/tables" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/tables' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Grid className="w-4 h-4" />
+                  <span>Tables</span>
+                </div>
+                {!hasFeature('RESERVATIONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
+
+              <Link href="/admin/analytics" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/analytics' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Advanced Analytics</span>
+                </div>
+                {!hasFeature('ADVANCED_ANALYTICS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
+
+              <Link href="/admin/billing" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/billing' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4" />
+                  <span>Sales & Billing</span>
+                </div>
+                {!hasFeature('BILLING') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
             </div>
           </div>
@@ -257,6 +321,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Plus className="w-4 h-4" />
                 <span>Addons</span>
               </Link>
+              
+              <Link href="/admin/inventory" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/inventory' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Boxes className="w-4 h-4" />
+                  <span>Recipe Inventory</span>
+                </div>
+                {!hasFeature('INVENTORY') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
+
+              <Link href="/admin/ai-recipe" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/ai-recipe' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="w-4 h-4" />
+                  <span>AI Recipe Suggestions</span>
+                </div>
+                {!hasFeature('AI_RECIPE_SUGGESTIONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
+
+              <Link href="/admin/consumption-forecast" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/consumption-forecast' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Consumption Forecast</span>
+                </div>
+                {!hasFeature('CONSUMPTION_FORECAST') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
             </div>
           </div>
 
@@ -264,17 +352,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div>
             <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">Growth & Sales</div>
             <div className="space-y-1">
-              <Link href="/admin/customers" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/customers' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <Users className="w-4 h-4" />
-                <span>Customers</span>
+              <Link href="/admin/customers" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/customers' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span>Customers</span>
+                </div>
+                {!hasFeature('CUSTOMER_CRM') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
-              <Link href="/admin/coupons" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/coupons' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <Tag className="w-4 h-4" />
-                <span>Coupons</span>
+              <Link href="/admin/coupons" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/coupons' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  <span>Coupons</span>
+                </div>
+                {!hasFeature('COUPONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
-              <Link href="/admin/marketplace/products" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/marketplace') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <Store className="w-4 h-4" />
-                <span>Marketplace</span>
+              <Link href="/admin/rewards" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/rewards' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4" />
+                  <span>Rewards Program</span>
+                </div>
+                {!hasFeature('REWARDS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
+              <Link href="/admin/marketplace/products" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/marketplace') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <Store className="w-4 h-4" />
+                  <span>Marketplace</span>
+                </div>
+                {!hasFeature('MARKETPLACE') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
             </div>
           </div>
@@ -362,18 +466,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {availableStores.length > 1 && (
               <div className="relative flex items-center">
                 {isSwitching && <Loader2 className="w-4 h-4 mr-2 animate-spin text-orange-500 absolute -left-6" />}
-                <select
-                  disabled={isSwitching}
-                  className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs md:text-sm rounded-lg px-2 md:px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-500 max-w-[120px] md:max-w-none"
-                  value={availableStores.find(s => s.slug === tenantSlug)?.id || ''}
-                  onChange={(e) => handleSwitchStore(e.target.value)}
-                >
-                  {availableStores.map(store => (
-                    <option key={store.id} value={store.id}>
-                      {store.businessName}
+                {hasFeature('MULTI_BRANCH') ? (
+                  <select
+                    disabled={isSwitching}
+                    className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs md:text-sm rounded-lg px-2 md:px-3 py-1.5 outline-none focus:ring-2 focus:ring-orange-500 max-w-[120px] md:max-w-none"
+                    value={availableStores.find(s => s.slug === tenantSlug)?.id || ''}
+                    onChange={(e) => handleSwitchStore(e.target.value)}
+                  >
+                    {availableStores.map(store => (
+                      <option key={store.id} value={store.id}>
+                        {store.businessName}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    disabled={true}
+                    className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs md:text-sm rounded-lg px-2 md:px-3 py-1.5 outline-none opacity-60 cursor-not-allowed max-w-[120px] md:max-w-none"
+                    value={availableStores.find(s => s.slug === tenantSlug)?.id || ''}
+                  >
+                    <option value={availableStores.find(s => s.slug === tenantSlug)?.id || ''}>
+                      {availableStores.find(s => s.slug === tenantSlug)?.businessName || 'Store'} (🔒 Upgrade for Multi-Branch)
                     </option>
-                  ))}
-                </select>
+                  </select>
+                )}
               </div>
             )}
             <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0 text-sm">

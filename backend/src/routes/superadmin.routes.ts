@@ -79,17 +79,15 @@ router.get('/dashboard', async (req: SuperAdminRequest, res: Response) => {
   try {
     const totalTenants = await prisma.tenant.count();
     
-    // In a real app, you'd aggregate revenue, but for now we'll sum the prices of active subscriptions
-    const activeSubs = await prisma.tenantSubscription.findMany({
-      where: { status: 'ACTIVE' },
-      include: { package: true }
+    // Sum prices of active plans
+    const tenantsWithPlans = await prisma.tenant.findMany({
+      where: { isActive: true, currentPlanId: { not: null } },
+      include: { currentPlan: true }
     });
 
-    const mrr = activeSubs.reduce((sum, sub) => sum + sub.package.price, 0);
-
-    const pastDueCount = await prisma.tenantSubscription.count({
-      where: { status: 'PAST_DUE' }
-    });
+    const mrr = tenantsWithPlans.reduce((sum, t) => sum + (t.currentPlan?.monthlyPrice || 0), 0);
+    const activeSubsCount = tenantsWithPlans.length;
+    const pastDueCount = 0; // Placeholder for now
 
     // Calculate 6-month trends
     const today = new Date();
@@ -100,15 +98,7 @@ router.get('/dashboard', async (req: SuperAdminRequest, res: Response) => {
 
     const recentTenants = await prisma.tenant.findMany({
       where: { createdAt: { gte: sixMonthsAgo } },
-      select: { createdAt: true }
-    });
-
-    const recentSubs = await prisma.tenantSubscription.findMany({
-      where: { 
-        startDate: { gte: sixMonthsAgo },
-        status: 'ACTIVE'
-      },
-      include: { package: true }
+      include: { currentPlan: true }
     });
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -127,16 +117,9 @@ router.get('/dashboard', async (req: SuperAdminRequest, res: Response) => {
       if (trendMap.has(key)) {
         const current = trendMap.get(key);
         current.signups += 1;
-        trendMap.set(key, current);
-      }
-    });
-
-    recentSubs.forEach(s => {
-      const d = new Date(s.startDate);
-      const key = `${monthNames[d.getMonth()]}`;
-      if (trendMap.has(key)) {
-        const current = trendMap.get(key);
-        current.newMrr += s.package?.price || 0;
+        if (t.currentPlan) {
+          current.newMrr += t.currentPlan.monthlyPrice;
+        }
         trendMap.set(key, current);
       }
     });
@@ -147,7 +130,7 @@ router.get('/dashboard', async (req: SuperAdminRequest, res: Response) => {
       totalTenants,
       mrr,
       pastDueCount,
-      activeSubsCount: activeSubs.length,
+      activeSubsCount,
       trendData
     });
   } catch (err: any) {
@@ -160,8 +143,9 @@ router.get('/tenants', async (req: SuperAdminRequest, res: Response) => {
   try {
     const tenants = await prisma.tenant.findMany({
       include: {
-        subscription: {
-          include: { package: true }
+        currentPlan: true,
+        featureOverrides: {
+          include: { feature: true }
         },
         tenantAccess: {
           include: { user: true }
@@ -221,25 +205,24 @@ router.post('/tenants/:id/impersonate', async (req: SuperAdminRequest, res: Resp
   }
 });
 
-// Get all subscription packages
+// Get all subscription packages (deprecating, returning plans for compatibility)
 router.get('/packages', async (req: SuperAdminRequest, res: Response) => {
   try {
-    const packages = await prisma.subscriptionPackage.findMany();
-    res.json(packages);
+    const plans = await prisma.subscriptionPlan.findMany();
+    res.json(plans);
   } catch (err: any) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// Update a Tenant (Active Status, Package)
+// Update a Tenant (Active Status, Plan)
 router.patch('/tenants/:id', async (req: SuperAdminRequest, res: Response) => {
   try {
     const tenantId = req.params.id as string;
-    const { isActive, packageId } = req.body;
+    const { isActive, currentPlanId } = req.body;
 
     const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      include: { subscription: true }
+      where: { id: tenantId }
     });
 
     if (!tenant) {
@@ -247,21 +230,36 @@ router.patch('/tenants/:id', async (req: SuperAdminRequest, res: Response) => {
       return;
     }
 
-    // Update Tenant base settings
-    if (typeof isActive === 'boolean') {
-      await prisma.tenant.update({
-        where: { id: tenantId },
-        data: { isActive }
-      });
-    }
+    // Update Tenant
+    await prisma.$transaction(async (tx) => {
+      if (typeof isActive === 'boolean') {
+        await tx.tenant.update({
+          where: { id: tenantId },
+          data: { isActive }
+        });
+      }
 
-    // Update Subscription Package if provided
-    if (packageId && tenant.subscription) {
-      await prisma.tenantSubscription.update({
-        where: { id: tenant.subscription.id },
-        data: { packageId }
-      });
-    }
+      if (currentPlanId !== undefined) {
+        const fromPlanId = tenant.currentPlanId;
+        
+        await tx.tenant.update({
+          where: { id: tenantId },
+          data: { currentPlanId: currentPlanId || null }
+        });
+
+        if (fromPlanId !== currentPlanId) {
+          // Log Restaurant Upgraded
+          await tx.auditLog.create({
+            data: {
+              businessId: tenantId,
+              action: 'RESTAURANT_UPGRADED',
+              performedBy: 'SUPER_ADMIN',
+              metadata: { fromPlanId, toPlanId: currentPlanId }
+            }
+          });
+        }
+      }
+    });
 
     res.json({ message: 'Tenant updated successfully' });
   } catch (err: any) {

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '../../../lib/apiClient';
 import { Plus, Edit2, Trash2, QrCode, Download, Printer, X, Loader2, Bell, FileText, CheckCircle2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import FeatureGate from '../../../components/FeatureGate';
 
 export default function AdminTables() {
   const [tables, setTables] = useState<any[]>([]);
@@ -182,7 +183,8 @@ export default function AdminTables() {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>;
 
   return (
-    <div className="space-y-6">
+    <FeatureGate feature="RESERVATIONS" featureName="Reservations" requiredPlan="Growth">
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Table Management</h1>
         <button onClick={() => openForm()} className="bg-orange-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-orange-700">
@@ -363,6 +365,7 @@ export default function AdminTables() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </FeatureGate>
   );
 }

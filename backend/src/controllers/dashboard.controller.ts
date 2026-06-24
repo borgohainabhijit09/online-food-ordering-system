@@ -28,7 +28,8 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
       recentOrders
     ] = await Promise.all([
       prisma.order.findMany({
-        where: { tenantId, createdAt: { gte: today } }
+        where: { tenantId, createdAt: { gte: today } },
+        select: { total: true, status: true }
       }),
       prisma.order.count({
         where: { tenantId, createdAt: { gte: sevenDaysAgo } }

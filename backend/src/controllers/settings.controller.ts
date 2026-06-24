@@ -28,6 +28,12 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
           restaurantLat: 0,
           restaurantLng: 0,
           whatsappNumber: '',
+          loyaltyEnabled: false,
+          loyaltyPointsExpiryDays: null,
+          pointsEarningMultiplier: 1.0,
+          pointsEarningSpendUnit: 100.0,
+          pointValueInRupees: 1.0,
+          minimumPointsToRedeem: 50,
         },
         include: {
           tenant: {
@@ -50,7 +56,11 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
 export const updateSettings = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
-    const { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber } = req.body;
+    const { 
+      restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, 
+      hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber,
+      loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem
+    } = req.body;
     
     // Check if settings exist
     const existing = await prisma.settings.findFirst({
@@ -62,12 +72,20 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
     if (existing) {
       settings = await prisma.settings.update({
         where: { id: existing.id },
-        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber },
+        data: { 
+          restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, 
+          hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber,
+          loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem
+        },
         include: { tenant: { select: { slug: true, restaurantId: true } } }
       });
     } else {
       settings = await prisma.settings.create({
-        data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId },
+        data: { 
+          restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, 
+          hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId,
+          loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem
+        },
         include: { tenant: { select: { slug: true, restaurantId: true } } }
       });
     }

@@ -8,8 +8,11 @@ import {
   deleteCoupon
 } from '../controllers/coupon.controller';
 import { authenticate, requireAdmin } from '../middlewares/auth.middleware';
+import { requireFeature } from '../middlewares/featureGuard';
 
 const router = Router();
+
+router.use(requireFeature('COUPONS'));
 
 // PUBLIC - Needs tenantId and payload
 router.get('/public', getPublicCoupons);

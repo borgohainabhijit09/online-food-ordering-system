@@ -25,6 +25,13 @@ export const getCustomers = async (req: TenantReq, res: Response, next: NextFunc
       const lifetimeSpend = c.orders.reduce((sum, order) => sum + order.total, 0);
       const lastOrderDate = c.orders.length > 0 ? c.orders[0]?.createdAt : null;
 
+      let segment = 'NEW';
+      if (totalOrders >= 10 || lifetimeSpend >= 5000) {
+        segment = 'VIP';
+      } else if (totalOrders >= 2) {
+        segment = 'REPEAT';
+      }
+
       return {
         id: c.id,
         name: c.name,
@@ -33,7 +40,8 @@ export const getCustomers = async (req: TenantReq, res: Response, next: NextFunc
         createdAt: c.createdAt,
         totalOrders,
         lifetimeSpend,
-        lastOrderDate
+        lastOrderDate,
+        segment
       };
     });
 

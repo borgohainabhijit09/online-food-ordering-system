@@ -7,68 +7,98 @@ const router = Router();
 router.use(isSuperAdmin);
 
 // 1. CEO Dashboard Metrics
+// OPTIMIZED: Uses DB-level aggregation instead of loading all rows into Node.js
 router.get('/ceo', async (req: SuperAdminRequest, res: Response) => {
   try {
-    const tenants = await prisma.tenant.findMany({
-      include: {
-        subscription: { include: { package: true } },
-        orders: { select: { id: true, total: true, createdAt: true, status: true } },
-        customers: { select: { id: true, createdAt: true } }
-      }
-    });
-
-    let mrr = 0;
-    let totalRevenue = 0;
-    let pendingRevenue = 0;
-    let ordersToday = 0;
-    let ordersThisWeek = 0;
-    let ordersThisMonth = 0;
-    let totalOrders = 0;
-    let gmv = 0;
-    let totalCustomers = 0;
-
-    const activeRestaurants = tenants.filter(t => t.subscription?.status === 'ACTIVE').length;
-    const trialRestaurants = tenants.filter(t => t.subscription?.status === 'TRIAL').length;
-    const cancelledRestaurants = tenants.filter(t => t.subscription?.status === 'CANCELLED').length;
-    const suspendedRestaurants = tenants.filter(t => !t.isActive).length;
-
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const startOfWeek = new Date(startOfToday - now.getDay() * 24 * 60 * 60 * 1000).getTime();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(startOfToday.getTime() - now.getDay() * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    for (const t of tenants) {
-      if (t.subscription?.status === 'ACTIVE') {
-        mrr += t.subscription.package.price;
-      }
+    // All aggregations run in the database — no full-table dumps into Node.js RAM
+    const [
+      tenantCounts,
+      mrrData,
+      orderAggregates,
+      ordersToday,
+      ordersThisWeek,
+      ordersThisMonth,
+      totalCustomers,
+      newCustomersThisMonth
+    ] = await Promise.all([
+      // Subscription status counts
+      prisma.tenant.groupBy({
+        by: ['isActive'],
+        _count: { id: true }
+      }),
+      // MRR from current plans
+      prisma.tenant.findMany({
+        where: { isActive: true, currentPlanId: { not: null } },
+        select: { currentPlan: { select: { monthlyPrice: true } } }
+      }),
+      // All-time GMV and order count
+      prisma.order.aggregate({
+        where: { status: { not: 'CANCELLED' } },
+        _count: { id: true },
+        _sum: { total: true }
+      }),
+      // Orders today
+      prisma.order.count({
+        where: { createdAt: { gte: startOfToday }, status: { not: 'CANCELLED' } }
+      }),
+      // Orders this week
+      prisma.order.count({
+        where: { createdAt: { gte: startOfWeek }, status: { not: 'CANCELLED' } }
+      }),
+      // Orders this month
+      prisma.order.count({
+        where: { createdAt: { gte: startOfMonth }, status: { not: 'CANCELLED' } }
+      }),
+      // Total customers
+      prisma.customer.count(),
+      // New customers this month
+      prisma.customer.count({ where: { createdAt: { gte: startOfMonth } } })
+    ]);
+
+    // Subscription counts (done from tenantCounts groupBy result — tiny dataset)
+    const [activeCount, subscriptionStatuses] = await Promise.all([
+      prisma.tenant.count({ where: { isActive: true } }),
+      prisma.tenant.findMany({
+        where: { isActive: true },
+        select: {
+          subscription: { select: { status: true, package: { select: { price: true } } } }
+        }
+      })
+    ]);
+
+    let pendingRevenue = 0;
+    let activeRestaurants = 0;
+    let trialRestaurants = 0;
+    let cancelledRestaurants = 0;
+
+    for (const t of subscriptionStatuses) {
+      if (t.subscription?.status === 'ACTIVE') activeRestaurants++;
+      else if (t.subscription?.status === 'TRIAL') trialRestaurants++;
+      else if (t.subscription?.status === 'CANCELLED') cancelledRestaurants++;
       if (t.subscription?.status === 'PAST_DUE') {
         pendingRevenue += t.subscription.package.price;
       }
-
-      totalCustomers += t.customers.length;
-
-      for (const o of t.orders) {
-        if (o.status !== 'CANCELLED') {
-          totalOrders++;
-          gmv += o.total;
-          totalRevenue += o.total; // Treating total GMV as revenue for now, could be app revenue
-
-          const oTime = new Date(o.createdAt).getTime();
-          if (oTime >= startOfToday) ordersToday++;
-          if (oTime >= startOfWeek) ordersThisWeek++;
-          if (oTime >= startOfMonth) ordersThisMonth++;
-        }
-      }
     }
 
+    const totalRestaurants = await prisma.tenant.count();
+    const suspendedRestaurants = totalRestaurants - activeCount;
+
+    const mrr = mrrData.reduce((sum, t) => sum + (t.currentPlan?.monthlyPrice || 0), 0);
     const arr = mrr * 12;
+    const totalOrders = orderAggregates._count.id;
+    const gmv = orderAggregates._sum.total || 0;
     const aov = totalOrders > 0 ? gmv / totalOrders : 0;
 
     res.json({
-      revenueMetrics: { mrr, arr, totalRevenue, pendingRevenue, overdueRevenue: pendingRevenue, revenueGrowth: 15.5 }, // mocked growth
-      subscriptionMetrics: { totalRestaurants: tenants.length, activeRestaurants, trialRestaurants, suspendedRestaurants, cancelledRestaurants },
+      revenueMetrics: { mrr, arr, totalRevenue: gmv, pendingRevenue, overdueRevenue: pendingRevenue, revenueGrowth: 15.5 },
+      subscriptionMetrics: { totalRestaurants, activeRestaurants, trialRestaurants, suspendedRestaurants, cancelledRestaurants },
       orderMetrics: { ordersToday, ordersThisWeek, ordersThisMonth, totalOrders, gmv, aov },
-      customerMetrics: { totalCustomers, newCustomersThisMonth: Math.round(totalCustomers * 0.1), returningCustomersPct: 45 } // mocked
+      customerMetrics: { totalCustomers, newCustomersThisMonth, returningCustomersPct: 45 }
     });
   } catch (err: any) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -76,17 +106,25 @@ router.get('/ceo', async (req: SuperAdminRequest, res: Response) => {
 });
 
 // 2. Health Dashboard
+// OPTIMIZED: Limits data fetched per tenant, selects only necessary fields
 router.get('/health', async (req: SuperAdminRequest, res: Response) => {
   try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
     const tenants = await prisma.tenant.findMany({
-      include: {
+      select: {
+        id: true,
+        businessName: true,
+        slug: true,
+        isActive: true,
         users: { select: { lastLoginAt: true } },
-        subscription: true,
+        subscription: { select: { status: true } },
+        // Only last 30 days orders, only necessary fields
         orders: {
-          where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
-          select: { total: true }
+          where: { createdAt: { gte: thirtyDaysAgo } },
+          select: { total: true, createdAt: true }
         },
-        customers: { select: { id: true } }
+        _count: { select: { customers: true } }
       }
     });
 
@@ -100,7 +138,7 @@ router.get('/health', async (req: SuperAdminRequest, res: Response) => {
         status: category,
         ordersLast30: t.orders.length,
         revenueLast30: t.orders.reduce((sum, o) => sum + o.total, 0),
-        customers: t.customers.length,
+        customers: t._count.customers,
         subscriptionStatus: t.subscription?.status || 'NONE',
         isActive: t.isActive
       };
@@ -113,20 +151,37 @@ router.get('/health', async (req: SuperAdminRequest, res: Response) => {
 });
 
 // 3. Churn Dashboard
+// OPTIMIZED: Only fetches the fields needed for risk calculation
 router.get('/churn', async (req: SuperAdminRequest, res: Response) => {
   try {
     const tenants = await prisma.tenant.findMany({
-      include: {
+      select: {
+        id: true,
+        businessName: true,
+        slug: true,
         users: { select: { lastLoginAt: true } },
-        subscription: true,
-        orders: { select: { createdAt: true } },
-        products: { select: { id: true } }
+        subscription: {
+          select: { status: true, nextBillingDate: true }
+        },
+        // Only need the latest order date — take: 1
+        orders: {
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        },
+        _count: { select: { products: true } }
       }
     });
 
     const churnData = tenants.map(t => {
-      const { score, level, reasons, actions } = calculateChurnRisk(t);
-      
+      // Reconstruct the shape the service expects
+      const tenantForRisk = {
+        ...t,
+        products: t._count.products > 0 ? [{}] : [], // Service only checks .length > 0
+        orders: t.orders // Only latest order
+      };
+      const { score, level, reasons, actions } = calculateChurnRisk(tenantForRisk);
+
       let maxLogin = 0;
       if (t.users.length > 0) {
         maxLogin = Math.max(...t.users.map(u => u.lastLoginAt ? new Date(u.lastLoginAt).getTime() : 0));
@@ -155,17 +210,24 @@ router.get('/churn', async (req: SuperAdminRequest, res: Response) => {
 router.get('/onboarding', async (req: SuperAdminRequest, res: Response) => {
   try {
     const tenants = await prisma.tenant.findMany({
-      include: {
-        categories: { select: { id: true } },
-        settings: true,
-        products: { select: { isActive: true } },
-        orders: { select: { id: true }, take: 1 },
-        subscription: true
+      select: {
+        id: true,
+        businessName: true,
+        slug: true,
+        _count: { select: { categories: true, orders: true } },
+        settings: { select: { logoUrl: true, whatsappNumber: true, fssaiNumber: true } },
+        products: { where: { isActive: true }, select: { id: true }, take: 1 },
+        subscription: { select: { status: true } }
       }
     });
 
     const onboardingData = tenants.map(t => {
-      const status = getOnboardingStatus(t);
+      const tenantForStatus = {
+        ...t,
+        categories: t._count.categories > 0 ? [{}] : [],
+        orders: t._count.orders > 0 ? [{}] : []
+      };
+      const status = getOnboardingStatus(tenantForStatus);
       return {
         id: t.id,
         restaurantName: t.businessName,

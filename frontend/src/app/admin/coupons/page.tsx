@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/apiClient';
+import FeatureGate from '../../../components/FeatureGate';
+
 export default function AdminCoupons() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,8 @@ export default function AdminCoupons() {
   if (loading) return <div className="p-8">Loading...</div>;
 
   return (
-    <div className="space-y-6">
+    <FeatureGate feature="COUPONS" featureName="Coupons">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-neutral-800 dark:text-neutral-100">Coupons & Discounts</h1>
           <button 
@@ -243,5 +246,6 @@ export default function AdminCoupons() {
           </div>
         </div>
       </div>
+    </FeatureGate>
   );
 }

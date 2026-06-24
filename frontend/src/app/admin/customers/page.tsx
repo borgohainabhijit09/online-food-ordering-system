@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Gift, Loader2, Calendar, ShoppingBag, Phone, Search } from 'lucide-react';
 import { apiClient } from '../../../lib/apiClient';
+import FeatureGate from '../../../components/FeatureGate';
 
 interface Customer {
   id: string;
@@ -13,6 +14,7 @@ interface Customer {
   totalOrders: number;
   lifetimeSpend: number;
   lastOrderDate: string | null;
+  segment: 'VIP' | 'REPEAT' | 'NEW';
 }
 
 export default function CustomersPage() {
@@ -20,10 +22,27 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Customer; direction: 'asc' | 'desc' } | null>(null);
+  const [segmentFilter, setSegmentFilter] = useState<string>('ALL');
+  const [restaurantName, setRestaurantName] = useState('Restaurant');
+  const [tenantSlug, setTenantSlug] = useState('demo-restaurant');
 
   useEffect(() => {
     fetchCustomers();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await apiClient.get('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.restaurantName) setRestaurantName(data.restaurantName);
+        if (data.tenantSlug) setTenantSlug(data.tenantSlug);
+      }
+    } catch (e) {
+      console.error('Failed to fetch settings', e);
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -90,24 +109,33 @@ export default function CustomersPage() {
     });
   }
 
-  const filteredCustomers = sortedCustomers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone.includes(searchTerm)
-  );
+  const filteredCustomers = sortedCustomers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm);
+    if (!matchesSearch) return false;
 
-  const threeMonthsAgo = new Date(today);
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    if (segmentFilter === 'ALL') return true;
+    if (segmentFilter === 'INACTIVE') {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return c.lastOrderDate ? new Date(c.lastOrderDate) < thirtyDaysAgo : false;
+    }
+    return c.segment === segmentFilter;
+  });
+
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-            <Users className="w-6 h-6 text-orange-500" /> Customers
-          </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 mt-1">Manage your customer database and track birthdays.</p>
+    <FeatureGate feature="CUSTOMER_CRM" featureName="Customer CRM" requiredPlan="Growth">
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+              <Users className="w-6 h-6 text-orange-500" /> Customers
+            </h1>
+            <p className="text-neutral-500 dark:text-neutral-400 mt-1">Manage your customer database and track birthdays.</p>
+          </div>
         </div>
-      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
@@ -156,16 +184,34 @@ export default function CustomersPage() {
 
           {/* Customer Table */}
           <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-800 overflow-hidden">
-            <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-              <h2 className="font-bold">All Customers ({customers.length})</h2>
-              <div className="relative">
+            <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {['ALL', 'VIP', 'REPEAT', 'NEW', 'INACTIVE'].map((seg) => (
+                  <button
+                    key={seg}
+                    onClick={() => setSegmentFilter(seg)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      segmentFilter === seg
+                        ? 'bg-orange-600 border-orange-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                    }`}
+                  >
+                    {seg === 'ALL' && 'All Customers'}
+                    {seg === 'VIP' && 'VIPs'}
+                    {seg === 'REPEAT' && 'Repeat'}
+                    {seg === 'NEW' && 'New'}
+                    {seg === 'INACTIVE' && 'Inactive (>30 days)'}
+                  </button>
+                ))}
+              </div>
+              <div className="relative shrink-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input 
                   type="text" 
                   placeholder="Search by name or phone..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 w-64"
+                  className="pl-9 pr-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 w-full md:w-64"
                 />
               </div>
             </div>
@@ -191,13 +237,17 @@ export default function CustomersPage() {
                     <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('lastOrderDate')}>
                       Last Order {sortConfig?.key === 'lastOrderDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('segment')}>
+                      Segment {sortConfig?.key === 'segment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
                     <th className="px-4 py-2.5">Status</th>
+                    <th className="px-4 py-2.5">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                   {filteredCustomers.length > 0 ? (
                     filteredCustomers.map((customer) => {
-                      const isInactive = customer.lastOrderDate ? new Date(customer.lastOrderDate) < threeMonthsAgo : true;
+                      const isInactive30Days = customer.lastOrderDate ? new Date(customer.lastOrderDate) < thirtyDaysAgo : false;
                       
                       return (
                       <tr key={customer.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
@@ -223,17 +273,50 @@ export default function CustomersPage() {
                           {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '-'}
                         </td>
                         <td className="px-4 py-2.5">
-                          {isInactive && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                              Inactive (&gt;3m)
+                          {customer.segment === 'VIP' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-900/50">
+                              VIP
                             </span>
+                          )}
+                          {customer.segment === 'REPEAT' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50">
+                              Repeat
+                            </span>
+                          )}
+                          {customer.segment === 'NEW' && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+                              New
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {isInactive30Days ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                              Inactive (&gt;30d)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {isInactive30Days && (
+                            <a
+                              href={`https://wa.me/${customer.phone.replace(/\D/g, '').length === 10 ? `91${customer.phone.replace(/\D/g, '')}` : customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${customer.name}! We've missed you at ${restaurantName}! Here is a special 15% discount code: MISSEDYOU. Order again at: ${window.location.origin}/${tenantSlug}`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-bold text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 transition-colors"
+                            >
+                              Send Offer
+                            </a>
                           )}
                         </td>
                       </tr>
                     )})
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-neutral-500">
+                      <td colSpan={9} className="px-6 py-8 text-center text-neutral-500">
                         No customers found.
                       </td>
                     </tr>
@@ -244,6 +327,7 @@ export default function CustomersPage() {
           </div>
         </>
       )}
-    </div>
+      </div>
+    </FeatureGate>
   );
 }

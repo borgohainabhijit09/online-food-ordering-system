@@ -10,7 +10,11 @@ import {
   resolveEvent
 } from '../controllers/table.controller';
 
+import { requireFeature } from '../middlewares/featureGuard';
+
 const router = Router();
+
+router.use(requireFeature('RESERVATIONS'));
 
 // Admin Table Routes
 router.get('/', getTables);

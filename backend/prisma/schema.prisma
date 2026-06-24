@@ -31,6 +31,11 @@ model Tenant {
   tenantAccess   TenantAccess[]
   supportTickets SupportTicket[]
   marketplaceRequests MarketplaceRequest[]
+  loyaltyTransactions LoyaltyTransaction[]
+
+  currentPlanId  String?
+  currentPlan    SubscriptionPlan? @relation(fields: [currentPlanId], references: [id])
+  featureOverrides FeatureOverride[]
 }
 
 model User {
@@ -174,7 +179,9 @@ model Customer {
   name      String
   phone     String
   dob       DateTime?
+  loyaltyPoints Int @default(0)
   orders    Order[]
+  loyaltyTransactions LoyaltyTransaction[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -202,6 +209,18 @@ model Order {
   couponCode     String?
   discountAmount Float?      @default(0)
   createdAt      DateTime    @default(now())
+  prepTimeMinutes          Int?
+  estimatedCompletionTime  DateTime?
+
+  // Loyalty
+  pointsEarned    Int?     @default(0)
+  pointsRedeemed  Int?     @default(0)
+
+  // Payment
+  paymentMethod     String?  @default("COD")  // 'COD' | 'ONLINE'
+  paymentStatus     String?  @default("PENDING") // 'PENDING' | 'PAID' | 'FAILED'
+  razorpayOrderId   String?  // rzp order id
+  razorpayPaymentId String?  // rzp payment id after success
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -256,6 +275,19 @@ model Settings {
   minOrderValueForDelivery Float @default(0)
   logoUrl              String?
   fssaiNumber          String?
+
+  // Razorpay Payment Gateway
+  razorpayKeyId     String?   // Public key — e.g. rzp_test_xxx
+  razorpayKeySecret String?   // Secret key — stored encrypted
+  razorpayEnabled   Boolean   @default(false)
+
+  // Loyalty Program Settings
+  loyaltyEnabled          Boolean @default(false)
+  loyaltyPointsExpiryDays Int?    // Null means no expiry
+  pointsEarningMultiplier Float   @default(1.0) // E.g., earn 1 point per `pointsEarningSpendUnit` spent
+  pointsEarningSpendUnit  Float   @default(100.0) // E.g., Spend 100 = 1 point
+  pointValueInRupees      Float   @default(1.0) // E.g., 1 point = 1 rupee
+  minimumPointsToRedeem   Int     @default(50)
 
   tenantId String @unique
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -478,4 +510,73 @@ model MarketplaceRequest {
   status      MarketplaceRequestStatus @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Feature {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  description   String?
+  createdAt     DateTime @default(now())
+  
+  planFeatures  PlanFeature[]
+  featureOverrides FeatureOverride[]
+}
+
+model SubscriptionPlan {
+  id             String   @id @default(uuid())
+  name           String
+  monthlyPrice   Float
+  yearlyPrice    Float?
+  description    String?
+  isActive       Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  planFeatures   PlanFeature[]
+  tenants        Tenant[]
+}
+
+model PlanFeature {
+  id           String @id @default(uuid())
+  planId       String
+  featureId    String
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature      Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  
+  @@unique([planId, featureId])
+}
+
+model FeatureOverride {
+  id               String @id @default(uuid())
+  restaurantId     String
+  featureId        String
+  enabled          Boolean
+  expiresAt        DateTime?
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  restaurant       Tenant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  feature          Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+}
+
+enum LoyaltyTransactionType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  MANUAL_ADJUSTMENT
+}
+
+model LoyaltyTransaction {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  points      Int      // positive for earned, negative for redeemed/expired
+  type        LoyaltyTransactionType
+  description String?
+  orderId     String?  // Optional reference to the order
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime? // When these specific points expire (if applicable)
 }

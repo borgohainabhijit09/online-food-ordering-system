@@ -4,12 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Store, ShoppingBag } from 'lucide-react';
+import FeatureGate from '../../../components/FeatureGate';
 
 export default function AdminMarketplaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <FeatureGate feature="MARKETPLACE" featureName="Marketplace">
+      <div className="max-w-6xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Partner Marketplace</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Discover services and supplies designed to help your restaurant grow.</p>
@@ -43,6 +45,7 @@ export default function AdminMarketplaceLayout({ children }: { children: React.R
       <div className="pb-12">
         {children}
       </div>
-    </div>
+      </div>
+    </FeatureGate>
   );
 }

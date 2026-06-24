@@ -1,5 +1,16 @@
-node_modules
-# Keep environment variables out of version control
-.env
+node_modules/
 
+# Environment variables — never commit
+.env
+.env.local
+
+# Compiled TypeScript output
+dist/
+
+# Source maps and declaration files compiled from root-level scripts
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Prisma generated client (auto-generated, not source code)
 /generated/prisma

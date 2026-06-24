@@ -7,6 +7,10 @@ interface TenantReq extends Request { tenantId?: string; }
 export const getOrders = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const { tableId, status } = req.query;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
+    const skip = (page - 1) * limit;
+
     const whereClause: any = { tenantId: req.tenantId };
     
     if (tableId) whereClause.tableId = tableId as string;
@@ -18,24 +22,32 @@ export const getOrders = async (req: TenantReq, res: Response, next: NextFunctio
       }
     }
 
-    const orders = await prisma.order.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        table: true,
-        items: {
-          include: { addons: true }
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          table: true,
+          items: {
+            include: { addons: true }
+          }
         }
-      }
-    });
+      }),
+      prisma.order.count({ where: whereClause })
+    ]);
 
     // Fetch product names to attach to items
     const productIds = [...new Set(orders.flatMap(o => o.items.map(i => i.productId)))];
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true, name: true }
-    });
-    const productMap = Object.fromEntries(products.map(p => [p.id, p.name]));
+    let productMap: Record<string, string> = {};
+    if (productIds.length > 0) {
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true }
+      });
+      productMap = Object.fromEntries(products.map(p => [p.id, p.name]));
+    }
 
     const ordersWithNames = orders.map(order => ({
       ...order,
@@ -45,7 +57,16 @@ export const getOrders = async (req: TenantReq, res: Response, next: NextFunctio
       }))
     }));
 
-    res.status(200).json(ordersWithNames);
+    res.status(200).json({
+      orders: ordersWithNames,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + orders.length < total
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -103,14 +124,23 @@ export const getOrderById = async (req: TenantReq, res: Response, next: NextFunc
 export const updateOrderStatus = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, prepTimeMinutes } = req.body;
     
     const existing = await prisma.order.findFirst({ where: { id: id as string, tenantId: req.tenantId } });
     if (!existing) return res.status(404).json({ message: 'Order not found' });
 
+    const updateData: any = { status };
+    if (status === 'PREPARING' && prepTimeMinutes !== undefined) {
+      const minutes = parseInt(prepTimeMinutes);
+      if (!isNaN(minutes)) {
+        updateData.prepTimeMinutes = minutes;
+        updateData.estimatedCompletionTime = new Date(Date.now() + minutes * 60 * 1000);
+      }
+    }
+
     const order = await prisma.order.update({
       where: { id: id as string },
-      data: { status }
+      data: updateData
     });
     
     // Free the table if order is completed or cancelled

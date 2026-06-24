@@ -19,42 +19,45 @@ export const processInvoices = async () => {
     // Find subscriptions that need to be billed today or earlier
     const dueSubscriptions = await prisma.tenantSubscription.findMany({
       where: {
-        nextBillingDate: {
-          lte: now
-        },
+        nextBillingDate: { lte: now },
         status: 'ACTIVE'
       },
-      include: {
-        package: true
-      }
+      include: { package: true }
     });
+
+    if (dueSubscriptions.length === 0) {
+      console.log('No subscriptions due for billing today.');
+      return;
+    }
 
     console.log(`Found ${dueSubscriptions.length} subscriptions due for billing.`);
 
-    for (const sub of dueSubscriptions) {
-      await prisma.$transaction(async (tx) => {
-        // Create an invoice/billing record
-        await tx.billingRecord.create({
-          data: {
-            tenantId: sub.tenantId,
-            amount: sub.package.price,
-            status: 'PENDING'
-          }
-        });
+    // OPTIMIZED: Single transaction for all billing records instead of N separate transactions
+    await prisma.$transaction(async (tx) => {
+      // Create all billing records in one createMany call
+      await tx.billingRecord.createMany({
+        data: dueSubscriptions.map(sub => ({
+          tenantId: sub.tenantId,
+          amount: sub.package.price,
+          status: 'PENDING'
+        }))
+      });
 
-        // Push next billing date forward by 1 month
+      // Update each subscription's next billing date
+      // Note: Prisma doesn't support updateMany with different values, so we use individual updates
+      // inside the same transaction — one DB round-trip for the connection, N for the statements
+      for (const sub of dueSubscriptions) {
         const nextBilling = new Date(sub.nextBillingDate);
         nextBilling.setMonth(nextBilling.getMonth() + 1);
 
-        // Update the subscription
         await tx.tenantSubscription.update({
           where: { id: sub.id },
           data: { nextBillingDate: nextBilling }
         });
-        
-        console.log(`Generated invoice for tenant ${sub.tenantId} for ₹${sub.package.price}`);
-      });
-    }
+      }
+    });
+
+    console.log(`Billing batch complete: created ${dueSubscriptions.length} invoices.`);
   } catch (err) {
     console.error('Error processing invoices:', err);
   }
@@ -69,26 +72,26 @@ export const checkPastDue = async () => {
     const pastDueRecords = await prisma.billingRecord.findMany({
       where: {
         status: 'PENDING',
-        date: {
-          lte: gracePeriodEnd
-        }
-      }
+        date: { lte: gracePeriodEnd }
+      },
+      select: { tenantId: true }
     });
 
-    console.log(`Found ${pastDueRecords.length} pending invoices older than 7 days.`);
+    if (pastDueRecords.length === 0) return;
 
-    for (const record of pastDueRecords) {
-      await prisma.tenantSubscription.updateMany({
-        where: {
-          tenantId: record.tenantId,
-          status: 'ACTIVE'
-        },
-        data: {
-          status: 'PAST_DUE'
-        }
-      });
-      console.log(`Marked subscription for tenant ${record.tenantId} as PAST_DUE`);
-    }
+    const tenantIds = [...new Set(pastDueRecords.map(r => r.tenantId))];
+    console.log(`Found ${tenantIds.length} tenants with overdue invoices. Marking PAST_DUE.`);
+
+    // OPTIMIZED: Single updateMany instead of N individual updates
+    await prisma.tenantSubscription.updateMany({
+      where: {
+        tenantId: { in: tenantIds },
+        status: 'ACTIVE'
+      },
+      data: { status: 'PAST_DUE' }
+    });
+
+    console.log(`Marked ${tenantIds.length} subscriptions as PAST_DUE.`);
   } catch (err) {
     console.error('Error checking past due accounts:', err);
   }

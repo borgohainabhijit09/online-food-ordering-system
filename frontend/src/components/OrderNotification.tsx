@@ -5,7 +5,6 @@ import { apiClient } from '@/lib/apiClient';
 
 export function OrderNotification() {
   const [showToast, setShowToast] = useState(false);
-  const lastOrderDateRef = useRef<Date | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -21,58 +20,44 @@ export function OrderNotification() {
 
     const payload = getTokenPayload();
     if (!payload || !payload.tenantId) {
-      // Do not poll if there's no active tenant context (e.g. Super Admin or pending store selection)
+      // Do not poll if there's no active tenant context
       return;
     }
 
     // Create audio element for notification sound
     audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     
-    // Initial fetch to get the baseline latest order date
-    const initializeBaseline = async () => {
+    // Track the last known count so we can detect increases
+    let lastCount = -1;
+
+    const checkForNewOrders = async () => {
       try {
-        const res = await apiClient.get('/api/orders');
+        const res = await apiClient.get('/api/orders/new-count');
         if (res.ok) {
-          const orders = await res.json();
-          if (orders.length > 0) {
-            // Assume the first one is the newest (sorted by createdAt desc)
-            lastOrderDateRef.current = new Date(orders[0].createdAt);
-          } else {
-            lastOrderDateRef.current = new Date();
+          const data = await res.json();
+          const currentCount = data.count ?? 0;
+
+          if (lastCount !== -1 && currentCount > lastCount) {
+            // New order(s) arrived!
+            if (audioRef.current) {
+              audioRef.current.play().catch(e => console.log('Audio play blocked by browser', e));
+            }
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 5000);
           }
+
+          lastCount = currentCount;
         }
       } catch (err) {
-        console.error('Failed to initialize order notification baseline', err);
+        // Silent fail — notification is non-critical
       }
     };
 
-    initializeBaseline();
+    // Initialize baseline immediately
+    checkForNewOrders();
 
-    const intervalId = setInterval(async () => {
-      try {
-        const res = await apiClient.get('/api/orders');
-        if (res.ok) {
-          const orders = await res.json();
-          if (orders.length > 0) {
-            const latestOrderDate = new Date(orders[0].createdAt);
-            
-            if (lastOrderDateRef.current && latestOrderDate > lastOrderDateRef.current) {
-              // New order detected!
-              if (audioRef.current) {
-                audioRef.current.play().catch(e => console.log('Audio play blocked by browser', e));
-              }
-              setShowToast(true);
-              setTimeout(() => setShowToast(false), 5000);
-            }
-            
-            // Update baseline
-            lastOrderDateRef.current = latestOrderDate;
-          }
-        }
-      } catch (err) {
-        console.error('Failed to check for new orders', err);
-      }
-    }, 15000); // check every 15 seconds
+    // Then poll every 20 seconds (was fetching full orders list every 15s before)
+    const intervalId = setInterval(checkForNewOrders, 20000);
 
     return () => clearInterval(intervalId);
   }, []);

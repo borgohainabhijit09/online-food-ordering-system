@@ -7,6 +7,7 @@ import SecurityTab from './SecurityTab';
 export default function SuperAdminTenants() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
+  const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [idSearch, setIdSearch] = useState('');
@@ -27,20 +28,24 @@ export default function SuperAdminTenants() {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('superAdminToken') || localStorage.getItem('superAdminToken');
+      const token = localStorage.getItem('superAdminToken');
       
-      const [tenantsRes, packagesRes] = await Promise.all([
+      const [tenantsRes, packagesRes, featuresRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/packages`, {
           headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/features`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
       
-      if (tenantsRes.ok && packagesRes.ok) {
+      if (tenantsRes.ok && packagesRes.ok && featuresRes.ok) {
         setTenants(await tenantsRes.json());
         setPackages(await packagesRes.json());
+        setFeatures(await featuresRes.json());
       }
     } catch (err) {
       console.error(err);
@@ -60,13 +65,13 @@ export default function SuperAdminTenants() {
     })
     .filter(t => {
       if (packageFilter === 'ALL') return true;
-      if (packageFilter === 'NONE') return !t.subscription?.packageId;
-      return t.subscription?.packageId === packageFilter;
+      if (packageFilter === 'NONE') return !t.currentPlanId;
+      return t.currentPlanId === packageFilter;
     })
     .filter(t => {
       if (billingFilter === 'ALL') return true;
-      if (billingFilter === 'NONE') return !t.subscription?.status || t.subscription.status === 'NONE';
-      return t.subscription?.status === billingFilter;
+      if (billingFilter === 'NONE') return !t.currentPlanId; // fallback
+      return t.currentPlanId !== null;
     });
 
   const getStatusBadge = (status: string) => {
@@ -102,7 +107,7 @@ export default function SuperAdminTenants() {
   const openEditModal = (t: any) => {
     setEditingTenant(t);
     setEditIsActive(t.isActive ?? true);
-    setEditPackageId(t.subscription?.packageId || '');
+    setEditPackageId(t.currentPlanId || '');
   };
 
   const handleSaveEdit = async () => {
@@ -118,7 +123,7 @@ export default function SuperAdminTenants() {
         },
         body: JSON.stringify({
           isActive: editIsActive,
-          packageId: editPackageId || undefined
+          currentPlanId: editPackageId || null
         })
       });
       
@@ -246,21 +251,21 @@ export default function SuperAdminTenants() {
             {filtered.map(t => (
               <tr key={t.id} className="hover:bg-neutral-50 transition-colors">
                 <td className="px-4 py-2">
-                  <div className="font-bold text-neutral-900 text-sm">{t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'}</div>
-                  <div className="text-neutral-500">{t.businessName} <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 rounded text-[10px] font-mono text-neutral-400">{t.restaurantId || 'No ID'}</span> (/{t.slug})</div>
+                  <div className="font-bold text-neutral-900 text-sm">{t.businessName}</div>
+                  <div className="text-neutral-500">Owner: {t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'} <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 rounded text-[10px] font-mono text-neutral-400">{t.restaurantId || 'No ID'}</span> (/{t.slug})</div>
                 </td>
                 <td className="px-4 py-2">
                   <div className="font-medium text-neutral-700">{t.email}</div>
                   <div className="text-neutral-500">{t.phone || '-'}</div>
                 </td>
-                <td className="px-4 py-2">
-                  <div className="font-medium text-neutral-700">{t.subscription?.package?.name || 'No Subscription'}</div>
+                 <td className="px-4 py-2">
+                  <div className="font-medium text-neutral-700">{t.currentPlan?.name || 'No Plan'}</div>
                   <div className="text-neutral-500">
-                    {t.subscription?.package?.price ? `₹${t.subscription.package.price}/mo` : ''} 
+                    {t.currentPlan?.monthlyPrice ? `₹${t.currentPlan.monthlyPrice}/mo` : ''} 
                   </div>
                 </td>
                 <td className="px-4 py-2">
-                  {getStatusBadge(t.subscription?.status || 'NONE')}
+                  {t.isActive ? getStatusBadge('ACTIVE') : getStatusBadge('NONE')}
                 </td>
                 <td className="px-4 py-2">
                   {t.isActive === false ? (
@@ -374,11 +379,115 @@ export default function SuperAdminTenants() {
                   <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
                     <div>
                       <p className="font-bold text-blue-900">Current Plan</p>
-                      <p className="text-sm text-blue-700">{viewingProfile.subscription?.package?.name || 'No Plan'}</p>
+                      <p className="text-sm text-blue-700">{viewingProfile.currentPlan?.name || 'No Plan'}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-blue-900">Status</p>
                       <p className="text-sm text-blue-700">{viewingProfile.isActive ? 'Active' : 'Suspended'}</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-neutral-100 pt-4 mt-4 space-y-4">
+                    <h4 className="font-bold text-sm text-neutral-800">Feature Overrides</h4>
+                    
+                    <div className="space-y-2">
+                      {viewingProfile.featureOverrides?.map((ov: any) => (
+                        <div key={ov.id} className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl border border-neutral-100 text-xs">
+                          <div>
+                            <span className="font-bold text-neutral-900">{ov.feature?.name || ov.featureId}</span>
+                            <span className={`ml-2 px-1.5 py-0.5 rounded font-extrabold ${ov.enabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {ov.enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                            {ov.expiresAt && (
+                              <p className="text-[10px] text-neutral-400 mt-1">Expires: {new Date(ov.expiresAt).toLocaleDateString()}</p>
+                            )}
+                            {ov.notes && <p className="text-[10px] italic text-neutral-500 mt-0.5">Notes: {ov.notes}</p>}
+                          </div>
+                          <button 
+                            onClick={async () => {
+                              if (confirm('Delete override?')) {
+                                const token = localStorage.getItem('superAdminToken');
+                                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/feature-overrides/${ov.id}`, {
+                                  method: 'DELETE',
+                                  headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (res.ok) {
+                                  await fetchData();
+                                  setViewingProfile(null);
+                                }
+                              }
+                            }}
+                            className="text-red-500 font-bold hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      {(!viewingProfile.featureOverrides || viewingProfile.featureOverrides.length === 0) && (
+                        <p className="text-xs text-neutral-400 italic">No overrides currently active.</p>
+                      )}
+                    </div>
+
+                    <div className="bg-neutral-50/50 p-4 border border-neutral-200/50 rounded-2xl space-y-3">
+                      <p className="font-bold text-xs text-neutral-700">Add Feature Override</p>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <select id="ovFeatureSelect" className="bg-white border rounded p-2 outline-none">
+                          <option value="">Select Feature...</option>
+                          {features.map(f => (
+                            <option key={f.id} value={f.id}>{f.name}</option>
+                          ))}
+                        </select>
+                        <select id="ovEnabledSelect" className="bg-white border rounded p-2 outline-none">
+                          <option value="true">Enable</option>
+                          <option value="false">Disable</option>
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <input id="ovExpiresInput" type="date" className="bg-white border rounded p-2 outline-none" title="Expiration Date" />
+                        <input id="ovNotesInput" type="text" placeholder="Notes (e.g. Trial)" className="bg-white border rounded p-2 outline-none" />
+                      </div>
+
+                      <button 
+                        onClick={async () => {
+                          const featureId = (document.getElementById('ovFeatureSelect') as HTMLSelectElement).value;
+                          const enabled = (document.getElementById('ovEnabledSelect') as HTMLSelectElement).value === 'true';
+                          const expiresAtVal = (document.getElementById('ovExpiresInput') as HTMLInputElement).value;
+                          const notes = (document.getElementById('ovNotesInput') as HTMLInputElement).value;
+
+                          if (!featureId) {
+                            alert('Please select a feature.');
+                            return;
+                          }
+
+                          const token = localStorage.getItem('superAdminToken');
+                          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/feature-overrides`, {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                              restaurantId: viewingProfile.id,
+                              featureId,
+                              enabled,
+                              expiresAt: expiresAtVal || null,
+                              notes
+                            })
+                          });
+
+                          if (res.ok) {
+                            await fetchData();
+                            setViewingProfile(null);
+                          } else {
+                            alert('Failed to save override');
+                          }
+                        }}
+                        className="w-full bg-black hover:bg-neutral-800 text-white font-bold py-2 rounded-xl text-xs transition-colors"
+                      >
+                        Add Override
+                      </button>
                     </div>
                   </div>
                 </>
@@ -419,7 +528,7 @@ export default function SuperAdminTenants() {
                 >
                   <option value="" disabled>Select a package</option>
                   {packages.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} - ₹{p.price}/mo</option>
+                    <option key={p.id} value={p.id}>{p.name} - ₹{p.monthlyPrice}/mo</option>
                   ))}
                 </select>
               </div>

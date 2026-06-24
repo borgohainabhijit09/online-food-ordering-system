@@ -31,6 +31,9 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [restaurantName, setRestaurantName] = useState('Restaurant');
+  const [tenantSlug, setTenantSlug] = useState('demo-restaurant');
+  const [prepTimeModalOrder, setPrepTimeModalOrder] = useState<Order | null>(null);
+  const [customPrepTime, setCustomPrepTime] = useState('');
 
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -49,6 +52,7 @@ export default function OrdersPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.restaurantName) setRestaurantName(data.restaurantName);
+        if (data.tenantSlug) setTenantSlug(data.tenantSlug);
       }
     } catch (e) {
       console.error('Failed to fetch settings', e);
@@ -58,9 +62,11 @@ export default function OrdersPage() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/api/orders');
+      const res = await apiClient.get('/api/orders?limit=50');
       if (res.ok) {
-        setOrders(await res.json());
+        const data = await res.json();
+        // Handle both paginated { orders: [] } and legacy [] response
+        setOrders(Array.isArray(data) ? data : (data.orders || []));
       }
     } catch (error) {
       console.error('Failed to fetch orders', error);
@@ -69,16 +75,50 @@ export default function OrdersPage() {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: string, prepTimeMinutes?: number) => {
     try {
-      const res = await apiClient.patch(`/api/orders/${orderId}/status`, { status: newStatus });
+      const payload: any = { status: newStatus };
+      if (prepTimeMinutes !== undefined) {
+        payload.prepTimeMinutes = prepTimeMinutes;
+      }
+      const res = await apiClient.patch(`/api/orders/${orderId}/status`, payload);
       if (res.ok) {
+        const updatedOrder = await res.json();
         // Update local state to reflect change immediately
-        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
+        setOrders(orders.map(o => o.id === orderId ? { ...o, ...updatedOrder } : o));
       }
     } catch (error) {
       console.error('Failed to update status', error);
     }
+  };
+
+  const handleShareWhatsApp = (order: Order) => {
+    const itemsText = order.items.map(item => 
+      `• ${item.quantity}x ${item.product?.name || 'Item'}${item.variant ? ` (${item.variant})` : ''} - ₹${item.price * item.quantity}`
+    ).join('\n');
+
+    const trackingLink = `${window.location.origin}/${tenantSlug}/track/${order.id}`;
+
+    const message = `*Bill Details from ${restaurantName}*
+---------------------------------------
+*Order ID:* #${order.id.slice(0, 8).toUpperCase()}
+*Customer:* ${order.customerName}
+*Type:* ${order.orderType.replace('_', ' ')}
+${order.table ? `*Table:* ${order.table.tableNumber}\n` : ''}---------------------------------------
+*Items:*
+${itemsText}
+---------------------------------------
+*TOTAL BILL: ₹${order.total}*
+---------------------------------------
+Thank you for ordering with us!
+Track your order live here:
+${trackingLink}`;
+
+    const cleanPhone = order.phone.replace(/\D/g, '');
+    const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+    const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const handlePrintBill = (order: Order) => {
@@ -338,21 +378,51 @@ export default function OrdersPage() {
                           >
                             <Printer className="w-4 h-4" />
                           </button>
+                          <button 
+                            onClick={() => handleShareWhatsApp(order)}
+                            title="Share Bill via WhatsApp"
+                            className="p-1.5 text-neutral-500 hover:text-green-600 bg-neutral-100 hover:bg-green-50 rounded transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.949h.004c4.368 0 7.927-3.558 7.93-7.926a7.86 7.86 0 0 0-2.33-5.596ZM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.69-4.98c-.202-.1-1.194-.588-1.378-.654-.183-.066-.317-.1-.45.1-.132.2-.513.649-.629.782-.116.133-.232.148-.43.05-.197-.1-.833-.306-1.585-.975-.586-.522-.981-1.168-1.096-1.365-.116-.197-.012-.303.088-.403.09-.09.198-.232.298-.348.1-.116.133-.197.198-.33.065-.132.033-.248-.016-.347-.049-.1-.45-1.082-.616-1.482-.162-.389-.327-.336-.45-.336-.116-.003-.248-.003-.38-.003-.132 0-.347.05-.529.25-.183.2-.699.68-6.99 1.66c0 .98.71 1.927.81 2.062.1.133 1.396 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.194-.488 1.362-1.06.168-.573.168-1.064.118-1.164-.05-.1-.183-.15-3.69-.25Z"/></svg>
+                          </button>
                         </div>
-                        <select 
-                          className="text-xs border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded p-1 outline-none"
-                          value={order.status}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                        >
-                          <option value="NEW">New</option>
-                          <option value="ACCEPTED">Accept</option>
-                          <option value="PREPARING">Preparing</option>
-                          <option value="READY">Ready</option>
-                          <option value="SERVED">Served</option>
-                          <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-                          <option value="DELIVERED">Delivered</option>
-                          <option value="CANCELLED">Cancel</option>
-                        </select>
+                        {order.status === 'NEW' ? (
+                          <div className="flex gap-1.5 mt-1">
+                            <button
+                              onClick={() => setPrepTimeModalOrder(order)}
+                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleStatusChange(order.id, 'CANCELLED')}
+                              className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <select 
+                            className="text-xs border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded p-1 outline-none"
+                            value={order.status}
+                            onChange={(e) => {
+                              if (e.target.value === 'PREPARING') {
+                                setPrepTimeModalOrder(order);
+                              } else {
+                                handleStatusChange(order.id, e.target.value);
+                              }
+                            }}
+                          >
+                            <option value="NEW">New</option>
+                            <option value="ACCEPTED">Accept</option>
+                            <option value="PREPARING">Preparing</option>
+                            <option value="READY">Ready</option>
+                            <option value="SERVED">Served</option>
+                            <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                            <option value="DELIVERED">Delivered</option>
+                            <option value="CANCELLED">Cancel</option>
+                          </select>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -415,6 +485,12 @@ export default function OrdersPage() {
             </div>
             <div className="p-4 bg-neutral-50 dark:bg-neutral-950 border-t border-neutral-100 dark:border-neutral-800 flex justify-end gap-3">
               <button 
+                onClick={() => handleShareWhatsApp(selectedOrder)}
+                className="px-4 py-2 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-bold text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.949h.004c4.368 0 7.927-3.558 7.93-7.926a7.86 7.86 0 0 0-2.33-5.596ZM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.69-4.98c-.202-.1-1.194-.588-1.378-.654-.183-.066-.317-.1-.45.1-.132.2-.513.649-.629.782-.116.133-.232.148-.43.05-.197-.1-.833-.306-1.585-.975-.586-.522-.981-1.168-1.096-1.365-.116-.197-.012-.303.088-.403.09-.09.198-.232.298-.348.1-.116.133-.197.198-.33.065-.132.033-.248-.016-.347-.049-.1-.45-1.082-.616-1.482-.162-.389-.327-.336-.45-.336-.116-.003-.248-.003-.38-.003-.132 0-.347.05-.529.25-.183.2-.699.68-6.99 1.66c0 .98.71 1.927.81 2.062.1.133 1.396 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.194-.488 1.362-1.06.168-.573.168-1.064.118-1.164-.05-.1-.183-.15-3.69-.25Z"/></svg> Share Bill
+              </button>
+              <button 
                 onClick={() => handlePrintBill(selectedOrder)}
                 className="px-4 py-2 flex items-center gap-2 bg-neutral-200 dark:bg-neutral-800 rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors font-bold text-sm"
               >
@@ -426,6 +502,67 @@ export default function OrdersPage() {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Prep Time Modal */}
+      {prepTimeModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-neutral-200 dark:border-neutral-800 animate-in zoom-in duration-200">
+            <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Accept Order & Set Prep Time</h3>
+              <button 
+                onClick={() => setPrepTimeModalOrder(null)} 
+                className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-neutral-500">
+                Choose the estimated preparation time for this order. A countdown will be shown to the customer.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[15, 30, 45].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => {
+                      handleStatusChange(prepTimeModalOrder.id, 'PREPARING', mins);
+                      setPrepTimeModalOrder(null);
+                    }}
+                    className="py-2.5 px-2 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-bold rounded-xl border border-orange-200 dark:border-orange-900/50 transition-colors text-xs"
+                  >
+                    {mins} mins
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4 space-y-2">
+                <label className="block text-xs font-bold text-neutral-500 uppercase">Custom Time (minutes)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={customPrepTime}
+                    onChange={(e) => setCustomPrepTime(e.target.value)}
+                    placeholder="Enter minutes..."
+                    className="flex-1 px-3 py-2 bg-neutral-50 dark:bg-neutral-955 border border-neutral-200 dark:border-neutral-800 rounded-xl outline-none text-xs focus:border-orange-500"
+                  />
+                  <button
+                    onClick={() => {
+                      const mins = parseInt(customPrepTime);
+                      if (mins > 0) {
+                        handleStatusChange(prepTimeModalOrder.id, 'PREPARING', mins);
+                        setPrepTimeModalOrder(null);
+                        setCustomPrepTime('');
+                      }
+                    }}
+                    disabled={!customPrepTime}
+                    className="px-4 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shrink-0"
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

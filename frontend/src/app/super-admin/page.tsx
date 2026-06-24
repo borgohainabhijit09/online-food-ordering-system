@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Users, TrendingUp, AlertCircle, CreditCard } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { apiClient } from '@/lib/apiClient';
 
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState({
@@ -20,12 +21,7 @@ export default function SuperAdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/dashboard`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await apiClient.get('/api/super-admin/dashboard');
       if (res.ok) {
         const data = await res.json();
         setStats(data);
