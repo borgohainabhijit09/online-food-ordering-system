@@ -32,6 +32,7 @@ model Tenant {
   supportTickets      SupportTicket[]
   marketplaceRequests MarketplaceRequest[]
   loyaltyTransactions LoyaltyTransaction[]
+  cashRegisterClosures CashRegisterClosure[]
 
   currentPlanId    String?
   currentPlan      SubscriptionPlan? @relation(fields: [currentPlanId], references: [id])
@@ -648,4 +649,17 @@ model RecipeIngredient {
   quantity      Float // amount needed per product
 
   @@unique([recipeId, rawMaterialId])
+}
+
+model CashRegisterClosure {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  date         DateTime @default(now())
+  expectedCash Float
+  actualCash   Float
+  discrepancy  Float
+  notes        String?
+  closedBy     String
+  createdAt    DateTime @default(now())
 }
