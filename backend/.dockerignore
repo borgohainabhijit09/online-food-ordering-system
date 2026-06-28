@@ -1,0 +1,7 @@
+node_modules
+dist
+.env
+.env.*
+migration/data.dump
+npm-debug.log
+.git

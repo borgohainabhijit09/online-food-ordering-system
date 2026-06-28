@@ -10,7 +10,9 @@ export async function GET(request: Request) {
 
   if (tenantSlug) {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Server-side call: prefer the internal (in-cluster) backend URL so the
+      // request doesn't bounce back out through nginx. Falls back to public URL.
+      const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       // We can fetch from the public storefront API to get the tenant settings
       const res = await fetch(`${apiUrl}/api/storefront/${tenantSlug}/settings`, {
         // Don't cache this aggressively so changes reflect

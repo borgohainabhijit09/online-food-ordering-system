@@ -3,6 +3,10 @@ node_modules/
 # Environment variables — never commit
 .env
 .env.local
+.env.migration
+
+# DB migration dump artifact (Supabase -> Docker)
+migration/data.dump
 
 # Compiled TypeScript output
 dist/
