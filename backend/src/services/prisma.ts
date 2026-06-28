@@ -15,7 +15,7 @@ const prismaClientSingleton = () => {
   // We use DIRECT_URL (port 5432) because Prisma 7 with adapter-pg sends prepared statements
   // which can hang in Transaction Mode (port 6543) depending on Supavisor config.
   pgPool = new Pool({
-    connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL,
     max: 2,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 8000,
