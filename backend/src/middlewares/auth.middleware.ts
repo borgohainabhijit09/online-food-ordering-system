@@ -30,9 +30,28 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  if (req.user?.role !== 'ADMIN') {
-    res.status(403).json({ message: 'Admin access required' });
+  if (req.user?.role !== 'ADMIN' && req.user?.role !== 'STAFF' && req.user?.role !== 'SUPER_ADMIN') {
+    res.status(403).json({ message: 'Dashboard access required' });
     return;
   }
   next();
+};
+
+export const requirePermission = (permission: string) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN') {
+      next();
+      return;
+    }
+    
+    if (req.user?.role === 'STAFF') {
+      const permissions = req.user?.permissions || [];
+      if (permissions.includes(permission)) {
+        next();
+        return;
+      }
+    }
+    
+    res.status(403).json({ message: 'Insufficient permissions' });
+  };
 };

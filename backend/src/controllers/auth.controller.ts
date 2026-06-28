@@ -17,7 +17,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     const user = await prisma.user.findUnique({ 
       where: { phone },
-      include: { tenantAccess: { include: { tenant: true } }, tenant: true }
+      include: { tenantAccess: { include: { tenant: true, staffRole: true } }, tenant: true }
     });
     
     if (!user || !user.password) {
@@ -73,7 +73,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       id: a.tenant.id,
       slug: a.tenant.slug,
       businessName: a.tenant.businessName,
-      role: a.role
+      role: a.role,
+      permissions: a.staffRole?.permissions || []
     }));
 
     if (accessibleStores.length === 0) {
@@ -250,15 +251,25 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
 
     const access = await prisma.tenantAccess.findUnique({
       where: { userId_tenantId: { userId: decoded.id, tenantId } },
-      include: { tenant: true, user: true }
+      include: { tenant: true, user: true, staffRole: true }
     });
 
     if (!access || !access.tenant.isActive) {
       return res.status(403).json({ message: 'Access denied or restaurant suspended' });
     }
 
+    const permissions = access.staffRole?.permissions || [];
+
     const newToken = jwt.sign(
-      { id: access.user.id, role: access.role, phone: access.user.phone, tenantId: access.tenant.id, tenantSlug: access.tenant.slug, forcePasswordChange: access.user.forcePasswordChange },
+      { 
+        id: access.user.id, 
+        role: access.role, 
+        phone: access.user.phone, 
+        tenantId: access.tenant.id, 
+        tenantSlug: access.tenant.slug, 
+        forcePasswordChange: access.user.forcePasswordChange,
+        permissions
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -272,7 +283,8 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
         phone: access.user.phone,
         tenantId: access.tenant.id,
         tenantSlug: access.tenant.slug,
-        forcePasswordChange: access.user.forcePasswordChange
+        forcePasswordChange: access.user.forcePasswordChange,
+        permissions
       }
     });
   } catch (error) {
@@ -289,14 +301,15 @@ export const getStores = async (req: Request, res: Response, next: NextFunction)
 
     const accesses = await prisma.tenantAccess.findMany({
       where: { userId: userReq.user.id },
-      include: { tenant: true }
+      include: { tenant: true, staffRole: true }
     });
 
     const stores = accesses.map(a => ({
       id: a.tenant.id,
       slug: a.tenant.slug,
       businessName: a.tenant.businessName,
-      role: a.role
+      role: a.role,
+      permissions: a.staffRole?.permissions || []
     }));
 
     res.status(200).json(stores);

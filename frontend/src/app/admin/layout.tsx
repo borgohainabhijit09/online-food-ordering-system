@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock, UserCog } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
 import { apiClient } from '../../lib/apiClient';
 import { SubscriptionProvider, useSubscription } from '../../components/SubscriptionContext';
@@ -31,6 +31,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const [isSwitching, setIsSwitching] = useState(false);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+
+  // RBAC state
+  const [userRole, setUserRole] = useState('ADMIN');
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   // Close mobile menu when pathname changes
   useEffect(() => {
@@ -89,6 +93,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
       // Valid tenant session — proceed
       if (payload.tenantSlug) setTenantSlug(payload.tenantSlug);
+      setUserRole(payload.role || 'ADMIN');
+      setUserPermissions(payload.permissions || []);
       setIsAuthenticated(true);
 
       // Fetch Settings and Stores
@@ -155,6 +161,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Failed to fetch notification counts', error);
     }
+  };
+
+  const hasPermission = (perm: string) => {
+    if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') return true;
+    return userPermissions.includes(perm);
   };
 
   const handleSwitchStore = async (newTenantId: string) => {
@@ -250,113 +261,136 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <div>
             <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">Overview</div>
             <div className="space-y-1">
-              <Link href="/admin" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Dashboard</span>
-              </Link>
+              {hasPermission('dashboard.view') && (
+                <Link href="/admin" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </Link>
+              )}
               
-              <Link href="/admin/orders" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/orders' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <ListOrdered className="w-4 h-4" />
-                  <span>Orders</span>
-                </div>
+              {hasPermission('orders.view') && (
+                <Link href="/admin/orders" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/orders' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <ListOrdered className="w-4 h-4" />
+                    <span>Orders</span>
+                  </div>
                 {newOrdersCount > 0 && (
                   <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
                     {newOrdersCount}
                   </span>
                 )}
               </Link>
+              )}
               
-              <Link href="/admin/kot" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/kot' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <ChefHat className="w-4 h-4" />
-                  <span>Kitchen (KOT)</span>
-                </div>
+              {hasPermission('kitchen.view') && (
+                <Link href="/admin/kot" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/kot' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="w-4 h-4" />
+                    <span>Kitchen (KOT)</span>
+                  </div>
                 {newOrdersCount > 0 && (
                   <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
                     {newOrdersCount}
                   </span>
                 )}
               </Link>
+              )}
               
-              <Link href="/admin/tables" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/tables' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <Grid className="w-4 h-4" />
-                  <span>Tables</span>
-                </div>
+              {hasPermission('orders.view') && (
+                <Link href="/admin/tables" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/tables' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <Grid className="w-4 h-4" />
+                    <span>Tables</span>
+                  </div>
                 {!hasFeature('RESERVATIONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
+              )}
 
-              <Link href="/admin/analytics" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/analytics' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Advanced Analytics</span>
-                </div>
+              {hasPermission('reports.view') && (
+                <Link href="/admin/analytics" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/analytics' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Advanced Analytics</span>
+                  </div>
                 {!hasFeature('ADVANCED_ANALYTICS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
+              )}
 
-              <Link href="/admin/billing" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/billing' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <Receipt className="w-4 h-4" />
-                  <span>Sales & Billing</span>
-                </div>
+              {hasPermission('reports.view') && (
+                <Link href="/admin/billing" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/billing' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4" />
+                    <span>Sales & Billing</span>
+                  </div>
                 {!hasFeature('BILLING') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
+              )}
             </div>
           </div>
 
           {/* Menu Management Group */}
-          <div>
-            <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">Menu Management</div>
-            <div className="space-y-1">
-              <Link href="/admin/categories" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/categories' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Categories</span>
-              </Link>
-              <Link href="/admin/products" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/products' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <ShoppingBag className="w-4 h-4" />
-                <span>Products</span>
-              </Link>
-              <Link href="/admin/addons" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/addons' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <Plus className="w-4 h-4" />
-                <span>Addons</span>
-              </Link>
-              
-              <Link href="/admin/inventory" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/inventory' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <Boxes className="w-4 h-4" />
-                  <span>Recipe Inventory</span>
-                </div>
-                {!hasFeature('INVENTORY') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
-              </Link>
+          {hasPermission('menu.manage') || hasPermission('inventory.manage') ? (
+            <div>
+              <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">Menu Management</div>
+              <div className="space-y-1">
+                {hasPermission('menu.manage') && (
+                  <>
+                    <Link href="/admin/categories" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/categories' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>Categories</span>
+                    </Link>
+                    <Link href="/admin/products" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/products' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Products</span>
+                    </Link>
+                    <Link href="/admin/addons" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/addons' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                      <Plus className="w-4 h-4" />
+                      <span>Addons</span>
+                    </Link>
+                  </>
+                )}
+                
+                {hasPermission('inventory.manage') && (
+                  <>
+                    <Link href="/admin/inventory" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/inventory' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                      <div className="flex items-center gap-2">
+                        <Boxes className="w-4 h-4" />
+                        <span>Recipe Inventory</span>
+                      </div>
+                      {!hasFeature('INVENTORY') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+                    </Link>
 
-              <Link href="/admin/ai-recipe" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/ai-recipe' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <BrainCircuit className="w-4 h-4" />
-                  <span>AI Recipe Suggestions</span>
-                </div>
-                {!hasFeature('AI_RECIPE_SUGGESTIONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
-              </Link>
+                    <Link href="/admin/ai-recipe" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/ai-recipe' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                      <div className="flex items-center gap-2">
+                        <BrainCircuit className="w-4 h-4" />
+                        <span>AI Recipe Suggestions</span>
+                      </div>
+                      {!hasFeature('AI_RECIPE_SUGGESTIONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+                    </Link>
 
-              <Link href="/admin/consumption-forecast" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/consumption-forecast' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>Consumption Forecast</span>
-                </div>
-                {!hasFeature('CONSUMPTION_FORECAST') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
-              </Link>
+                    <Link href="/admin/consumption-forecast" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/consumption-forecast' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Consumption Forecast</span>
+                      </div>
+                      {!hasFeature('CONSUMPTION_FORECAST') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {/* Growth & Sales Group */}
-          <div>
-            <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">Growth & Sales</div>
-            <div className="space-y-1">
-              <Link href="/admin/customers" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/customers' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>Customers</span>
-                </div>
+          {hasPermission('customers.manage') ? (
+            <div>
+              <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">Growth & Sales</div>
+              <div className="space-y-1">
+                <Link href="/admin/customers" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/customers' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span>Customers</span>
+                  </div>
                 {!hasFeature('CUSTOMER_CRM') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
               <Link href="/admin/coupons" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/coupons' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
@@ -376,15 +410,24 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
           </div>
+          ) : null}
 
           {/* System Group */}
           <div>
             <div className="text-[10px] font-bold uppercase text-neutral-400 mb-2 px-2 tracking-wider">System</div>
             <div className="space-y-1">
-              <Link href="/admin/settings" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/settings' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
-              </Link>
+              {hasPermission('settings.manage') && (
+                <Link href="/admin/staff" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/staff' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <UserCog className="w-4 h-4" />
+                  <span>Staff & Roles</span>
+                </Link>
+              )}
+              {hasPermission('settings.manage') && (
+                <Link href="/admin/settings" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/settings' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <Settings className="w-4 h-4" />
+                  <span>Settings</span>
+                </Link>
+              )}
               <Link href="/admin/support" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/support') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
                 <div className="flex items-center gap-2">
                   <LifeBuoy className="w-4 h-4" />

@@ -16,28 +16,29 @@ model Tenant {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  users          User[]
-  categories     Category[]
-  products       Product[]
-  addons         Addon[]
-  orders         Order[]
-  tables         RestaurantTable[]
-  events         RestaurantEvent[]
-  settings       Settings?
-  subscription   TenantSubscription?
-  billingRecords BillingRecord[]
-  coupons        Coupon[]
-  customers      Customer[]
-  tenantAccess   TenantAccess[]
-  supportTickets SupportTicket[]
+  users               User[]
+  categories          Category[]
+  products            Product[]
+  addons              Addon[]
+  orders              Order[]
+  tables              RestaurantTable[]
+  events              RestaurantEvent[]
+  settings            Settings?
+  subscription        TenantSubscription?
+  billingRecords      BillingRecord[]
+  coupons             Coupon[]
+  customers           Customer[]
+  tenantAccess        TenantAccess[]
+  supportTickets      SupportTicket[]
   marketplaceRequests MarketplaceRequest[]
   loyaltyTransactions LoyaltyTransaction[]
 
-  currentPlanId  String?
-  currentPlan    SubscriptionPlan? @relation(fields: [currentPlanId], references: [id])
+  currentPlanId    String?
+  currentPlan      SubscriptionPlan? @relation(fields: [currentPlanId], references: [id])
   featureOverrides FeatureOverride[]
-  rawMaterials   RawMaterial[]
-  recipes        Recipe[]
+  rawMaterials     RawMaterial[]
+  recipes          Recipe[]
+  staffRoles       StaffRole[]
 }
 
 model User {
@@ -49,44 +50,60 @@ model User {
   orders    Order[]
   createdAt DateTime @default(now())
 
-  tenantId String?
-  tenant   Tenant? @relation(fields: [tenantId], references: [id])
-  lastLoginAt           DateTime?
-  tenantAccess          TenantAccess[]
-  supportMessages       SupportMessage[]
+  tenantId        String?
+  tenant          Tenant?          @relation(fields: [tenantId], references: [id])
+  lastLoginAt     DateTime?
+  tenantAccess    TenantAccess[]
+  supportMessages SupportMessage[]
 
-  forcePasswordChange   Boolean   @default(false)
-  lastPasswordChangeAt  DateTime?
-  failedLoginAttempts   Int       @default(0)
-  lockedUntil           DateTime?
+  forcePasswordChange  Boolean   @default(false)
+  lastPasswordChangeAt DateTime?
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
 }
 
 model AuditLog {
-  id              String   @id @default(uuid())
-  businessId      String?  
-  userId          String?
-  action          String
-  performedBy     String
-  metadata        Json?
-  createdAt       DateTime @default(now())
+  id          String   @id @default(uuid())
+  businessId  String?
+  userId      String?
+  action      String
+  performedBy String
+  metadata    Json?
+  createdAt   DateTime @default(now())
 }
 
 model TenantAccess {
-  id        String   @id @default(uuid())
-  userId    String
-  tenantId  String
-  role      Role     @default(ADMIN)
-  createdAt DateTime @default(now())
+  id          String     @id @default(uuid())
+  userId      String
+  tenantId    String
+  role        Role       @default(ADMIN)
+  staffRoleId String?
+  staffRole   StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
+}
+
+model StaffRole {
+  id           String         @id @default(uuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  permissions  String[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  tenantAccess TenantAccess[]
+
+  @@unique([tenantId, name])
 }
 
 enum Role {
   SUPER_ADMIN
   ADMIN
+  STAFF
   CUSTOMER
 }
 
@@ -176,54 +193,54 @@ model Inventory {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String
-  phone     String
-  dob       DateTime?
-  loyaltyPoints Int @default(0)
-  orders    Order[]
+  id                  String               @id @default(uuid())
+  tenantId            String
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  name                String
+  phone               String
+  dob                 DateTime?
+  loyaltyPoints       Int                  @default(0)
+  orders              Order[]
   loyaltyTransactions LoyaltyTransaction[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@unique([tenantId, phone])
 }
 
 model Order {
-  id             String      @id @default(uuid())
-  userId         String?
-  user           User?       @relation(fields: [userId], references: [id])
-  customerId     String?
-  customer       Customer?   @relation(fields: [customerId], references: [id])
-  customerName   String
-  phone          String
-  orderType      OrderType   @default(DELIVERY)
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  tableId        String?
-  table          RestaurantTable? @relation(fields: [tableId], references: [id])
-  status         OrderStatus @default(NEW)
-  total          Float
-  remarks        String?
-  items          OrderItem[]
-  couponCode     String?
-  discountAmount Float?      @default(0)
-  createdAt      DateTime    @default(now())
-  prepTimeMinutes          Int?
-  estimatedCompletionTime  DateTime?
+  id                      String           @id @default(uuid())
+  userId                  String?
+  user                    User?            @relation(fields: [userId], references: [id])
+  customerId              String?
+  customer                Customer?        @relation(fields: [customerId], references: [id])
+  customerName            String
+  phone                   String
+  orderType               OrderType        @default(DELIVERY)
+  address                 String?
+  latitude                Float?
+  longitude               Float?
+  tableId                 String?
+  table                   RestaurantTable? @relation(fields: [tableId], references: [id])
+  status                  OrderStatus      @default(NEW)
+  total                   Float
+  remarks                 String?
+  items                   OrderItem[]
+  couponCode              String?
+  discountAmount          Float?           @default(0)
+  createdAt               DateTime         @default(now())
+  prepTimeMinutes         Int?
+  estimatedCompletionTime DateTime?
 
   // Loyalty
-  pointsEarned    Int?     @default(0)
-  pointsRedeemed  Int?     @default(0)
+  pointsEarned   Int? @default(0)
+  pointsRedeemed Int? @default(0)
 
   // Payment
-  paymentMethod     String?  @default("COD")  // 'COD' | 'ONLINE'
-  paymentStatus     String?  @default("PENDING") // 'PENDING' | 'PAID' | 'FAILED'
-  razorpayOrderId   String?  // rzp order id
-  razorpayPaymentId String?  // rzp payment id after success
+  paymentMethod     String? @default("COD") // 'COD' | 'ONLINE'
+  paymentStatus     String? @default("PENDING") // 'PENDING' | 'PAID' | 'FAILED'
+  razorpayOrderId   String? // rzp order id
+  razorpayPaymentId String? // rzp payment id after success
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -266,27 +283,27 @@ model OrderItemAddon {
 }
 
 model Settings {
-  id                String  @id @default(uuid())
-  restaurantName    String
-  isAcceptingOrders Boolean @default(true)
-  deliveryRadiusKm  Float   @default(5.0)
-  restaurantLat        Float
-  restaurantLng        Float
-  whatsappNumber       String
-  hasDeliveryCharge    Boolean @default(false)
-  deliveryChargeAmount Float   @default(0)
-  minOrderValueForDelivery Float @default(0)
-  logoUrl              String?
-  fssaiNumber          String?
+  id                       String  @id @default(uuid())
+  restaurantName           String
+  isAcceptingOrders        Boolean @default(true)
+  deliveryRadiusKm         Float   @default(5.0)
+  restaurantLat            Float
+  restaurantLng            Float
+  whatsappNumber           String
+  hasDeliveryCharge        Boolean @default(false)
+  deliveryChargeAmount     Float   @default(0)
+  minOrderValueForDelivery Float   @default(0)
+  logoUrl                  String?
+  fssaiNumber              String?
 
   // Razorpay Payment Gateway
-  razorpayKeyId     String?   // Public key — e.g. rzp_test_xxx
-  razorpayKeySecret String?   // Secret key — stored encrypted
-  razorpayEnabled   Boolean   @default(false)
+  razorpayKeyId     String? // Public key — e.g. rzp_test_xxx
+  razorpayKeySecret String? // Secret key — stored encrypted
+  razorpayEnabled   Boolean @default(false)
 
   // Loyalty Program Settings
   loyaltyEnabled          Boolean @default(false)
-  loyaltyPointsExpiryDays Int?    // Null means no expiry
+  loyaltyPointsExpiryDays Int? // Null means no expiry
   pointsEarningMultiplier Float   @default(1.0) // E.g., earn 1 point per `pointsEarningSpendUnit` spent
   pointsEarningSpendUnit  Float   @default(100.0) // E.g., Spend 100 = 1 point
   pointValueInRupees      Float   @default(1.0) // E.g., 1 point = 1 rupee
@@ -364,18 +381,18 @@ model Coupon {
 }
 
 model RestaurantTable {
-  id           String      @id @default(uuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id])
-  tableNumber  String
-  tableName    String?
-  capacity     Int         @default(4)
-  status       TableStatus @default(AVAILABLE)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  
-  orders       Order[]
-  events       RestaurantEvent[]
+  id          String      @id @default(uuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  tableNumber String
+  tableName   String?
+  capacity    Int         @default(4)
+  status      TableStatus @default(AVAILABLE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  orders Order[]
+  events RestaurantEvent[]
 
   @@unique([tenantId, tableNumber])
 }
@@ -387,15 +404,15 @@ enum TableStatus {
 }
 
 model RestaurantEvent {
-  id           String      @id @default(uuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id])
-  tableId      String
-  table        RestaurantTable @relation(fields: [tableId], references: [id])
-  type         EventType
-  status       EventStatus @default(PENDING)
-  createdAt    DateTime    @default(now())
-  resolvedAt   DateTime?
+  id         String          @id @default(uuid())
+  tenantId   String
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
+  tableId    String
+  table      RestaurantTable @relation(fields: [tableId], references: [id])
+  type       EventType
+  status     EventStatus     @default(PENDING)
+  createdAt  DateTime        @default(now())
+  resolvedAt DateTime?
 }
 
 enum EventType {
@@ -449,19 +466,19 @@ enum TicketPriority {
 }
 
 model SupportTicket {
-  id          String         @id @default(uuid())
-  tenantId    String
-  tenant      Tenant         @relation(fields: [tenantId], references: [id])
-  subject     String
-  description String
-  status      TicketStatus   @default(OPEN)
-  priority    TicketPriority @default(MEDIUM)
+  id                  String         @id @default(uuid())
+  tenantId            String
+  tenant              Tenant         @relation(fields: [tenantId], references: [id])
+  subject             String
+  description         String
+  status              TicketStatus   @default(OPEN)
+  priority            TicketPriority @default(MEDIUM)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   hasUnreadSuperAdmin Boolean        @default(true)
   hasUnreadTenant     Boolean        @default(false)
 
-  messages    SupportMessage[]
+  messages SupportMessage[]
 }
 
 model SupportMessage {
@@ -488,79 +505,79 @@ enum MarketplaceRequestStatus {
 }
 
 model MarketplaceProduct {
-  id          String   @id @default(uuid())
+  id          String                 @id @default(uuid())
   title       String
   description String
   price       Float
   category    String
   imageUrl    String?
   type        MarketplaceProductType @default(PHYSICAL)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  requests    MarketplaceRequest[]
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  requests MarketplaceRequest[]
 }
 
 model MarketplaceRequest {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  productId   String
-  product     MarketplaceProduct @relation(fields: [productId], references: [id])
-  quantity    Int      @default(1)
-  notes       String?
-  status      MarketplaceRequestStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String                   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant                   @relation(fields: [tenantId], references: [id])
+  productId String
+  product   MarketplaceProduct       @relation(fields: [productId], references: [id])
+  quantity  Int                      @default(1)
+  notes     String?
+  status    MarketplaceRequestStatus @default(PENDING)
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
 }
 
 model Feature {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  name          String
-  description   String?
-  createdAt     DateTime @default(now())
-  
-  planFeatures  PlanFeature[]
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  planFeatures     PlanFeature[]
   featureOverrides FeatureOverride[]
 }
 
 model SubscriptionPlan {
-  id             String   @id @default(uuid())
-  name           String
-  monthlyPrice   Float
-  yearlyPrice    Float?
-  description    String?
-  isActive       Boolean @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  planFeatures   PlanFeature[]
-  tenants        Tenant[]
+  id           String   @id @default(uuid())
+  name         String
+  monthlyPrice Float
+  yearlyPrice  Float?
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  planFeatures PlanFeature[]
+  tenants      Tenant[]
 }
 
 model PlanFeature {
-  id           String @id @default(uuid())
-  planId       String
-  featureId    String
-  plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
-  feature      Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
-  
+  id        String           @id @default(uuid())
+  planId    String
+  featureId String
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature   Feature          @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
   @@unique([planId, featureId])
 }
 
 model FeatureOverride {
-  id               String @id @default(uuid())
-  restaurantId     String
-  featureId        String
-  enabled          Boolean
-  expiresAt        DateTime?
-  notes            String?
-  createdAt        DateTime @default(now())
+  id           String    @id @default(uuid())
+  restaurantId String
+  featureId    String
+  enabled      Boolean
+  expiresAt    DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
 
-  restaurant       Tenant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  feature          Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  restaurant Tenant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  feature    Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
 }
 
 enum LoyaltyTransactionType {
@@ -571,16 +588,16 @@ enum LoyaltyTransactionType {
 }
 
 model LoyaltyTransaction {
-  id          String   @id @default(uuid())
+  id          String                 @id @default(uuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id])
   customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id])
-  points      Int      // positive for earned, negative for redeemed/expired
+  customer    Customer               @relation(fields: [customerId], references: [id])
+  points      Int // positive for earned, negative for redeemed/expired
   type        LoyaltyTransactionType
   description String?
-  orderId     String?  // Optional reference to the order
-  createdAt   DateTime @default(now())
+  orderId     String? // Optional reference to the order
+  createdAt   DateTime               @default(now())
   expiresAt   DateTime? // When these specific points expire (if applicable)
 }
 
@@ -589,7 +606,7 @@ model RawMaterial {
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   name         String
-  unit         String   // e.g., "g", "ml", "kg", "pcs"
+  unit         String // e.g., "g", "ml", "kg", "pcs"
   currentStock Float    @default(0)
   minimumStock Float    @default(0)
   costPerUnit  Float    @default(0)
@@ -617,7 +634,7 @@ model RecipeIngredient {
   recipe        Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   rawMaterialId String
   rawMaterial   RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Cascade)
-  quantity      Float       // amount needed per product
+  quantity      Float // amount needed per product
 
   @@unique([recipeId, rawMaterialId])
 }
