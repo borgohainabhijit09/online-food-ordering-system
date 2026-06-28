@@ -7,12 +7,16 @@ import {
   deleteRawMaterial,
   getRecipes,
   createOrUpdateRecipe,
-  deleteRecipe
+  deleteRecipe,
+  getConsumptionForecast
 } from '../controllers/inventory.controller';
 
 const router = Router();
 
 router.use(authenticate);
+
+// Forecast
+router.get('/forecast', getConsumptionForecast);
 
 // Raw Materials
 router.get('/raw-materials', getRawMaterials);
