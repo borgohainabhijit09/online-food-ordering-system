@@ -24,6 +24,7 @@ interface Order {
   remarks?: string;
   createdAt: string;
   items: OrderItem[];
+  customerType?: string;
 }
 
 export default function OrdersPage() {
@@ -339,6 +340,16 @@ ${trackingLink}`;
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 font-bold uppercase">
                           {order.orderType.replace('_', ' ')}
                         </span>
+                        {order.customerType && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                            order.customerType === 'REPEAT + VIP' ? 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400' :
+                            order.customerType === 'VIP' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                            order.customerType === 'REPEAT' || order.customerType === 'RETURNING' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          }`}>
+                            {order.customerType === 'RETURNING' ? 'REPEAT' : order.customerType}
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-neutral-500 mb-1">{order.phone}</div>
                       {order.orderType === 'DELIVERY' && (

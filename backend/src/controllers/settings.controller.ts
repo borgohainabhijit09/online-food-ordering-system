@@ -34,6 +34,8 @@ export const getSettings = async (req: TenantReq, res: Response, next: NextFunct
           pointsEarningSpendUnit: 100.0,
           pointValueInRupees: 1.0,
           minimumPointsToRedeem: 50,
+          repeatOrderThreshold: 5,
+          vipSpendThreshold: 3000,
         },
         include: {
           tenant: {
@@ -59,10 +61,9 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
     const { 
       restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, 
       hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber,
-      loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem
+      loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit,
+      pointValueInRupees, minimumPointsToRedeem, repeatOrderThreshold, vipSpendThreshold
     } = req.body;
-    
-    // Check if settings exist
     const existing = await prisma.settings.findFirst({
       where: { tenantId: req.tenantId }
     });
@@ -75,7 +76,8 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
         data: { 
           restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, 
           hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber,
-          loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem
+          loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem,
+          repeatOrderThreshold, vipSpendThreshold
         },
         include: { tenant: { select: { slug: true, restaurantId: true } } }
       });
@@ -84,7 +86,8 @@ export const updateSettings = async (req: TenantReq, res: Response, next: NextFu
         data: { 
           restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, 
           hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId,
-          loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem
+          loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem,
+          repeatOrderThreshold, vipSpendThreshold
         },
         include: { tenant: { select: { slug: true, restaurantId: true } } }
       });

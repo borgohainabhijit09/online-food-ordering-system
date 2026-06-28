@@ -26,6 +26,8 @@ interface Settings {
   pointsEarningSpendUnit: number;
   pointValueInRupees: number;
   minimumPointsToRedeem: number;
+  repeatOrderThreshold: number;
+  vipSpendThreshold: number;
 }
 
 interface PaymentStatus {
@@ -55,7 +57,9 @@ export default function SettingsPage() {
     pointsEarningMultiplier: 1.0,
     pointsEarningSpendUnit: 100.0,
     pointValueInRupees: 1.0,
-    minimumPointsToRedeem: 50
+    minimumPointsToRedeem: 50,
+    repeatOrderThreshold: 5,
+    vipSpendThreshold: 3000
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -97,7 +101,9 @@ export default function SettingsPage() {
           pointsEarningMultiplier: data.pointsEarningMultiplier ?? 1.0,
           pointsEarningSpendUnit: data.pointsEarningSpendUnit ?? 100.0,
           pointValueInRupees: data.pointValueInRupees ?? 1.0,
-          minimumPointsToRedeem: data.minimumPointsToRedeem ?? 50
+          minimumPointsToRedeem: data.minimumPointsToRedeem ?? 50,
+          repeatOrderThreshold: data.repeatOrderThreshold ?? 5,
+          vipSpendThreshold: data.vipSpendThreshold ?? 3000
         });
       }
     } catch (error) {
@@ -227,7 +233,7 @@ export default function SettingsPage() {
     { key: 'general', label: 'General', icon: <MapPin className="w-4 h-4" /> },
     { key: 'delivery', label: 'Delivery', icon: <Zap className="w-4 h-4" /> },
     { key: 'payments', label: 'Payments', icon: <CreditCard className="w-4 h-4" /> },
-    { key: 'loyalty', label: 'Loyalty & Rewards', icon: <CheckCircle2 className="w-4 h-4" /> },
+    { key: 'loyalty', label: 'Loyalty & Customers', icon: <CheckCircle2 className="w-4 h-4" /> },
   ];
 
   return (
@@ -626,6 +632,26 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          <div className="space-y-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <div>
+              <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200">Customer Tiers & Analytics</h3>
+              <p className="text-xs text-neutral-500 mt-1">Configure when a customer is classified as a Repeat or VIP customer across your dashboards.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Repeat Customer Threshold</label>
+                <p className="text-xs text-neutral-500 mb-2">Number of total orders required to become a Repeat customer.</p>
+                <input type="number" step="1" min="2" value={settings.repeatOrderThreshold} onChange={(e) => setSettings({ ...settings, repeatOrderThreshold: parseInt(e.target.value) || 5 })} className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">VIP Spend Threshold (₹)</label>
+                <p className="text-xs text-neutral-500 mb-2">Total spend amount required to become a VIP customer.</p>
+                <input type="number" step="1" min="0" value={settings.vipSpendThreshold} onChange={(e) => setSettings({ ...settings, vipSpendThreshold: parseInt(e.target.value) || 3000 })} className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+              </div>
+            </div>
+          </div>
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-end items-center gap-4">
             {saveMessage && <span className="text-sm font-medium text-emerald-600">{saveMessage}</span>}

@@ -162,13 +162,53 @@ export const getDashboardStats = async (req: TenantReq, res: Response, next: Nex
       getUpcomingBirthdays()
     ]);
 
+      const phones = [...new Set(recentOrders.map(o => o.phone).filter(Boolean))];
+      let customerTypeMap: Record<string, string> = {};
+      const settings = await prisma.settings.findFirst({
+        where: { tenantId }
+      });
+      const repeatThreshold = settings?.repeatOrderThreshold || 5;
+      const vipThreshold = settings?.vipSpendThreshold || 3000;
+
+      if (phones.length > 0) {
+        const customerStats = await prisma.order.groupBy({
+          by: ['phone'],
+          where: { tenantId, phone: { in: phones as string[] }, status: { notIn: ['CANCELLED'] } },
+          _count: { id: true },
+          _sum: { total: true }
+        });
+        
+        customerStats.forEach(stat => {
+          if (!stat.phone) return;
+          const isRepeat = stat._count.id >= repeatThreshold;
+          const isVIP = stat._sum.total !== null && stat._sum.total >= vipThreshold;
+          
+          if (isRepeat && isVIP) {
+            customerTypeMap[stat.phone] = 'REPEAT + VIP';
+          } else if (isVIP) {
+            customerTypeMap[stat.phone] = 'VIP';
+          } else if (isRepeat) {
+            customerTypeMap[stat.phone] = 'REPEAT';
+          } else if (stat._count.id > 1) {
+            customerTypeMap[stat.phone] = 'RETURNING';
+          } else {
+            customerTypeMap[stat.phone] = 'NEW';
+          }
+        });
+      }
+
+      const recentOrdersWithType = recentOrders.map(order => ({
+        ...order,
+        customerType: order.phone ? (customerTypeMap[order.phone] || 'NEW') : 'NEW'
+      }));
+
     res.status(200).json({
       revenueToday,
       ordersToday: todaysOrders.length,
       ordersThisWeek,
       ordersThisMonth,
       trendData,
-      recentOrders,
+      recentOrders: recentOrdersWithType,
       ordersByType: {
         '1m': ordersByType1M,
         '6m': ordersByType6M,

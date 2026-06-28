@@ -310,14 +310,18 @@ model Settings {
 
   // Loyalty Program Settings
   loyaltyEnabled          Boolean @default(false)
-  loyaltyPointsExpiryDays Int? // Null means no expiry
-  pointsEarningMultiplier Float   @default(1.0) // E.g., earn 1 point per `pointsEarningSpendUnit` spent
-  pointsEarningSpendUnit  Float   @default(100.0) // E.g., Spend 100 = 1 point
-  pointValueInRupees      Float   @default(1.0) // E.g., 1 point = 1 rupee
-  minimumPointsToRedeem   Int     @default(50)
-
+  loyaltyPointsExpiryDays Int? // null means points never expire
+  pointsEarningMultiplier Float   @default(1.0) // 1x points per unit spent
+  pointsEarningSpendUnit  Float   @default(100.0) // e.g., earn multiplier per 100 Rs spent
+  pointValueInRupees      Float   @default(1.0) // e.g., 1 point = 1 Rs
+  minimumPointsToRedeem   Int     @default(50) // Minimum points required to use them
+    
+  // Customer Retention & Tiers
+  repeatOrderThreshold    Int     @default(5)
+  vipSpendThreshold       Float   @default(3000)
+  
   tenantId String @unique
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model SubscriptionPackage {
