@@ -11,9 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl \
 COPY package*.json ./
 RUN npm ci
 
-# Build: `npm run build` == `prisma generate && tsc`
+# Build: `npm run docker-build` == `prisma generate && tsc`
 COPY . .
-RUN npm run build
+RUN npm run docker-build
 
 ENV NODE_ENV=production
 ENV PORT=8000
