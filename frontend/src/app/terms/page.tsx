@@ -65,6 +65,13 @@ export default function TermsOfServicePage() {
               <li>Fulfilling customer orders promptly and accurately.</li>
               <li>Handling customer disputes, refunds, and complaints related to your products.</li>
             </ul>
+            <h3 className="text-xl font-semibold mb-3 mt-6">Data Privacy & Communications</h3>
+            <p className="mb-4">
+              Restaurants shall use customer information solely for order fulfillment, customer support, and lawful business communications. Restaurants are responsible for complying with applicable privacy and data protection laws.
+            </p>
+            <p>
+              Restaurants are solely responsible for any marketing, promotional, or communication activities conducted using customer information obtained through the platform.
+            </p>
           </section>
 
           <section className="mb-10">

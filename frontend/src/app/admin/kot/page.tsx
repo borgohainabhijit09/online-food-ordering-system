@@ -98,7 +98,7 @@ export default function KitchenOrderTicketPage() {
   const fetchOrders = async () => {
     try {
       // Fetch only active kitchen orders directly from the server
-      const res = await apiClient.get('/api/orders?status=ACTIVE&limit=100');
+      const res = await apiClient.get('/api/orders?status=KOT&limit=100');
       if (res.ok) {
         const data = await res.json();
         const allOrders: Order[] = Array.isArray(data) ? data : (data.orders || []);

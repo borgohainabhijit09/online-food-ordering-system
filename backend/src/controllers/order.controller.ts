@@ -17,6 +17,8 @@ export const getOrders = async (req: TenantReq, res: Response, next: NextFunctio
     if (status) {
       if (status === 'ACTIVE') {
         whereClause.status = { notIn: ['DELIVERED', 'CANCELLED'] };
+      } else if (status === 'KOT') {
+        whereClause.status = { in: ['NEW', 'ACCEPTED', 'PREPARING'] };
       } else {
         whereClause.status = status as string;
       }
@@ -291,6 +293,33 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
         where: { id: tableId },
         data: { status: 'OCCUPIED' }
       });
+    }
+
+    // Recipe Based Inventory Deduction
+    try {
+      for (const item of items) {
+        const recipe = await prisma.recipe.findUnique({
+          where: { productId: item.productId },
+          include: { ingredients: true }
+        });
+
+        if (recipe) {
+          for (const ingredient of recipe.ingredients) {
+            const totalQuantityNeeded = ingredient.quantity * item.quantity;
+            await prisma.rawMaterial.update({
+              where: { id: ingredient.rawMaterialId },
+              data: {
+                currentStock: {
+                  decrement: totalQuantityNeeded
+                }
+              }
+            });
+          }
+        }
+      }
+    } catch (invError) {
+      console.error('Failed to deduct inventory for order:', invError);
+      // Proceed with order even if inventory deduction fails
     }
 
     res.status(201).json(order);

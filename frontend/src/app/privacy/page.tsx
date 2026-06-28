@@ -60,14 +60,21 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold mb-4">4. Data Security</h2>
+            <h2 className="text-2xl font-bold mb-4">4. Information Sharing with Restaurants</h2>
+            <p>
+              RestoBuddy acts as a technology platform facilitating communication between customers and restaurants. Information submitted through the platform may be shared with the restaurant selected by the customer solely for order processing, fulfillment, customer support, and related operational purposes.
+            </p>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold mb-4">5. Data Security</h2>
             <p>
               We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorised way, altered or disclosed. In addition, we limit access to your personal data to those employees, agents, contractors and other third parties who have a business need to know.
             </p>
           </section>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold mb-4">5. Contact Details</h2>
+            <h2 className="text-2xl font-bold mb-4">6. Contact Details</h2>
             <p>
               If you have any questions about this privacy policy or our privacy practices, please contact us at:
             </p>

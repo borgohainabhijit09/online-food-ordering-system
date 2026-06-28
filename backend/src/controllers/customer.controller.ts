@@ -15,6 +15,10 @@ export const getCustomers = async (req: TenantReq, res: Response, next: NextFunc
             createdAt: true
           },
           orderBy: { createdAt: 'desc' }
+        },
+        loyaltyTransactions: {
+          where: { type: 'REDEEMED' },
+          select: { points: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -31,6 +35,8 @@ export const getCustomers = async (req: TenantReq, res: Response, next: NextFunc
       } else if (totalOrders >= 2) {
         segment = 'REPEAT';
       }
+      
+      const totalRedeemedPoints = Math.abs(c.loyaltyTransactions.reduce((sum, tx) => sum + tx.points, 0));
 
       return {
         id: c.id,
@@ -41,7 +47,9 @@ export const getCustomers = async (req: TenantReq, res: Response, next: NextFunc
         totalOrders,
         lifetimeSpend,
         lastOrderDate,
-        segment
+        segment,
+        loyaltyPoints: c.loyaltyPoints || 0,
+        totalRedeemedPoints
       };
     });
 

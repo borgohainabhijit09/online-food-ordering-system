@@ -61,6 +61,7 @@ export default function CheckoutPage() {
   const [onlinePaymentsAvailable, setOnlinePaymentsAvailable] = useState(false);
   const [paymentCheckDone, setPaymentCheckDone] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [consentGiven, setConsentGiven] = useState(false);
 
   useEffect(() => {
     if (orderType === 'DINE_IN') {
@@ -506,6 +507,24 @@ export default function CheckoutPage() {
               <span>{checkoutError}</span>
             </div>
           )}
+          <div className="mb-4">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative flex items-center justify-center mt-1">
+                <input
+                  type="checkbox"
+                  className="peer sr-only"
+                  checked={consentGiven}
+                  onChange={(e) => setConsentGiven(e.target.checked)}
+                />
+                <div className="w-5 h-5 border-2 border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 peer-checked:bg-orange-600 peer-checked:border-orange-600 transition-colors flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                </div>
+              </div>
+              <span className="text-xs text-neutral-600 dark:text-neutral-400 leading-tight">
+                By placing an order, you agree that your order details, contact information, and delivery address will be shared with the selected restaurant for the purpose of processing and fulfilling your order.
+              </span>
+            </label>
+          </div>
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="text-sm text-neutral-500 font-medium">TOTAL</div>
@@ -521,7 +540,7 @@ export default function CheckoutPage() {
           </div>
           <button
             onClick={handlePlaceOrder}
-            disabled={isPlacingOrder || isBelowMinDelivery || !formData.name || !formData.phone || (orderType === 'DELIVERY' && (!location || !!distanceError || !formData.address))}
+            disabled={!consentGiven || isPlacingOrder || isBelowMinDelivery || !formData.name || !formData.phone || (orderType === 'DELIVERY' && (!location || !!distanceError || !formData.address))}
             className={`w-full font-bold text-lg py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
               paymentMethod === 'ONLINE'
                 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30'

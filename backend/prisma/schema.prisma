@@ -36,6 +36,8 @@ model Tenant {
   currentPlanId  String?
   currentPlan    SubscriptionPlan? @relation(fields: [currentPlanId], references: [id])
   featureOverrides FeatureOverride[]
+  rawMaterials   RawMaterial[]
+  recipes        Recipe[]
 }
 
 model User {
@@ -119,6 +121,7 @@ model Product {
   variants          ProductVariant[]
   addons            ProductAddon[]
   inventory         Inventory?
+  recipe            Recipe?
   isActive          Boolean           @default(true)
   isTrending        Boolean           @default(false)
   dietaryPreference DietaryPreference @default(VEG)
@@ -579,4 +582,42 @@ model LoyaltyTransaction {
   orderId     String?  // Optional reference to the order
   createdAt   DateTime @default(now())
   expiresAt   DateTime? // When these specific points expire (if applicable)
+}
+
+model RawMaterial {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  name         String
+  unit         String   // e.g., "g", "ml", "kg", "pcs"
+  currentStock Float    @default(0)
+  minimumStock Float    @default(0)
+  costPerUnit  Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  recipeIngredients RecipeIngredient[]
+}
+
+model Recipe {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  productId String   @unique
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ingredients RecipeIngredient[]
+}
+
+model RecipeIngredient {
+  id            String      @id @default(uuid())
+  recipeId      String
+  recipe        Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  rawMaterialId String
+  rawMaterial   RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Cascade)
+  quantity      Float       // amount needed per product
+
+  @@unique([recipeId, rawMaterialId])
 }

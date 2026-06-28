@@ -386,42 +386,70 @@ ${trackingLink}`;
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.949h.004c4.368 0 7.927-3.558 7.93-7.926a7.86 7.86 0 0 0-2.33-5.596ZM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.69-4.98c-.202-.1-1.194-.588-1.378-.654-.183-.066-.317-.1-.45.1-.132.2-.513.649-.629.782-.116.133-.232.148-.43.05-.197-.1-.833-.306-1.585-.975-.586-.522-.981-1.168-1.096-1.365-.116-.197-.012-.303.088-.403.09-.09.198-.232.298-.348.1-.116.133-.197.198-.33.065-.132.033-.248-.016-.347-.049-.1-.45-1.082-.616-1.482-.162-.389-.327-.336-.45-.336-.116-.003-.248-.003-.38-.003-.132 0-.347.05-.529.25-.183.2-.699.68-6.99 1.66c0 .98.71 1.927.81 2.062.1.133 1.396 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.194-.488 1.362-1.06.168-.573.168-1.064.118-1.164-.05-.1-.183-.15-3.69-.25Z"/></svg>
                           </button>
                         </div>
-                        {order.status === 'NEW' ? (
+                        {order.status === 'NEW' && (
                           <div className="flex gap-1.5 mt-1">
                             <button
                               onClick={() => setPrepTimeModalOrder(order)}
-                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors"
+                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm"
                             >
-                              Accept
+                              Accept & Prepare
                             </button>
                             <button
-                              onClick={() => handleStatusChange(order.id, 'CANCELLED')}
-                              className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs transition-colors"
+                              onClick={() => { if(confirm('Are you sure you want to reject this order?')) handleStatusChange(order.id, 'CANCELLED') }}
+                              className="px-2 py-1 bg-red-100 text-red-600 hover:bg-red-200 font-bold rounded text-xs transition-colors"
                             >
                               Reject
                             </button>
                           </div>
-                        ) : (
-                          <select 
-                            className="text-xs border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded p-1 outline-none"
-                            value={order.status}
-                            onChange={(e) => {
-                              if (e.target.value === 'PREPARING') {
-                                setPrepTimeModalOrder(order);
-                              } else {
-                                handleStatusChange(order.id, e.target.value);
-                              }
-                            }}
-                          >
-                            <option value="NEW">New</option>
-                            <option value="ACCEPTED">Accept</option>
-                            <option value="PREPARING">Preparing</option>
-                            <option value="READY">Ready</option>
-                            <option value="SERVED">Served</option>
-                            <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-                            <option value="DELIVERED">Delivered</option>
-                            <option value="CANCELLED">Cancel</option>
-                          </select>
+                        )}
+
+                        {order.status === 'PREPARING' && (
+                          <div className="mt-1">
+                            {order.orderType === 'DINE_IN' && (
+                              <button onClick={() => handleStatusChange(order.id, 'SERVED')} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-xs transition-colors shadow-sm">
+                                Mark Served
+                              </button>
+                            )}
+                            {order.orderType === 'TAKEAWAY' && (
+                              <button onClick={() => handleStatusChange(order.id, 'READY')} className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded text-xs transition-colors shadow-sm">
+                                Ready for Pickup
+                              </button>
+                            )}
+                            {order.orderType === 'DELIVERY' && (
+                              <button onClick={() => handleStatusChange(order.id, 'READY')} className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded text-xs transition-colors shadow-sm">
+                                Ready for Rider
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {order.status === 'READY' && (
+                          <div className="mt-1">
+                            {order.orderType === 'TAKEAWAY' && (
+                              <button onClick={() => handleStatusChange(order.id, 'DELIVERED')} className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded text-xs transition-colors shadow-sm">
+                                Handed Over
+                              </button>
+                            )}
+                            {order.orderType === 'DELIVERY' && (
+                              <button onClick={() => handleStatusChange(order.id, 'OUT_FOR_DELIVERY')} className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded text-xs transition-colors shadow-sm">
+                                Out for Delivery
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {order.status === 'OUT_FOR_DELIVERY' && (
+                          <div className="mt-1">
+                            <button onClick={() => handleStatusChange(order.id, 'DELIVERED')} className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs transition-colors shadow-sm">
+                              Mark Delivered
+                            </button>
+                          </div>
+                        )}
+
+                        {['ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.status) && (
+                          <button onClick={() => { if(confirm('Are you sure you want to cancel this order?')) handleStatusChange(order.id, 'CANCELLED') }} className="text-[10px] text-red-500 hover:underline mt-1.5 block font-medium">
+                            Cancel Order
+                          </button>
                         )}
                       </div>
                     </td>

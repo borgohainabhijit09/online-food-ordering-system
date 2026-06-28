@@ -366,13 +366,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 </div>
                 {!hasFeature('COUPONS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
               </Link>
-              <Link href="/admin/rewards" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/rewards' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4" />
-                  <span>Rewards Program</span>
-                </div>
-                {!hasFeature('REWARDS') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
-              </Link>
+
               <Link href="/admin/marketplace/products" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/marketplace') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
                 <div className="flex items-center gap-2">
                   <Store className="w-4 h-4" />

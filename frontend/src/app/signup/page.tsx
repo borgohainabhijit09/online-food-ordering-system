@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Store, Loader2, ArrowRight } from 'lucide-react';
+import { Store, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
 
 export default function SignupPage() {
@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [successData, setSuccessData] = useState<{slug: string, businessName: string} | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   
   const [formData, setFormData] = useState({
     businessName: '',
@@ -260,10 +261,32 @@ export default function SignupPage() {
               </select>
             </div>
 
+            <div className="mb-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center mt-1">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  />
+                  <div className="w-5 h-5 border-2 border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 peer-checked:bg-orange-600 peer-checked:border-orange-600 transition-colors flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+                <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                  I agree to the{' '}
+                  <a href="/terms" target="_blank" className="text-orange-600 hover:underline">Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="/privacy" target="_blank" className="text-orange-600 hover:underline">Privacy Policy</a>
+                </span>
+              </label>
+            </div>
+
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !agreedToTerms}
                 className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? (

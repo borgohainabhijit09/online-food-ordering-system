@@ -24,6 +24,7 @@ import paymentRoutes from './routes/payment.routes';
 import superadminRoutes from './routes/superadmin.routes';
 import biRoutes from './routes/bi.routes';
 import leadsRoutes from './routes/leads.routes';
+import inventoryRoutes from './routes/inventory.routes';
 
 import { initBillingCron } from './cron/billing.cron';
 import { disconnectPrisma } from './services/prisma';
@@ -62,6 +63,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Global error handler — must be last
 app.use(errorHandler);

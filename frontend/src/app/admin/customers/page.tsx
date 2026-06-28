@@ -15,6 +15,8 @@ interface Customer {
   lifetimeSpend: number;
   lastOrderDate: string | null;
   segment: 'VIP' | 'REPEAT' | 'NEW';
+  loyaltyPoints: number;
+  totalRedeemedPoints: number;
 }
 
 export default function CustomersPage() {
@@ -240,6 +242,12 @@ export default function CustomersPage() {
                     <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('segment')}>
                       Segment {sortConfig?.key === 'segment' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('loyaltyPoints')}>
+                      Available Points {sortConfig?.key === 'loyaltyPoints' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => handleSort('totalRedeemedPoints')}>
+                      Total Redeemed {sortConfig?.key === 'totalRedeemedPoints' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
                     <th className="px-4 py-2.5">Status</th>
                     <th className="px-4 py-2.5">Action</th>
                   </tr>
@@ -289,6 +297,12 @@ export default function CustomersPage() {
                             </span>
                           )}
                         </td>
+                        <td className="px-4 py-2.5 text-orange-600 dark:text-orange-500 font-bold">
+                          {customer.loyaltyPoints}
+                        </td>
+                        <td className="px-4 py-2.5 text-neutral-600 dark:text-neutral-400 font-medium">
+                          {customer.totalRedeemedPoints}
+                        </td>
                         <td className="px-4 py-2.5">
                           {isInactive30Days ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
@@ -316,7 +330,7 @@ export default function CustomersPage() {
                     )})
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-8 text-center text-neutral-500">
+                      <td colSpan={11} className="px-6 py-8 text-center text-neutral-500">
                         No customers found.
                       </td>
                     </tr>
