@@ -35,6 +35,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   // RBAC state
   const [userRole, setUserRole] = useState('ADMIN');
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [userName, setUserName] = useState('');
 
   // Close mobile menu when pathname changes
   useEffect(() => {
@@ -95,6 +96,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       if (payload.tenantSlug) setTenantSlug(payload.tenantSlug);
       setUserRole(payload.role || 'ADMIN');
       setUserPermissions(payload.permissions || []);
+      setUserName(payload.name || 'User');
       setIsAuthenticated(true);
 
       // Fetch Settings and Stores
@@ -115,6 +117,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             if (myStores.length > 0) {
               // Only set default if we don't already have one from the JWT
               setTenantSlug(prev => prev || myStores[0].slug);
+            }
+
+            const currentStore = myStores.find((s: any) => s.slug === payload.tenantSlug);
+            if (currentStore) {
+              setUserRole(currentStore.role);
+              setUserPermissions(currentStore.permissions || []);
             }
           }
           fetchCounts();
@@ -529,8 +537,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             )}
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0 text-sm">
-              A
+            <div className="flex items-center gap-2 md:gap-3 shrink-0 ml-2">
+              <span className="hidden sm:inline-block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Welcome, {userName}
+              </span>
+              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0 text-sm shadow-sm border border-orange-200 dark:border-orange-900/50">
+                {userName ? userName.charAt(0).toUpperCase() : 'U'}
+              </div>
             </div>
           </div>
         </header>

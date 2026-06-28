@@ -52,7 +52,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     if (user.role === 'SUPER_ADMIN') {
       const token = jwt.sign(
-        { id: user.id, role: user.role, phone: user.phone, forcePasswordChange: user.forcePasswordChange },
+        { id: user.id, name: user.name, role: user.role, phone: user.phone, forcePasswordChange: user.forcePasswordChange, permissions: [] },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -69,13 +69,17 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       });
     }
 
-    const accessibleStores = user.tenantAccess.map(a => ({
-      id: a.tenant.id,
-      slug: a.tenant.slug,
-      businessName: a.tenant.businessName,
-      role: a.role,
-      permissions: a.staffRole?.permissions || []
-    }));
+    const accessibleStores = user.tenantAccess.map(a => {
+      const perms = a.staffRole?.permissions || [];
+      console.log(`[LOGIN DEBUG] User ${user.phone} -> Store ${a.tenant.slug} -> Role ${a.role} -> StaffRoleId ${a.staffRoleId} -> Permissions:`, perms);
+      return {
+        id: a.tenant.id,
+        slug: a.tenant.slug,
+        businessName: a.tenant.businessName,
+        role: a.role,
+        permissions: perms
+      };
+    });
 
     if (accessibleStores.length === 0) {
       return res.status(403).json({ message: 'User does not have access to any restaurants' });
@@ -94,7 +98,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }
 
       const token = jwt.sign(
-        { id: user.id, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug, forcePasswordChange: user.forcePasswordChange, permissions: store.permissions },
+        { id: user.id, name: user.name, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug, forcePasswordChange: user.forcePasswordChange, permissions: store.permissions },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -117,7 +121,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     // Multiple stores: Issue partial token and prompt for selection
     const partialToken = jwt.sign(
-      { id: user.id, phone: user.phone, forcePasswordChange: user.forcePasswordChange },
+      { id: user.id, name: user.name, phone: user.phone, forcePasswordChange: user.forcePasswordChange },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -227,7 +231,7 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
     });
 
     const token = jwt.sign(
-      { id: result.admin.id, role: 'ADMIN', phone: result.admin.phone, tenantId: result.tenant.id, tenantSlug: result.tenant.slug },
+      { id: result.admin.id, name: result.admin.name, role: 'ADMIN', phone: result.admin.phone, tenantId: result.tenant.id, tenantSlug: result.tenant.slug },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -278,6 +282,7 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
     const newToken = jwt.sign(
       { 
         id: access.user.id, 
+        name: access.user.name,
         role: access.role, 
         phone: access.user.phone, 
         tenantId: access.tenant.id, 
