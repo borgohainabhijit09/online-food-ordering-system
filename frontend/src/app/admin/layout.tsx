@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock, UserCog } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock, UserCog, CalendarDays } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
 import { apiClient } from '../../lib/apiClient';
 import { SubscriptionProvider, useSubscription } from '../../components/SubscriptionContext';
@@ -415,6 +415,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   <span>Marketplace</span>
                 </div>
                 {!hasFeature('MARKETPLACE') && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+              </Link>
+
+              <Link href="/admin/marketing-calendar" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/marketing-calendar') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4" />
+                  <span>Content Calendar</span>
+                </div>
               </Link>
             </div>
           </div>
