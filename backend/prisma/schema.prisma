@@ -79,6 +79,7 @@ model TenantAccess {
   role        Role       @default(ADMIN)
   staffRoleId String?
   staffRole   StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
+  status      AccessStatus @default(ACTIVE)
   createdAt   DateTime   @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -105,6 +106,12 @@ enum Role {
   ADMIN
   STAFF
   CUSTOMER
+}
+
+enum AccessStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
 
 enum DietaryPreference {

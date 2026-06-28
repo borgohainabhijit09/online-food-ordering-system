@@ -7,10 +7,13 @@ export const getStaff = async (req: Request, res: Response) => {
     const tenantId = (req as any).tenantId;
     if (!tenantId) return res.status(401).json({ message: 'Unauthorized' });
 
+    const statusFilter = req.query.status as string;
+
     const staffMembers = await prisma.tenantAccess.findMany({
       where: { 
-        tenantId,
-        role: 'STAFF'
+        tenantId, 
+        role: 'STAFF',
+        ...(statusFilter ? { status: statusFilter as any } : {})
       },
       include: {
         user: {
@@ -30,7 +33,8 @@ export const getStaff = async (req: Request, res: Response) => {
     res.json(staffMembers.map((s: any) => ({
       ...s.user,
       accessId: s.id,
-      staffRole: s.staffRole
+      staffRole: s.staffRole,
+      status: s.status
     })));
   } catch (error) {
     console.error('Error fetching staff:', error);
@@ -43,7 +47,7 @@ export const createStaff = async (req: Request, res: Response) => {
     const tenantId = (req as any).tenantId;
     if (!tenantId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const { name, phone, password, staffRoleId } = req.body;
+    const { name, phone, password, staffRoleId, status } = req.body;
     
     if (!name || !phone || !password || !staffRoleId) {
       return res.status(400).json({ message: 'Name, phone, password, and role are required' });
@@ -89,7 +93,8 @@ export const createStaff = async (req: Request, res: Response) => {
         userId: user.id,
         tenantId,
         role: 'STAFF',
-        staffRoleId
+        staffRoleId,
+        status: status || 'ACTIVE'
       },
       include: { staffRole: true }
     });
@@ -99,7 +104,8 @@ export const createStaff = async (req: Request, res: Response) => {
       name: user.name,
       phone: user.phone,
       accessId: access.id,
-      staffRole: access.staffRole
+      staffRole: access.staffRole,
+      status: access.status
     });
   } catch (error) {
     console.error('Error creating staff:', error);
@@ -111,7 +117,7 @@ export const updateStaff = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
     const id = req.params.id as string; // this is the tenantAccess ID, not user ID
-    const { name, phone, password, staffRoleId } = req.body;
+    const { name, phone, password, staffRoleId, status } = req.body;
 
     if (!tenantId) return res.status(401).json({ message: 'Unauthorized' });
 
@@ -124,9 +130,9 @@ export const updateStaff = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Staff not found' });
     }
 
-    if (staffRoleId && staffRoleId !== access.staffRoleId) {
+    if ((staffRoleId && staffRoleId !== access.staffRoleId) || status) {
       const role = await prisma.staffRole.findFirst({
-        where: { id: staffRoleId, tenantId }
+        where: { id: staffRoleId || access.staffRoleId, tenantId }
       });
       if (!role) {
         return res.status(400).json({ message: 'Invalid role' });
@@ -134,7 +140,10 @@ export const updateStaff = async (req: Request, res: Response) => {
       
       await prisma.tenantAccess.update({
         where: { id },
-        data: { staffRoleId }
+        data: { 
+          staffRoleId: staffRoleId || access.staffRoleId,
+          status: status || access.status
+        }
       });
     }
 

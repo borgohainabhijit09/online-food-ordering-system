@@ -18,6 +18,7 @@ interface StaffMember {
   createdAt: string;
   lastLoginAt?: string;
   staffRole?: StaffRole;
+  status: string;
 }
 
 const AVAILABLE_PERMISSIONS = [
@@ -37,6 +38,7 @@ export default function StaffManagementPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [roles, setRoles] = useState<StaffRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   // Modals
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
@@ -44,20 +46,20 @@ export default function StaffManagementPage() {
 
   // Forms
   const [editingStaffId, setEditingStaffId] = useState('');
-  const [staffForm, setStaffForm] = useState({ name: '', phone: '', password: '', staffRoleId: '' });
+  const [staffForm, setStaffForm] = useState({ name: '', phone: '', password: '', staffRoleId: '', status: 'ACTIVE' });
   
   const [editingRoleId, setEditingRoleId] = useState('');
   const [roleForm, setRoleForm] = useState({ name: '', permissions: [] as string[] });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [statusFilter]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const [staffRes, rolesRes] = await Promise.all([
-        apiClient.get('/api/staff'),
+        apiClient.get(`/api/staff${statusFilter ? `?status=${statusFilter}` : ''}`),
         apiClient.get('/api/staff/roles')
       ]);
 
@@ -152,7 +154,7 @@ export default function StaffManagementPage() {
             <button
               onClick={() => {
                 setEditingStaffId('');
-                setStaffForm({ name: '', phone: '', password: '', staffRoleId: roles[0]?.id || '' });
+                setStaffForm({ name: '', phone: '', password: '', staffRoleId: roles[0]?.id || '', status: 'ACTIVE' });
                 setIsStaffModalOpen(true);
               }}
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center"
@@ -190,13 +192,27 @@ export default function StaffManagementPage() {
       </div>
 
       {activeTab === 'staff' ? (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left text-sm text-gray-600">
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <select
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left text-sm text-gray-600">
             <thead className="bg-gray-50 text-gray-900 font-medium border-b">
               <tr>
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Phone</th>
                 <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Last Login</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -215,12 +231,21 @@ export default function StaffManagementPage() {
                       {s.staffRole?.name || 'Unknown'}
                     </span>
                   </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      s.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                      s.status === 'INACTIVE' ? 'bg-gray-100 text-gray-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {s.status}
+                    </span>
+                  </td>
                   <td className="px-6 py-4">{s.lastLoginAt ? new Date(s.lastLoginAt).toLocaleDateString() : 'Never'}</td>
                   <td className="px-6 py-4 text-right space-x-3">
                     <button
                       onClick={() => {
                         setEditingStaffId(s.accessId);
-                        setStaffForm({ name: s.name, phone: s.phone, password: '', staffRoleId: s.staffRole?.id || '' });
+                        setStaffForm({ name: s.name, phone: s.phone, password: '', staffRoleId: s.staffRole?.id || '', status: s.status || 'ACTIVE' });
                         setIsStaffModalOpen(true);
                       }}
                       className="text-blue-600 hover:text-blue-800"
@@ -238,6 +263,7 @@ export default function StaffManagementPage() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -316,6 +342,18 @@ export default function StaffManagementPage() {
                   {roles.map(r => (
                     <option key={r.id} value={r.id}>{r.name}</option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  value={staffForm.status}
+                  onChange={(e) => setStaffForm({...staffForm, status: e.target.value})}
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                  <option value="SUSPENDED">Suspended</option>
                 </select>
               </div>
               <div>

@@ -83,8 +83,18 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     if (accessibleStores.length === 1) {
       const store = accessibleStores[0]!;
+
+      // Check if store is staff role and status is valid
+      const access = await prisma.tenantAccess.findFirst({
+        where: { userId: user.id, tenantId: store.id }
+      });
+
+      if (access && access.role === 'STAFF' && access.status !== 'ACTIVE') {
+        return res.status(403).json({ message: 'Account is ' + access.status.toLowerCase() });
+      }
+
       const token = jwt.sign(
-        { id: user.id, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug, forcePasswordChange: user.forcePasswordChange },
+        { id: user.id, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug, forcePasswordChange: user.forcePasswordChange, permissions: store.permissions },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -98,7 +108,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
           phone: user.phone,
           tenantId: store.id,
           tenantSlug: store.slug,
-          forcePasswordChange: user.forcePasswordChange
+          forcePasswordChange: user.forcePasswordChange,
+          permissions: store.permissions
         },
         stores: accessibleStores
       });
@@ -256,6 +267,10 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
 
     if (!access || !access.tenant.isActive) {
       return res.status(403).json({ message: 'Access denied or restaurant suspended' });
+    }
+
+    if (access.role === 'STAFF' && access.status !== 'ACTIVE') {
+      return res.status(403).json({ message: 'Account is ' + access.status.toLowerCase() });
     }
 
     const permissions = access.staffRole?.permissions || [];
