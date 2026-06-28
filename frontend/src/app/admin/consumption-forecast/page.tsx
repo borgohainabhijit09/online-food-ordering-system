@@ -24,8 +24,13 @@ export default function ConsumptionForecastPage() {
     const fetchForecast = async () => {
       setIsLoading(true);
       try {
-        const data = await apiClient.fetch(`/api/inventory/forecast?days=${daysFilter}`);
-        setForecast(data || []);
+        const response = await apiClient.get(`/api/inventory/forecast?days=${daysFilter}`);
+        if (response.ok) {
+          const data = await response.json();
+          setForecast(data || []);
+        } else {
+          setForecast([]);
+        }
       } catch (error) {
         console.error('Error fetching forecast:', error);
       } finally {
