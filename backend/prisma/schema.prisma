@@ -7,14 +7,20 @@ datasource db {
 }
 
 model Tenant {
-  id           String   @id @default(uuid())
-  slug         String   @unique
+  id           String      @id @default(uuid())
+  slug         String      @unique
   businessName String
-  email        String   @unique
-  restaurantId String?  @unique
+  email        String      @unique
+  restaurantId String?     @unique
   phone        String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+
+  // Trial Lifecycle
+  trialStatus       TrialStatus @default(TESTING)
+  trialStartDate    DateTime?   // Set by super admin when trial is activated
+  trialEndDate      DateTime?   // trialStartDate + trialDays
+  trialDays         Int         @default(14)
 
   users               User[]
   categories          Category[]
@@ -33,6 +39,7 @@ model Tenant {
   marketplaceRequests MarketplaceRequest[]
   loyaltyTransactions LoyaltyTransaction[]
   cashRegisterClosures CashRegisterClosure[]
+  trialExtensionRequests TrialExtensionRequest[]
 
   currentPlanId    String?
   currentPlan      SubscriptionPlan? @relation(fields: [currentPlanId], references: [id])
@@ -113,6 +120,19 @@ enum AccessStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+enum TrialStatus {
+  TESTING      // Signed up but trial not yet activated by super admin
+  TRIAL_ACTIVE // Trial is currently running
+  TRIAL_ENDED  // Trial has expired; awaiting subscription
+  SUBSCRIBED   // Active paying customer
+}
+
+enum ExtensionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum DietaryPreference {
@@ -360,13 +380,16 @@ enum PaymentStatus {
 }
 
 model BillingRecord {
-  id         String        @id @default(uuid())
-  tenantId   String
-  tenant     Tenant        @relation(fields: [tenantId], references: [id])
-  amount     Float
-  date       DateTime      @default(now())
-  status     PaymentStatus @default(COMPLETED)
-  invoiceUrl String?
+  id                String        @id @default(uuid())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id])
+  planId            String?       // For subscription upgrades
+  amount            Float
+  date              DateTime      @default(now())
+  status            PaymentStatus @default(COMPLETED)
+  invoiceUrl        String?
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?
 }
 
 enum DiscountType {
@@ -662,4 +685,18 @@ model CashRegisterClosure {
   notes        String?
   closedBy     String
   createdAt    DateTime @default(now())
+}
+
+model TrialExtensionRequest {
+  id            String          @id @default(uuid())
+  tenantId      String
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requestedBy   String          // User ID of the admin who made the request
+  daysRequested Int             // e.g. 5, 7, 14
+  reason        String?
+  status        ExtensionStatus @default(PENDING)
+  reviewedBy    String?         // Super admin user ID
+  reviewNote    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }

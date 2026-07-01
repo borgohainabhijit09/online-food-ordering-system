@@ -3,6 +3,7 @@ import prisma from '../services/prisma';
 import { authenticate } from '../middlewares/auth.middleware';
 import { isSuperAdmin } from '../middlewares/superAdmin.middleware';
 import { SubscriptionService } from '../services/subscription.service';
+import { createRazorpayOrder, verifyPaymentSignature } from '../services/razorpay.service';
 
 const router = Router();
 
@@ -298,9 +299,136 @@ router.post('/restaurants/:id/upgrade', authenticate, async (req: any, res: Resp
       })
     ]);
     
-    res.json({ message: 'Restaurant plan updated successfully', plan: newPlan });
+    res.json({ message: 'Plan updated successfully', planName: newPlan.name });
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error upgrading plan', error: error.message });
+    res.status(500).json({ message: 'Server error updating plan', error: error.message });
+  }
+});
+
+// POST /api/subscription/create-order - Create Razorpay order for subscription upgrade
+router.post('/subscription/create-order', authenticate, async (req: any, res: Response): Promise<void> => {
+  try {
+    const { planId, tenantId } = req.body;
+    
+    if (!planId || !tenantId) {
+      res.status(400).json({ message: 'planId and tenantId are required.' });
+      return;
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.tenantId !== tenantId) {
+      res.status(403).json({ message: 'Access denied.' });
+      return;
+    }
+
+    const newPlan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    if (!newPlan) {
+      res.status(404).json({ message: 'Plan not found' });
+      return;
+    }
+
+    // Platform credentials from .env
+    const keyId = process.env.PLATFORM_RAZORPAY_KEY_ID;
+    const keySecret = process.env.PLATFORM_RAZORPAY_KEY_SECRET;
+
+    if (!keyId || !keySecret) {
+      res.status(500).json({ message: 'Platform payment gateway not configured.' });
+      return;
+    }
+
+    // Create Razorpay Order
+    const razorpayOrder = await createRazorpayOrder(
+      keyId,
+      keySecret,
+      newPlan.monthlyPrice, // we assume monthly billing for now
+      'INR',
+      `sub_req_${Date.now()}`
+    );
+
+    // Create BillingRecord
+    await prisma.billingRecord.create({
+      data: {
+        tenantId,
+        planId,
+        amount: newPlan.monthlyPrice,
+        status: 'PENDING',
+        razorpayOrderId: razorpayOrder.id
+      }
+    });
+
+    res.json({
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error creating order', error: error.message });
+  }
+});
+
+// POST /api/subscription/verify-payment - Verify Razorpay signature and activate subscription
+router.post('/subscription/verify-payment', authenticate, async (req: any, res: Response): Promise<void> => {
+  try {
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      res.status(400).json({ message: 'Missing payment details.' });
+      return;
+    }
+
+    const keySecret = process.env.PLATFORM_RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      res.status(500).json({ message: 'Platform payment gateway not configured.' });
+      return;
+    }
+
+    const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature, keySecret);
+    if (!isValid) {
+      res.status(400).json({ message: 'Invalid payment signature.' });
+      return;
+    }
+
+    // Find the pending billing record
+    const billingRecord = await prisma.billingRecord.findUnique({
+      where: { razorpayOrderId }
+    });
+
+    if (!billingRecord || billingRecord.status !== 'PENDING') {
+      res.status(400).json({ message: 'Invalid or already processed order.' });
+      return;
+    }
+
+    const newPlan = await prisma.subscriptionPlan.findUnique({ where: { id: billingRecord.planId! } });
+
+    await prisma.$transaction([
+      prisma.billingRecord.update({
+        where: { id: billingRecord.id },
+        data: {
+          status: 'COMPLETED',
+          razorpayPaymentId
+        }
+      }),
+      prisma.tenant.update({
+        where: { id: billingRecord.tenantId },
+        data: {
+          currentPlanId: billingRecord.planId,
+          trialStatus: 'SUBSCRIBED'
+        }
+      }),
+      prisma.auditLog.create({
+        data: {
+          businessId: billingRecord.tenantId,
+          userId: req.user.id,
+          action: 'SUBSCRIPTION_PAYMENT_SUCCESS',
+          performedBy: req.user.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN',
+          metadata: { planId: billingRecord.planId, amount: billingRecord.amount, razorpayPaymentId }
+        }
+      })
+    ]);
+
+    res.json({ message: 'Payment verified successfully and plan activated.', planName: newPlan?.name });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error verifying payment', error: error.message });
   }
 });
 
@@ -433,6 +561,122 @@ router.get('/subscription/compare', async (req: Request, res: Response): Promise
     res.json({ plans, features, matrix });
   } catch (error: any) {
     res.status(500).json({ message: 'Server error fetching subscription comparison', error: error.message });
+  }
+});
+
+// ==========================================
+// 6. TENANT-FACING TRIAL ENDPOINTS
+// ==========================================
+
+// GET /api/trial/status — get the current tenant's trial lifecycle state
+router.get('/trial/status', authenticate, async (req: any, res: Response): Promise<void> => {
+  try {
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      res.status(400).json({ message: 'Tenant context required' });
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        trialStatus: true,
+        trialStartDate: true,
+        trialEndDate: true,
+        trialDays: true,
+        createdAt: true,
+      }
+    });
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant not found' });
+      return;
+    }
+
+    // Calculate days remaining if trial is active
+    let daysRemaining: number | null = null;
+    if (tenant.trialStatus === 'TRIAL_ACTIVE' && tenant.trialEndDate) {
+      const now = new Date();
+      const diff = tenant.trialEndDate.getTime() - now.getTime();
+      daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    }
+
+    // Get pending/latest extension request for this tenant
+    const latestExtensionRequest = await prisma.trialExtensionRequest.findFirst({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      trialStatus: tenant.trialStatus,
+      trialStartDate: tenant.trialStartDate,
+      trialEndDate: tenant.trialEndDate,
+      trialDays: tenant.trialDays,
+      signedUpAt: tenant.createdAt,
+      daysRemaining,
+      extensionRequest: latestExtensionRequest ?? null,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error fetching trial status', error: error.message });
+  }
+});
+
+// POST /api/trial/request-extension — restaurant admin requests a trial extension
+router.post('/trial/request-extension', authenticate, async (req: any, res: Response): Promise<void> => {
+  try {
+    const tenantId = req.user?.tenantId;
+    const userId = req.user?.id;
+
+    if (!tenantId || !userId) {
+      res.status(400).json({ message: 'Tenant context required' });
+      return;
+    }
+
+    const { daysRequested, reason } = req.body;
+
+    if (!daysRequested || Number(daysRequested) < 1 || Number(daysRequested) > 30) {
+      res.status(400).json({ message: 'daysRequested must be between 1 and 30' });
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { trialStatus: true }
+    });
+
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant not found' });
+      return;
+    }
+
+    if (!['TRIAL_ACTIVE', 'TRIAL_ENDED'].includes(tenant.trialStatus)) {
+      res.status(400).json({ message: 'Extension can only be requested during or after an active trial' });
+      return;
+    }
+
+    // Check if there's already a pending request
+    const existingPending = await prisma.trialExtensionRequest.findFirst({
+      where: { tenantId, status: 'PENDING' }
+    });
+
+    if (existingPending) {
+      res.status(400).json({ message: 'You already have a pending extension request. Please wait for it to be reviewed.' });
+      return;
+    }
+
+    const request = await prisma.trialExtensionRequest.create({
+      data: {
+        tenantId,
+        requestedBy: userId,
+        daysRequested: Number(daysRequested),
+        reason,
+        status: 'PENDING',
+      }
+    });
+
+    res.status(201).json({ message: 'Extension request submitted successfully', request });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error submitting extension request', error: error.message });
   }
 });
 

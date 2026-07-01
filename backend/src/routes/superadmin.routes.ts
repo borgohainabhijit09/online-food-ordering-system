@@ -391,6 +391,167 @@ router.post('/restaurants/:id/reset-password', resetRestaurantPassword);
 router.get('/restaurants/:id/security', getSecurityInfo);
 router.get('/restaurants/:id/audit-logs', getAuditLogs);
 
+// ─── Trial Management ────────────────────────────────────────────────────────
+
+// POST /api/super-admin/tenants/:id/start-trial — activate trial for a restaurant
+router.post('/tenants/:id/start-trial', async (req: SuperAdminRequest, res: Response) => {
+  try {
+    const tenantId = req.params.id as string;
+    const { trialDays = 14 } = req.body;
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant not found' });
+      return;
+    }
+
+    if (tenant.trialStatus !== 'TESTING') {
+      res.status(400).json({ message: `Trial cannot be started — current status is ${tenant.trialStatus}` });
+      return;
+    }
+
+    const trialStartDate = new Date();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + Number(trialDays));
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const t = await tx.tenant.update({
+        where: { id: tenantId },
+        data: {
+          trialStatus: 'TRIAL_ACTIVE',
+          trialStartDate,
+          trialEndDate,
+          trialDays: Number(trialDays),
+        }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          businessId: tenantId,
+          action: 'TRIAL_STARTED',
+          performedBy: 'SUPER_ADMIN',
+          metadata: { trialDays, trialStartDate, trialEndDate }
+        }
+      });
+
+      return t;
+    });
+
+    res.json({
+      message: `Trial started successfully for ${tenant.businessName}`,
+      trialStartDate: updated.trialStartDate,
+      trialEndDate: updated.trialEndDate,
+      trialDays: updated.trialDays,
+      trialStatus: updated.trialStatus,
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// GET /api/super-admin/trial-extension-requests — list all extension requests
+router.get('/trial-extension-requests', async (req: SuperAdminRequest, res: Response) => {
+  try {
+    const { status } = req.query;
+    const requests = await prisma.trialExtensionRequest.findMany({
+      where: status ? { status: status as any } : undefined,
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            businessName: true,
+            slug: true,
+            trialStatus: true,
+            trialStartDate: true,
+            trialEndDate: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(requests);
+  } catch (err: any) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// PATCH /api/super-admin/trial-extension-requests/:id — approve or reject
+router.patch('/trial-extension-requests/:id', async (req: SuperAdminRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { status, reviewNote } = req.body; // status: 'APPROVED' | 'REJECTED'
+
+    if (!['APPROVED', 'REJECTED'].includes(status)) {
+      res.status(400).json({ message: 'status must be APPROVED or REJECTED' });
+      return;
+    }
+
+    const extensionReq = await prisma.trialExtensionRequest.findUnique({
+      where: { id },
+      include: { tenant: true }
+    });
+
+    if (!extensionReq) {
+      res.status(404).json({ message: 'Extension request not found' });
+      return;
+    }
+
+    if (extensionReq.status !== 'PENDING') {
+      res.status(400).json({ message: `Request already ${extensionReq.status.toLowerCase()}` });
+      return;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const updatedReq = await tx.trialExtensionRequest.update({
+        where: { id },
+        data: {
+          status,
+          reviewedBy: (req as any).user?.id,
+          reviewNote,
+        }
+      });
+
+      if (status === 'APPROVED') {
+        // Extend the trial end date
+        const currentEnd = extensionReq.tenant.trialEndDate
+          ? new Date(extensionReq.tenant.trialEndDate)
+          : new Date();
+        currentEnd.setDate(currentEnd.getDate() + extensionReq.daysRequested);
+
+        await tx.tenant.update({
+          where: { id: extensionReq.tenantId },
+          data: {
+            trialEndDate: currentEnd,
+            // If trial had ended, reactivate it
+            ...(extensionReq.tenant.trialStatus === 'TRIAL_ENDED'
+              ? { trialStatus: 'TRIAL_ACTIVE' }
+              : {})
+          }
+        });
+
+        await tx.auditLog.create({
+          data: {
+            businessId: extensionReq.tenantId,
+            action: 'TRIAL_EXTENDED',
+            performedBy: 'SUPER_ADMIN',
+            metadata: {
+              daysAdded: extensionReq.daysRequested,
+              newTrialEndDate: currentEnd,
+              requestId: id
+            }
+          }
+        });
+      }
+
+      return updatedReq;
+    });
+
+    res.json({ message: `Request ${status.toLowerCase()}`, request: updated });
+  } catch (err: any) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 router.use('/marketplace', superadminMarketplaceRoutes);
 
 export default router;

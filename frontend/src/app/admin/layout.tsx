@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock, UserCog, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Settings, LogOut, Plus, Loader2, Copy, ExternalLink, CheckCircle2, Tag, Menu, X, Users, Grid, LifeBuoy, Store, ChefHat, Award, Receipt, Boxes, BrainCircuit, TrendingUp, BarChart3, Lock, UserCog, CalendarDays, CreditCard } from 'lucide-react';
 import { OrderNotification } from '../../components/OrderNotification';
 import { apiClient } from '../../lib/apiClient';
 import { SubscriptionProvider, useSubscription } from '../../components/SubscriptionContext';
@@ -441,6 +441,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 <Link href="/admin/settings" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/settings' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
                   <Settings className="w-4 h-4" />
                   <span>Settings</span>
+                </Link>
+              )}
+              {hasPermission('settings.manage') && (
+                <Link href="/admin/upgrade" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/upgrade' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Subscription & Plans</span>
                 </Link>
               )}
               <Link href="/admin/support" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/support') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>

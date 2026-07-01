@@ -7,6 +7,7 @@ export const initBillingCron = () => {
     console.log('Running daily billing cron job...');
     await processInvoices();
     await checkPastDue();
+    await checkTrialExpiry();
   });
   
   console.log('Billing CRON initialized.');
@@ -94,5 +95,46 @@ export const checkPastDue = async () => {
     console.log(`Marked ${tenantIds.length} subscriptions as PAST_DUE.`);
   } catch (err) {
     console.error('Error checking past due accounts:', err);
+  }
+};
+
+export const checkTrialExpiry = async () => {
+  try {
+    const now = new Date();
+
+    // Find all TRIAL_ACTIVE tenants whose trial has ended
+    const expiredTrials = await prisma.tenant.findMany({
+      where: {
+        trialStatus: 'TRIAL_ACTIVE',
+        trialEndDate: { lte: now }
+      },
+      select: { id: true, businessName: true }
+    });
+
+    if (expiredTrials.length === 0) return;
+
+    console.log(`[Trial Cron] Found ${expiredTrials.length} expired trials. Marking TRIAL_ENDED.`);
+
+    // Mark all as TRIAL_ENDED
+    await prisma.tenant.updateMany({
+      where: {
+        id: { in: expiredTrials.map(t => t.id) }
+      },
+      data: { trialStatus: 'TRIAL_ENDED' }
+    });
+
+    // Write audit logs for each
+    await prisma.auditLog.createMany({
+      data: expiredTrials.map(t => ({
+        businessId: t.id,
+        action: 'TRIAL_EXPIRED',
+        performedBy: 'SYSTEM',
+        metadata: { businessName: t.businessName, expiredAt: now.toISOString() }
+      }))
+    });
+
+    console.log(`[Trial Cron] Marked ${expiredTrials.length} tenants as TRIAL_ENDED.`);
+  } catch (err) {
+    console.error('[Trial Cron] Error checking trial expiry:', err);
   }
 };

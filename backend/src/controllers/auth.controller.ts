@@ -15,11 +15,11 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       return res.status(400).json({ message: 'Phone and password are required' });
     }
 
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { phone },
       include: { tenantAccess: { include: { tenant: true, staffRole: true } }, tenant: true }
     });
-    
+
     if (!user || !user.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -32,7 +32,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     if (!isMatch) {
       const attempts = (user.failedLoginAttempts || 0) + 1;
       const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
-      
+
       await prisma.user.update({
         where: { id: user.id },
         data: { failedLoginAttempts: attempts, lockedUntil }
@@ -43,7 +43,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { 
+      data: {
         lastLoginAt: new Date(),
         failedLoginAttempts: 0,
         lockedUntil: null
@@ -144,7 +144,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 export const registerTenant = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { businessName, slug, email, phone, ownerName, password, plan } = req.body;
+    const { businessName, slug, email, phone, ownerName, password } = req.body;
 
     // Validate slug
     const existingTenant = await prisma.tenant.findFirst({ where: { slug } });
@@ -152,15 +152,6 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
       return res.status(400).json({ message: 'Slug is already taken. Please choose another.' });
     }
 
-    const packageName = plan === 'Growth' ? 'App + Website' : 'App Only';
-    const defaultPackage = await prisma.subscriptionPackage.findUnique({
-      where: { name: packageName }
-    });
-    
-    if (!defaultPackage) {
-      return res.status(500).json({ message: 'Default subscription package not found in system.' });
-    }
-    
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -183,7 +174,7 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
       });
 
       let adminUser = existingUser;
-      
+
       if (!adminUser) {
         adminUser = await tx.user.create({
           data: {
@@ -215,17 +206,9 @@ export const registerTenant = async (req: Request, res: Response, next: NextFunc
         }
       });
 
-      const nextMonth = new Date();
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-      await tx.tenantSubscription.create({
-        data: {
-          tenantId: newTenant.id,
-          packageId: defaultPackage.id,
-          nextBillingDate: nextMonth,
-          status: 'ACTIVE'
-        }
-      });
+      // NOTE: No TenantSubscription created at signup.
+      // Restaurants start in TESTING phase (set by schema default).
+      // Subscription begins only after the trial period ends and they subscribe.
 
       return { tenant: newTenant, admin: adminUser };
     });
@@ -280,13 +263,13 @@ export const selectStore = async (req: Request, res: Response, next: NextFunctio
     const permissions = access.staffRole?.permissions || [];
 
     const newToken = jwt.sign(
-      { 
-        id: access.user.id, 
+      {
+        id: access.user.id,
         name: access.user.name,
-        role: access.role, 
-        phone: access.user.phone, 
-        tenantId: access.tenant.id, 
-        tenantSlug: access.tenant.slug, 
+        role: access.role,
+        phone: access.user.phone,
+        tenantId: access.tenant.id,
+        tenantSlug: access.tenant.slug,
         forcePasswordChange: access.user.forcePasswordChange,
         permissions
       },

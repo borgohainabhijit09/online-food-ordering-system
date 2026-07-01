@@ -2,8 +2,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSubscription } from '../../../components/SubscriptionContext';
-import { ArrowRight, Check, X, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, X, ShieldCheck, Sparkles, Loader2, FlaskConical, Clock, CheckCircle2, AlertTriangle, Send, CalendarClock } from 'lucide-react';
 import { apiClient } from '../../../lib/apiClient';
+
+interface TrialInfo {
+  trialStatus: 'TESTING' | 'TRIAL_ACTIVE' | 'TRIAL_ENDED' | 'SUBSCRIBED';
+  trialStartDate: string | null;
+  trialEndDate: string | null;
+  trialDays: number;
+  signedUpAt: string;
+  daysRemaining: number | null;
+  extensionRequest: {
+    id: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    daysRequested: number;
+    reason: string | null;
+    reviewNote: string | null;
+  } | null;
+}
 
 interface Plan {
   id: string;
@@ -21,9 +37,16 @@ export default function UpgradePage() {
   const [loading, setLoading] = useState(true);
   const [upgradingPlanId, setUpgradingPlanId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
+  
+  const [trialInfo, setTrialInfo] = useState<TrialInfo | null>(null);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [extensionDays, setExtensionDays] = useState(7);
+  const [extensionReason, setExtensionReason] = useState('');
+  const [submittingExtension, setSubmittingExtension] = useState(false);
 
   useEffect(() => {
     fetchCompareData();
+    fetchTrialStatus();
   }, []);
 
   const fetchCompareData = async () => {
@@ -41,30 +64,137 @@ export default function UpgradePage() {
     }
   };
 
+  const fetchTrialStatus = async () => {
+    try {
+      const res = await apiClient.get('/api/trial/status');
+      if (res.ok) {
+        setTrialInfo(await res.json());
+      }
+    } catch (error) {
+      console.error('Failed to fetch trial status:', error);
+    }
+  };
+
+  const handleRequestExtension = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingExtension(true);
+    try {
+      const res = await apiClient.post('/api/trial/request-extension', {
+        daysRequested: extensionDays,
+        reason: extensionReason,
+      });
+      if (res.ok) {
+        setIsExtensionModalOpen(false);
+        setExtensionReason('');
+        fetchTrialStatus();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Failed to submit request');
+      }
+    } catch (error) {
+      console.error('Failed to request extension:', error);
+    } finally {
+      setSubmittingExtension(false);
+    }
+  };
+
+  useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   const handleUpgrade = async (planId: string, planName: string) => {
     if (!tenantId) return;
     setUpgradingPlanId(planId);
     setSuccessMsg('');
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/restaurants/${tenantId}/upgrade`, {
+      // 1. Create Order
+      const resOrder = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/subscription/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adminToken') || sessionStorage.getItem('impersonatedToken') || ''}`
         },
-        body: JSON.stringify({ planId })
+        body: JSON.stringify({ planId, tenantId })
       });
 
-      if (res.ok) {
-        setSuccessMsg(`Congratulations! Your restaurant has been successfully upgraded to the ${planName} Plan.`);
-        await refreshFeatures(); // Update subscription context
-      } else {
-        alert('Upgrade failed. Please try again or contact support.');
+      if (!resOrder.ok) {
+        const err = await resOrder.json();
+        alert(err.message || 'Failed to create order');
+        setUpgradingPlanId(null);
+        return;
       }
+
+      const orderData = await resOrder.json();
+
+      // 2. Open Razorpay Checkout
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'RestoBuddy',
+        description: `Upgrade to ${planName} Plan`,
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          try {
+            // 3. Verify Payment
+            const resVerify = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/subscription/verify-payment`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('adminToken') || sessionStorage.getItem('impersonatedToken') || ''}`
+              },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature
+              })
+            });
+
+            if (resVerify.ok) {
+              setSuccessMsg(`Congratulations! Your restaurant has been successfully upgraded to the ${planName} Plan.`);
+              await refreshFeatures(); // Update subscription context
+              fetchTrialStatus();
+            } else {
+              alert('Payment verification failed. Please contact support.');
+            }
+          } catch (error) {
+            console.error('Verification error:', error);
+            alert('Failed to verify payment.');
+          } finally {
+            setUpgradingPlanId(null);
+          }
+        },
+        prefill: {
+          name: 'Restaurant Admin',
+          email: 'admin@restaurant.com'
+        },
+        theme: {
+          color: '#ea580c'
+        },
+        modal: {
+          ondismiss: function () {
+            setUpgradingPlanId(null);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        alert(`Payment failed: ${response.error.description}`);
+        setUpgradingPlanId(null);
+      });
+      rzp.open();
+
     } catch (e) {
       console.error(e);
-      alert('Upgrade failed due to network error.');
-    } finally {
+      alert('Upgrade flow failed due to network error.');
       setUpgradingPlanId(null);
     }
   };
@@ -91,6 +221,99 @@ export default function UpgradePage() {
           Choose the plan that matches your restaurant's stage of growth. Unlock features dynamically.
         </p>
       </div>
+
+      {/* ── Trial Status Banner ───────────────────────────────── */}
+      {trialInfo && trialInfo.trialStatus !== 'SUBSCRIBED' && (() => {
+        const statusConfig = {
+          TESTING:      { label: 'Testing Phase',  icon: FlaskConical,   bg: 'bg-blue-50 dark:bg-blue-950/30',   border: 'border-blue-200 dark:border-blue-800',   badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',   iconColor: 'text-blue-500' },
+          TRIAL_ACTIVE: { label: 'Trial Active',   icon: Clock,          bg: 'bg-orange-50 dark:bg-orange-950/30', border: 'border-orange-200 dark:border-orange-800', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300', iconColor: 'text-orange-500' },
+          TRIAL_ENDED:  { label: 'Trial Ended',    icon: AlertTriangle,  bg: 'bg-red-50 dark:bg-red-950/30',     border: 'border-red-200 dark:border-red-800',     badge: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',     iconColor: 'text-red-500' },
+          SUBSCRIBED:   { label: 'Subscribed',     icon: CheckCircle2,   bg: '',  border: '', badge: '', iconColor: '' },
+        };
+        const cfg = statusConfig[trialInfo.trialStatus];
+        const Icon = cfg.icon;
+        const hasPendingReq = trialInfo.extensionRequest?.status === 'PENDING';
+        const canRequest = ['TRIAL_ACTIVE', 'TRIAL_ENDED'].includes(trialInfo.trialStatus) && !hasPendingReq;
+
+        return (
+          <div className={`rounded-3xl border p-6 ${cfg.bg} ${cfg.border}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className={`mt-0.5 ${cfg.iconColor}`}><Icon className="w-8 h-8" /></div>
+                <div>
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full ${cfg.badge}`}>{cfg.label}</span>
+                    {trialInfo.daysRemaining !== null && (
+                      <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+                        {trialInfo.daysRemaining === 0 ? 'Expires today' : `${trialInfo.daysRemaining} days remaining`}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
+                    {trialInfo.trialStatus === 'TESTING' && 'Your account is in the testing phase. Your trial will be activated by our team shortly.'}
+                    {trialInfo.trialStatus === 'TRIAL_ACTIVE' && `Your ${trialInfo.trialDays}-day trial is running. Enjoy full access to all features.`}
+                    {trialInfo.trialStatus === 'TRIAL_ENDED' && 'Your trial has ended. Please subscribe to continue using the platform.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-5 text-sm text-neutral-600 dark:text-neutral-400">
+                    <span className="flex items-center gap-1.5"><CalendarClock className="w-4 h-4" /> Signed up: {new Date(trialInfo.signedUpAt).toLocaleDateString()}</span>
+                    {trialInfo.trialStartDate && <span>Trial started: {new Date(trialInfo.trialStartDate).toLocaleDateString()}</span>}
+                    {trialInfo.trialEndDate && <span>Trial ends: {new Date(trialInfo.trialEndDate).toLocaleDateString()}</span>}
+                  </div>
+                  {/* Extension request status */}
+                  {trialInfo.extensionRequest && (
+                    <div className={`mt-4 text-sm font-semibold px-4 py-2 rounded-xl inline-flex items-center gap-2 ${
+                      trialInfo.extensionRequest.status === 'PENDING'  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                      trialInfo.extensionRequest.status === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                    }`}>
+                      {trialInfo.extensionRequest.status === 'PENDING'  && '⏳ Extension request pending review'}
+                      {trialInfo.extensionRequest.status === 'APPROVED' && `✅ Extension of ${trialInfo.extensionRequest.daysRequested} days approved`}
+                      {trialInfo.extensionRequest.status === 'REJECTED' && `❌ Extension request rejected${trialInfo.extensionRequest.reviewNote ? `: ${trialInfo.extensionRequest.reviewNote}` : ''}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {canRequest && (
+                <button
+                  onClick={() => setIsExtensionModalOpen(true)}
+                  className="shrink-0 inline-flex items-center gap-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-800 dark:text-white font-bold px-5 py-3 rounded-xl text-sm transition-colors shadow-sm"
+                >
+                  <Send className="w-4 h-4" /> Request Extension
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Extension Request Modal */}
+      {isExtensionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-md shadow-2xl relative border border-neutral-200 dark:border-neutral-800">
+            <button onClick={() => setIsExtensionModalOpen(false)} className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-white"><X className="w-5 h-5" /></button>
+            <h2 className="text-xl font-extrabold text-neutral-900 dark:text-white mb-1">Request Trial Extension</h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">Let us know how many more days you need and why. Our team will review your request.</p>
+            <form onSubmit={handleRequestExtension} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide mb-1.5">Additional Days (1–30)</label>
+                <input type="number" min={1} max={30} required value={extensionDays}
+                  onChange={e => setExtensionDays(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none font-bold" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide mb-1.5">Reason (Optional)</label>
+                <textarea rows={3} value={extensionReason} onChange={e => setExtensionReason(e.target.value)}
+                  className="w-full px-4 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                  placeholder="e.g. We need more time to train our staff..." />
+              </div>
+              <button type="submit" disabled={submittingExtension}
+                className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-extrabold rounded-xl transition-all disabled:opacity-50">
+                {submittingExtension ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Feature Highlight Banner */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-blue-900/20">

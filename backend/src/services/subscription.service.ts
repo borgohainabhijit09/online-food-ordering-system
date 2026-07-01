@@ -8,12 +8,12 @@ export class SubscriptionService {
    * Resolves whether a restaurant (tenant) has access to a specific feature.
    *
    * Logic:
-   * 1. Check Feature Overrides first.
+   * 1. Check Feature Overrides first (highest priority — super admin can always override).
    *    An override is active if expiresAt is null or in the future.
-   *    If an active override is found, return its 'enabled' value immediately.
-   * 2. If no active override, check the Tenant's assigned Subscription Plan.
-   * 3. Query PlanFeature to verify if the feature is assigned to the plan.
-   * 4. Return true / false.
+   * 2. If tenant is in TESTING or TRIAL_ACTIVE phase → full access to all features.
+   * 3. If no active override, check the Tenant's assigned Subscription Plan.
+   * 4. Query PlanFeature to verify if the feature is assigned to the plan.
+   * 5. Return true / false.
    *
    * @param tenantId The ID of the tenant (restaurant)
    * @param featureCode The unique code of the feature (e.g. 'INVENTORY')
@@ -22,7 +22,7 @@ export class SubscriptionService {
     try {
       if (!tenantId) return false;
 
-      // 1. Check Feature Overrides
+      // 1. Check Feature Overrides (always takes priority)
       const now = new Date();
       const activeOverride = await prisma.featureOverride.findFirst({
         where: {
@@ -41,7 +41,20 @@ export class SubscriptionService {
         return activeOverride.enabled;
       }
 
-      // 2. Check Assigned Plan
+      // 2. Check trial status — full access during TESTING and TRIAL_ACTIVE
+      const tenantForTrial = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { trialStatus: true }
+      });
+
+      if (
+        tenantForTrial?.trialStatus === 'TESTING' ||
+        tenantForTrial?.trialStatus === 'TRIAL_ACTIVE'
+      ) {
+        return true;
+      }
+
+      // 3. Check Assigned Plan (for TRIAL_ENDED / SUBSCRIBED tenants)
       const tenant = await prisma.tenant.findUnique({
         where: { id: tenantId },
         select: {
@@ -58,7 +71,7 @@ export class SubscriptionService {
         return false;
       }
 
-      // 3. Check Plan Features
+      // 4. Check Plan Features
       const planFeature = await prisma.planFeature.findFirst({
         where: {
           planId: tenant.currentPlanId,
@@ -75,3 +88,4 @@ export class SubscriptionService {
     }
   }
 }
+
