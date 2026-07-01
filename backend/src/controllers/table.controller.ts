@@ -5,9 +5,9 @@ interface TenantReq extends Request { tenantId?: string; }
 
 export const getTables = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const tenantId = req.query.tenantId as string;
+    if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
     const tables = await prisma.restaurantTable.findMany({
-      where: { tenantId },
+      where: { tenantId: req.tenantId },
       orderBy: { tableNumber: 'asc' },
     });
     res.status(200).json(tables);
@@ -68,10 +68,10 @@ export const updateTable = async (req: TenantReq, res: Response, next: NextFunct
 export const deleteTable = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
-    const tenantId = req.query.tenantId as string;
-    
+    if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
+
     const existing = await prisma.restaurantTable.findFirst({
-      where: { id, tenantId }
+      where: { id, tenantId: req.tenantId }
     });
 
     if (!existing) return res.status(404).json({ message: 'Table not found' });
@@ -138,10 +138,10 @@ export const requestBill = async (req: TenantReq, res: Response, next: NextFunct
 // Admin fetching active events
 export const getActiveEvents = async (req: TenantReq, res: Response, next: NextFunction) => {
   try {
-    const tenantId = req.query.tenantId as string;
+    if (!req.tenantId) return res.status(400).json({ message: 'Tenant required' });
     const events = await prisma.restaurantEvent.findMany({
       where: { 
-        tenantId,
+        tenantId: req.tenantId,
         status: 'PENDING'
       },
       include: {
