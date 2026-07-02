@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Receipt, CheckCircle2, Clock, AlertCircle, CreditCard } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+
 
 export default function AdminBilling() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
-  const { tenantId } = useAuth();
+
 
   useEffect(() => {
     // Load Razorpay script
@@ -25,9 +25,9 @@ export default function AdminBilling() {
   const fetchInvoices = async () => {
     try {
       const token = localStorage.getItem('adminToken') || sessionStorage.getItem('impersonatedToken');
-      const res = await fetch(\\/api/subscription/invoices\, {
+      const res = await fetch(`/api/subscription/invoices`, {
         headers: {
-          'Authorization': \Bearer \\
+          'Authorization': `Bearer ${token}`
         }
       });
       if (res.ok) {
@@ -51,10 +51,10 @@ export default function AdminBilling() {
     try {
       const token = localStorage.getItem('adminToken') || sessionStorage.getItem('impersonatedToken');
       // 1. Generate Razorpay order for this invoice
-      const resOrder = await fetch(\\/api/subscription/invoices/\/pay\, {
+      const resOrder = await fetch(`/api/subscription/invoices/${invoice.id}/pay`, {
         method: 'POST',
         headers: {
-          'Authorization': \Bearer \\,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -73,16 +73,16 @@ export default function AdminBilling() {
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'RestoBuddy',
-        description: \Payment for Invoice #\\,
+        description: `Payment for Invoice #${invoice.id}`,
         order_id: orderData.orderId,
         handler: async function (response: any) {
           try {
             // 3. Verify Payment
-            const resVerify = await fetch(\\/api/subscription/verify-payment\, {
+            const resVerify = await fetch(`/api/subscription/verify-payment`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': \Bearer \\
+                'Authorization': `Bearer ${token}`
               },
               body: JSON.stringify({
                 razorpayOrderId: response.razorpay_order_id,
@@ -108,7 +108,7 @@ export default function AdminBilling() {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
-        toast.error(\Payment failed: \\);
+        toast.error(`Payment failed: ${response.error.description}`);
         setPayingId(null);
       });
       rzp.open();

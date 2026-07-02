@@ -691,9 +691,6 @@ router.get('/invoices', authenticate, async (req: Request, res: Response): Promi
 
     const invoices = await prisma.billingRecord.findMany({
       where: { tenantId },
-      include: {
-        plan: true,
-      },
       orderBy: { date: 'desc' }
     });
 
@@ -706,11 +703,11 @@ router.get('/invoices', authenticate, async (req: Request, res: Response): Promi
 // POST /api/subscription/invoices/:id/pay - Create Razorpay order for an existing invoice
 router.post('/invoices/:id/pay', authenticate, async (req: Request, res: Response): Promise<void> => {
   try {
-    const tenantId = (req as any).user.tenantId;
+    const tenantId = (req as any).user.tenantId as string;
     const invoiceId = req.params.id;
 
     const invoice = await prisma.billingRecord.findFirst({
-      where: { id: invoiceId, tenantId, status: 'PENDING' }
+      where: { id: invoiceId as string, tenantId: tenantId as string, status: 'PENDING' }
     });
 
     if (!invoice) {
