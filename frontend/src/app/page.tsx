@@ -34,7 +34,7 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/plans`);
+        const res = await fetch(`/api/plans`);
         if (res.ok) {
           const data = await res.json();
           // Filter only active plans

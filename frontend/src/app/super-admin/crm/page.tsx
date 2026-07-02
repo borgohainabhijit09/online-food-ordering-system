@@ -41,7 +41,7 @@ export default function CRMDashboard() {
   const fetchLeads = async () => {
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads`, {
+      const res = await fetch(`/api/super-admin/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -72,7 +72,7 @@ export default function CRMDashboard() {
 
     try {
       const token = localStorage.getItem('superAdminToken');
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads/${leadId}/status`, {
+      await fetch(`/api/super-admin/leads/${leadId}/status`, {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -90,7 +90,7 @@ export default function CRMDashboard() {
     if (!confirm('Are you sure you want to delete this lead?')) return;
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads/${leadId}`, {
+      const res = await fetch(`/api/super-admin/leads/${leadId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -106,7 +106,7 @@ export default function CRMDashboard() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/leads`, {
+      const res = await fetch(`/api/super-admin/leads`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

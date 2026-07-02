@@ -22,10 +22,10 @@ export default function SecurityTab({ tenant }: { tenant: any }) {
       const token = localStorage.getItem('superAdminToken');
       
       const [secRes, auditRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/restaurants/${tenant.id}/security`, {
+        fetch(`/api/super-admin/restaurants/${tenant.id}/security`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/restaurants/${tenant.id}/audit-logs`, {
+        fetch(`/api/super-admin/restaurants/${tenant.id}/audit-logs`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -43,7 +43,7 @@ export default function SecurityTab({ tenant }: { tenant: any }) {
     setResetting(true);
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/restaurants/${tenant.id}/reset-password`, {
+      const res = await fetch(`/api/super-admin/restaurants/${tenant.id}/reset-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

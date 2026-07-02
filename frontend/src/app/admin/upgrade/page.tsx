@@ -115,7 +115,7 @@ export default function UpgradePage() {
     setSuccessMsg('');
     try {
       // 1. Create Order
-      const resOrder = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/subscription/create-order`, {
+      const resOrder = await fetch(`/api/subscription/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export default function UpgradePage() {
         handler: async function (response: any) {
           try {
             // 3. Verify Payment
-            const resVerify = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/subscription/verify-payment`, {
+            const resVerify = await fetch(`/api/subscription/verify-payment`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

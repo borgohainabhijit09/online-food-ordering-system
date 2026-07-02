@@ -40,16 +40,16 @@ export default function SuperAdminTenants() {
       const token = localStorage.getItem('superAdminToken');
 
       const [tenantsRes, packagesRes, featuresRes, extensionRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants`, {
+        fetch(`/api/super-admin/tenants`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/packages`, {
+        fetch(`/api/super-admin/packages`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/features`, {
+        fetch(`/api/features`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/trial-extension-requests?status=PENDING`, {
+        fetch(`/api/super-admin/trial-extension-requests?status=PENDING`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -114,7 +114,7 @@ export default function SuperAdminTenants() {
     setStartingTrialId(tenantId);
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}/start-trial`, {
+      const res = await fetch(`/api/super-admin/tenants/${tenantId}/start-trial`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ trialDays: days })
@@ -140,7 +140,7 @@ export default function SuperAdminTenants() {
     setMovingToPaidId(tenantId);
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}/move-to-paid`, {
+      const res = await fetch(`/api/super-admin/tenants/${tenantId}/move-to-paid`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
@@ -163,7 +163,7 @@ export default function SuperAdminTenants() {
   const handleExtensionDecision = async (requestId: string, status: 'APPROVED' | 'REJECTED', reviewNote?: string) => {
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/trial-extension-requests/${requestId}`, {
+      const res = await fetch(`/api/super-admin/trial-extension-requests/${requestId}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, reviewNote })
@@ -178,7 +178,7 @@ export default function SuperAdminTenants() {
   const handleImpersonate = async (tenantId: string) => {
     try {
       const token = localStorage.getItem('superAdminToken') || localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}/impersonate`, {
+      const res = await fetch(`/api/super-admin/tenants/${tenantId}/impersonate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -208,7 +208,7 @@ export default function SuperAdminTenants() {
     setSaving(true);
     try {
       const token = localStorage.getItem('superAdminToken') || localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${editingTenant.id}`, {
+      const res = await fetch(`/api/super-admin/tenants/${editingTenant.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -238,7 +238,7 @@ export default function SuperAdminTenants() {
     confirmAction(`Are you absolutely sure you want to permanently delete the restaurant "${businessName}"? This action CANNOT be undone and will erase all their menus, orders, and data.`, async () => {
       try {
         const token = localStorage.getItem('superAdminToken');
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}`, {
+        const res = await fetch(`/api/super-admin/tenants/${tenantId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -579,7 +579,7 @@ export default function SuperAdminTenants() {
                             onClick={async () => {
                               confirmAction('Delete override?', async () => {
                                 const token = localStorage.getItem('superAdminToken');
-                                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/feature-overrides/${ov.id}`, {
+                                const res = await fetch(`/api/feature-overrides/${ov.id}`, {
                                   method: 'DELETE',
                                   headers: { 'Authorization': `Bearer ${token}` }
                                 });
@@ -634,7 +634,7 @@ export default function SuperAdminTenants() {
                           }
 
                           const token = localStorage.getItem('superAdminToken');
-                          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/feature-overrides`, {
+                          const res = await fetch(`/api/feature-overrides`, {
                             method: 'POST',
                             headers: {
                               'Authorization': `Bearer ${token}`,

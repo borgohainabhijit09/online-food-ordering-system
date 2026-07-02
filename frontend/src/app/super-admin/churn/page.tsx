@@ -26,7 +26,7 @@ export default function ChurnDashboard() {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/bi/churn`, {
+      const res = await fetch(`/api/super-admin/bi/churn`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -180,7 +180,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     setIsSwitching(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/select-store`, {
+      const res = await fetch(`/api/auth/select-store`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -15,7 +15,9 @@ export const apiClient = {
   delete: (url: string) => fetchWithAuth(url, { method: 'DELETE' }),
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BASE_URL = typeof window !== 'undefined' 
+  ? '' 
+  : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
 
 async function fetchWithAuth(url: string, options: RequestInit & { isFormData?: boolean } = {}) {
   const finalUrl = url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;

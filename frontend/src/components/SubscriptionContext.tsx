@@ -76,8 +76,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiUrl}/api/restaurants/${tId}/features`, {
+      const res = await fetch(`/api/restaurants/${tId}/features`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

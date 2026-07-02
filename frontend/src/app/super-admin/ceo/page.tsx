@@ -15,7 +15,7 @@ export default function CeoDashboard() {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/bi/ceo`, {
+      const res = await fetch(`/api/super-admin/bi/ceo`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

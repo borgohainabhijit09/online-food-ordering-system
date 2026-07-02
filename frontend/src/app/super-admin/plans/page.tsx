@@ -55,10 +55,10 @@ export default function PlansPage() {
     try {
       const token = localStorage.getItem('superAdminToken');
       const [plansRes, featuresRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/plans`, {
+        fetch(`/api/plans`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/features`, {
+        fetch(`/api/features`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -113,8 +113,8 @@ export default function PlansPage() {
     setSaving(true);
     try {
       const url = formData.id 
-        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/plans/${formData.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/plans`;
+        ? `/api/plans/${formData.id}`
+        : `/api/plans`;
       
       const method = formData.id ? 'PUT' : 'POST';
 
@@ -147,7 +147,7 @@ export default function PlansPage() {
 
   const handleTogglePlanActive = async (plan: Plan) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/plans/${plan.id}`, {
+      const res = await fetch(`/api/plans/${plan.id}`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({

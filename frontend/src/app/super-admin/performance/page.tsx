@@ -27,7 +27,7 @@ export default function SuperAdminPerformance() {
   const fetchPerformance = async () => {
     try {
       const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/performance`, {
+      const res = await fetch(`/api/super-admin/performance`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
