@@ -680,4 +680,74 @@ router.post('/trial/request-extension', authenticate, async (req: any, res: Resp
   }
 });
 
+// GET /api/subscription/invoices - Get tenant's own invoices
+router.get('/invoices', authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenantId = (req as any).user.tenantId;
+    if (!tenantId) {
+      res.status(400).json({ message: 'No tenant selected' });
+      return;
+    }
+
+    const invoices = await prisma.billingRecord.findMany({
+      where: { tenantId },
+      include: {
+        plan: true,
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    res.json(invoices);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error fetching invoices', error: error.message });
+  }
+});
+
+// POST /api/subscription/invoices/:id/pay - Create Razorpay order for an existing invoice
+router.post('/invoices/:id/pay', authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenantId = (req as any).user.tenantId;
+    const invoiceId = req.params.id;
+
+    const invoice = await prisma.billingRecord.findFirst({
+      where: { id: invoiceId, tenantId, status: 'PENDING' }
+    });
+
+    if (!invoice) {
+      res.status(404).json({ message: 'Pending invoice not found' });
+      return;
+    }
+
+    const keyId = process.env.PLATFORM_RAZORPAY_KEY_ID;
+    const keySecret = process.env.PLATFORM_RAZORPAY_KEY_SECRET;
+
+    if (!keyId || !keySecret) {
+      res.status(500).json({ message: 'Razorpay keys not configured on platform.' });
+      return;
+    }
+
+    const razorpayOrder = await createRazorpayOrder(
+      keyId,
+      keySecret,
+      invoice.amount,
+      'INR',
+      `inv_${invoice.id.substring(0, 8)}_${Date.now()}`
+    );
+
+    await prisma.billingRecord.update({
+      where: { id: invoice.id },
+      data: { razorpayOrderId: razorpayOrder.id }
+    });
+
+    res.json({
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error creating order', error: error.message });
+  }
+});
+
 export default router;

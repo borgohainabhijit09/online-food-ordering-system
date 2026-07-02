@@ -103,13 +103,17 @@ export default function SuperAdminBilling() {
             <tr>
               <th className="font-bold p-4">Invoice ID</th>
               <th className="font-bold p-4">Restaurant</th>
-              <th className="font-bold p-4">Date</th>
+              <th className="font-bold p-4">Billing Period</th>
               <th className="font-bold p-4">Amount</th>
               <th className="font-bold p-4">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
-            {filtered.map(b => (
+            {filtered.map(b => {
+              const startDate = new Date(b.date);
+              const endDate = new Date(startDate);
+              endDate.setMonth(endDate.getMonth() + 1);
+              return (
               <tr key={b.id} className="hover:bg-neutral-50 transition-colors">
                 <td className="p-4 text-neutral-500 font-mono text-xs">{b.id.substring(0, 13)}...</td>
                 <td className="p-4">
@@ -117,7 +121,8 @@ export default function SuperAdminBilling() {
                   <span className="text-xs text-neutral-400">{b.tenant?.slug}</span>
                 </td>
                 <td className="p-4 text-neutral-600">
-                  {new Date(b.date).toLocaleDateString()}
+                  <div className="text-sm font-medium">{startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}</div>
+                  <div className="text-xs text-neutral-400">Generated: {startDate.toLocaleDateString()}</div>
                 </td>
                 <td className="p-4 font-bold text-neutral-800">
                   ₹{b.amount}
@@ -126,7 +131,8 @@ export default function SuperAdminBilling() {
                   {getStatusBadge(b.status)}
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-neutral-500">

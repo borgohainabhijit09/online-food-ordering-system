@@ -108,32 +108,63 @@ export const checkTrialExpiry = async () => {
         trialStatus: 'TRIAL_ACTIVE',
         trialEndDate: { lte: now }
       },
-      select: { id: true, businessName: true }
+      include: { currentPlan: true }
     });
 
     if (expiredTrials.length === 0) return;
 
-    console.log(`[Trial Cron] Found ${expiredTrials.length} expired trials. Marking TRIAL_ENDED.`);
+    console.log(`[Trial Cron] Found ${expiredTrials.length} expired trials. Generating invoices and marking TRIAL_ENDED.`);
 
-    // Mark all as TRIAL_ENDED
-    await prisma.tenant.updateMany({
-      where: {
-        id: { in: expiredTrials.map(t => t.id) }
-      },
-      data: { trialStatus: 'TRIAL_ENDED' }
+    // Find cheapest plan as fallback
+    const allPlans = await prisma.subscriptionPlan.findMany({
+      orderBy: { monthlyPrice: 'asc' }
+    });
+    const cheapestPlan = allPlans.length > 0 ? allPlans[0] : null;
+
+    await prisma.$transaction(async (tx) => {
+      for (const tenant of expiredTrials) {
+        let planId = tenant.currentPlanId;
+        let amount = tenant.currentPlan?.monthlyPrice || 0;
+
+        if (!planId && cheapestPlan) {
+          planId = cheapestPlan.id;
+          amount = cheapestPlan.monthlyPrice;
+        }
+
+        // 1. Mark as TRIAL_ENDED and update plan if it was missing
+        await tx.tenant.update({
+          where: { id: tenant.id },
+          data: { 
+            trialStatus: 'TRIAL_ENDED',
+            ...( !tenant.currentPlanId && planId ? { currentPlanId: planId } : {} )
+          }
+        });
+
+        // 2. Generate Invoice (BillingRecord)
+        if (planId) {
+          await tx.billingRecord.create({
+            data: {
+              tenantId: tenant.id,
+              planId: planId,
+              amount: amount,
+              status: 'PENDING'
+            }
+          });
+        }
+
+        // 3. Write audit log
+        await tx.auditLog.create({
+          data: {
+            businessId: tenant.id,
+            action: 'TRIAL_EXPIRED',
+            performedBy: 'SYSTEM',
+            metadata: { businessName: tenant.businessName, expiredAt: now.toISOString(), invoiceGeneratedForPlan: planId }
+          }
+        });
+      }
     });
 
-    // Write audit logs for each
-    await prisma.auditLog.createMany({
-      data: expiredTrials.map(t => ({
-        businessId: t.id,
-        action: 'TRIAL_EXPIRED',
-        performedBy: 'SYSTEM',
-        metadata: { businessName: t.businessName, expiredAt: now.toISOString() }
-      }))
-    });
-
-    console.log(`[Trial Cron] Marked ${expiredTrials.length} tenants as TRIAL_ENDED.`);
+    console.log(`[Trial Cron] Marked ${expiredTrials.length} tenants as TRIAL_ENDED and generated invoices.`);
   } catch (err) {
     console.error('[Trial Cron] Error checking trial expiry:', err);
   }

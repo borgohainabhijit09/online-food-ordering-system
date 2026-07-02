@@ -449,6 +449,90 @@ router.post('/tenants/:id/start-trial', async (req: SuperAdminRequest, res: Resp
   }
 });
 
+// POST /api/super-admin/tenants/:id/move-to-paid — force move to paid phase and generate invoice
+router.post('/tenants/:id/move-to-paid', async (req: SuperAdminRequest, res: Response) => {
+  try {
+    const tenantId = req.params.id as string;
+    
+    const tenant = await prisma.tenant.findUnique({ 
+      where: { id: tenantId },
+      include: { currentPlan: true }
+    });
+    
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant not found' });
+      return;
+    }
+
+    if (tenant.trialStatus === 'SUBSCRIBED') {
+      res.status(400).json({ message: 'Tenant is already subscribed' });
+      return;
+    }
+
+    // Find cheapest plan as fallback
+    const allPlans = await prisma.subscriptionPlan.findMany({
+      orderBy: { monthlyPrice: 'asc' }
+    });
+    const cheapestPlan = allPlans.length > 0 ? allPlans[0] : null;
+
+    let planId = tenant.currentPlanId;
+    let amount = tenant.currentPlan?.monthlyPrice || 0;
+
+    if (!planId && cheapestPlan) {
+      planId = cheapestPlan.id;
+      amount = cheapestPlan.monthlyPrice;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Mark as TRIAL_ENDED and update plan if it was missing
+      const t = await tx.tenant.update({
+        where: { id: tenantId },
+        data: {
+          trialStatus: 'TRIAL_ENDED',
+          trialEndDate: new Date(), // End trial immediately
+          ...( !tenant.currentPlanId && planId ? { currentPlanId: planId } : {} )
+        }
+      });
+
+      // 2. Generate Invoice (BillingRecord) if not exists
+      if (planId) {
+        const existingPending = await tx.billingRecord.findFirst({
+          where: { tenantId, status: 'PENDING' }
+        });
+
+        if (!existingPending) {
+          await tx.billingRecord.create({
+            data: {
+              tenantId: tenantId,
+              planId: planId,
+              amount: amount,
+              status: 'PENDING'
+            }
+          });
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          businessId: tenantId,
+          action: 'MOVED_TO_PAID_PHASE',
+          performedBy: 'SUPER_ADMIN',
+          metadata: { planId, amount, previousStatus: tenant.trialStatus }
+        }
+      });
+
+      return t;
+    });
+
+    res.json({
+      message: `Successfully moved ${tenant.businessName} to paid phase. Invoice generated.`,
+      trialStatus: updated.trialStatus
+    });
+  } catch (err: any) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 // GET /api/super-admin/trial-extension-requests — list all extension requests
 router.get('/trial-extension-requests', async (req: SuperAdminRequest, res: Response) => {
   try {

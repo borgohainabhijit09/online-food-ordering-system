@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Search, MoreVertical, CheckCircle2, AlertCircle, Clock, Edit2, X, Shield, Trash2, FlaskConical, Play, Bell } from 'lucide-react';
 import SecurityTab from './SecurityTab';
 
 export default function SuperAdminTenants() {
+  const [confirmState, setConfirmState] = useState<{isOpen: boolean, message: string, onConfirm: () => void}>({isOpen: false, message: '', onConfirm: () => {}});
+  const confirmAction = (message: string, onConfirm: () => void) => {
+    setConfirmState({ isOpen: true, message, onConfirm });
+  };
   const [tenants, setTenants] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [features, setFeatures] = useState<any[]>([]);
@@ -118,14 +123,41 @@ export default function SuperAdminTenants() {
         await fetchData();
       } else {
         const err = await res.json();
-        alert(err.message || 'Failed to start trial');
+        toast.error(err.message || 'Failed to start trial');
       }
     } catch (err) {
       console.error(err);
-      alert('Network error');
+      toast.error('Network error');
     } finally {
       setStartingTrialId(null);
     }
+  };
+
+  const [movingToPaidId, setMovingToPaidId] = useState<string | null>(null);
+
+  const handleMoveToPaid = async (tenantId: string) => {
+    confirmAction('Are you sure you want to end this trial and generate a pending invoice?', async () => {
+    setMovingToPaidId(tenantId);
+    try {
+      const token = localStorage.getItem('superAdminToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}/move-to-paid`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        await fetchData();
+        toast.success('Successfully generated invoice and moved to paid phase.');
+      } else {
+        const err = await res.json();
+        toast.error(err.message || 'Failed to move to paid phase');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Network error');
+    } finally {
+      setMovingToPaidId(null);
+    }
+  });
   };
 
   const handleExtensionDecision = async (requestId: string, status: 'APPROVED' | 'REJECTED', reviewNote?: string) => {
@@ -137,9 +169,9 @@ export default function SuperAdminTenants() {
         body: JSON.stringify({ status, reviewNote })
       });
       if (res.ok) await fetchData();
-      else alert('Failed to update request');
+      else toast.error('Failed to update request');
     } catch (err) {
-      alert('Network error');
+      toast.error('Network error');
     }
   };
 
@@ -157,11 +189,11 @@ export default function SuperAdminTenants() {
         // Open admin panel with impersonation token in URL
         window.open('/admin?impersonate=' + data.token, '_blank');
       } else {
-        alert('Failed to impersonate tenant');
+        toast.error('Failed to impersonate tenant');
       }
     } catch (err) {
       console.error(err);
-      alert('Error during impersonation');
+      toast.error('Error during impersonation');
     }
   };
 
@@ -192,39 +224,37 @@ export default function SuperAdminTenants() {
         setEditingTenant(null);
         await fetchData(); // Refresh list
       } else {
-        alert('Failed to update tenant');
+        toast.error('Failed to update tenant');
       }
     } catch (err) {
       console.error(err);
-      alert('Network error');
+      toast.error('Network error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteTenant = async (tenantId: string, businessName: string) => {
-    if (!window.confirm(`Are you absolutely sure you want to permanently delete the restaurant "${businessName}"? This action CANNOT be undone and will erase all their menus, orders, and data.`)) {
-      return;
-    }
+    confirmAction(`Are you absolutely sure you want to permanently delete the restaurant "${businessName}"? This action CANNOT be undone and will erase all their menus, orders, and data.`, async () => {
+      try {
+        const token = localStorage.getItem('superAdminToken');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-    try {
-      const token = localStorage.getItem('superAdminToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/super-admin/tenants/${tenantId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (res.ok) {
-        alert('Restaurant deleted successfully');
-        await fetchData(); // Refresh list
-      } else {
-        const err = await res.json();
-        alert(`Failed to delete: ${err.message}`);
+        if (res.ok) {
+          toast.success('Restaurant deleted successfully');
+          await fetchData(); // Refresh list
+        } else {
+          const err = await res.json();
+          toast.error(`Failed to delete: ${err.message}`);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('Network error while deleting');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Network error while deleting');
-    }
+    });
   };
 
   if (loading) {
@@ -344,7 +374,6 @@ export default function SuperAdminTenants() {
           <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 uppercase tracking-wider">
             <tr>
               <th className="font-semibold px-4 py-3">Customer / Business</th>
-              <th className="font-semibold px-4 py-3">Contact Info</th>
               <th className="font-semibold px-4 py-3">Package</th>
               <th className="font-semibold px-4 py-3">Trial Phase</th>
               <th className="font-semibold px-4 py-3">Billing Status</th>
@@ -358,16 +387,18 @@ export default function SuperAdminTenants() {
                 <td className="px-4 py-2">
                   <div className="font-bold text-neutral-900 text-sm">{t.businessName}</div>
                   <div className="text-neutral-500">Owner: {t.tenantAccess?.[0]?.user?.name || 'Unknown Owner'} <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 rounded text-[10px] font-mono text-neutral-400">{t.restaurantId || 'No ID'}</span> (/{t.slug})</div>
-                </td>
-                <td className="px-4 py-2">
-                  <div className="font-medium text-neutral-700">{t.email}</div>
-                  <div className="text-neutral-500">{t.phone || '-'}</div>
+                  {t.phone && <div className="text-xs text-neutral-400 mt-0.5">Phone: {t.phone}</div>}
                 </td>
                 <td className="px-4 py-2">
                   <div className="font-medium text-neutral-700">{t.currentPlan?.name || 'No Plan'}</div>
                   <div className="text-neutral-500">
                     {t.currentPlan?.monthlyPrice ? `₹${t.currentPlan.monthlyPrice}/mo` : ''}
                   </div>
+                  {t.trialStatus === 'SUBSCRIBED' && t.trialEndDate && (
+                    <div className="text-[10px] text-neutral-400 mt-1">
+                      Cycle: {new Date(t.trialStartDate || t.trialEndDate).toLocaleDateString()} - {new Date(new Date(t.trialStartDate || t.trialEndDate).setMonth(new Date(t.trialStartDate || t.trialEndDate).getMonth() + 1)).toLocaleDateString()}
+                    </div>
+                  )}
                 </td>
                 {/* Trial Phase column */}
                 <td className="px-4 py-2">
@@ -392,6 +423,17 @@ export default function SuperAdminTenants() {
                   )}
                   {t.trialEndDate && t.trialStatus !== 'TESTING' && (
                     <div className="text-[10px] text-neutral-400 mt-0.5">Ends: {new Date(t.trialEndDate).toLocaleDateString()}</div>
+                  )}
+                  {t.trialStatus !== 'SUBSCRIBED' && (
+                    <div className="mt-2">
+                      <button
+                        onClick={() => handleMoveToPaid(t.id)}
+                        disabled={movingToPaidId === t.id}
+                        className="text-[10px] font-bold bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                      >
+                        {movingToPaidId === t.id ? 'Processing...' : 'Move to Paid Phase'}
+                      </button>
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-2">
@@ -439,7 +481,7 @@ export default function SuperAdminTenants() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-neutral-500 text-sm">
+                <td colSpan={6} className="p-8 text-center text-neutral-500 text-sm">
                   No businesses found.
                 </td>
               </tr>
@@ -535,7 +577,7 @@ export default function SuperAdminTenants() {
                           </div>
                           <button
                             onClick={async () => {
-                              if (confirm('Delete override?')) {
+                              confirmAction('Delete override?', async () => {
                                 const token = localStorage.getItem('superAdminToken');
                                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/feature-overrides/${ov.id}`, {
                                   method: 'DELETE',
@@ -545,7 +587,7 @@ export default function SuperAdminTenants() {
                                   await fetchData();
                                   setViewingProfile(null);
                                 }
-                              }
+                              });
                             }}
                             className="text-red-500 font-bold hover:underline"
                           >
@@ -587,7 +629,7 @@ export default function SuperAdminTenants() {
                           const notes = (document.getElementById('ovNotesInput') as HTMLInputElement).value;
 
                           if (!featureId) {
-                            alert('Please select a feature.');
+                            toast.error('Please select a feature.');
                             return;
                           }
 
@@ -611,7 +653,7 @@ export default function SuperAdminTenants() {
                             await fetchData();
                             setViewingProfile(null);
                           } else {
-                            alert('Failed to save override');
+                            toast.error('Failed to save override');
                           }
                         }}
                         className="w-full bg-black hover:bg-neutral-800 text-white font-bold py-2 rounded-xl text-xs transition-colors"
@@ -707,6 +749,21 @@ export default function SuperAdminTenants() {
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmState.isOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-neutral-900 mb-2">Confirm Action</h3>
+              <p className="text-neutral-500 text-sm mb-6">{confirmState.message}</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setConfirmState({ ...confirmState, isOpen: false })} className="px-4 py-2 font-bold text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">Cancel</button>
+                <button onClick={() => { setConfirmState({ ...confirmState, isOpen: false }); confirmState.onConfirm(); }} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors">Confirm</button>
+              </div>
             </div>
           </div>
         </div>

@@ -449,6 +449,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   <span>Subscription & Plans</span>
                 </Link>
               )}
+              {hasPermission('settings.manage') && (
+                <Link href="/admin/subscription-billing" className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${pathname === '/admin/subscription-billing' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
+                  <Receipt className="w-4 h-4" />
+                  <span>Billing & Invoices</span>
+                </Link>
+              )}
               <Link href="/admin/support" className={`flex justify-between items-center px-3 py-2 text-sm rounded-lg transition-colors ${pathname.startsWith('/admin/support') ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-500 font-medium' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}`}>
                 <div className="flex items-center gap-2">
                   <LifeBuoy className="w-4 h-4" />
