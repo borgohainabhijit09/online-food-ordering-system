@@ -38,7 +38,10 @@ pipeline {
       steps {
         sh '''
           cd "$APP_DIR"
-          docker compose up -d --build
+          # Exclude Jenkins from the rebuild — it cannot restart itself mid-build.
+          # Jenkins picks up Dockerfile changes on the next manual rebuild.
+          SERVICES=$(docker compose config --services | grep -v '^jenkins$' | tr '\n' ' ')
+          docker compose up -d --build $SERVICES
           docker image prune -f
         '''
       }
