@@ -12,7 +12,9 @@ pipeline {
   }
 
   environment {
-    APP_DIR = '/workspace/app'
+    // Host path where the repo lives — Docker daemon resolves volume mounts on
+    // the HOST, so compose must use the host path, not the container bind path.
+    APP_DIR = '/root/app'
     DEPLOY_BRANCH = 'main'
   }
 
