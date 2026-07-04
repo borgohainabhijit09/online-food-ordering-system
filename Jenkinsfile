@@ -12,11 +12,9 @@ pipeline {
   }
 
   environment {
-    // Path inside the Jenkins container (bind-mounted from /root/app on the host).
-    APP_DIR = '/workspace/app'
-    // Host path — Docker daemon resolves compose volume mounts on the HOST,
-    // so we pass this as --project-directory to docker compose.
-    HOST_APP_DIR = '/root/app'
+    // /root/app is mounted at the same path inside the Jenkins container,
+    // so Docker daemon and shell both resolve paths identically.
+    APP_DIR = '/root/app'
     DEPLOY_BRANCH = 'main'
   }
 
@@ -42,12 +40,9 @@ pipeline {
       steps {
         sh '''
           cd "$APP_DIR"
-          # --project-directory uses the HOST path so Docker daemon resolves
-          # volume mounts correctly (compose runs inside the Jenkins container
-          # but the daemon is on the host).
           # Exclude Jenkins — it cannot restart itself mid-build.
-          SERVICES=$(docker compose --project-directory "$HOST_APP_DIR" config --services | grep -v '^jenkins$' | tr '\n' ' ')
-          docker compose --project-directory "$HOST_APP_DIR" up -d --build $SERVICES
+          SERVICES=$(docker compose config --services | grep -v '^jenkins$' | tr '\n' ' ')
+          docker compose up -d --build $SERVICES
           docker image prune -f
         '''
       }
@@ -64,7 +59,7 @@ pipeline {
                  -H "x-tenant-slug: bamboho" || echo 000)
           echo "app health -> $code"
           if [ "$code" = "000" ] || [ "$code" -ge 500 ]; then
-            echo "Health check failed"; docker compose --project-directory "$HOST_APP_DIR" logs --tail 60 backend; exit 1
+            echo "Health check failed"; docker compose logs --tail 60 backend; exit 1
           fi
         '''
       }
