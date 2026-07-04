@@ -109,12 +109,35 @@ docker exec food_ordering_jenkins cat /var/jenkins_home/secrets/initialAdminPass
 1. Open **https://jenkins.restobuddy.in**, paste the password.
 2. "Install suggested plugins" (git/github/pipeline already baked in).
 3. Create the admin user.
-4. **New Item → Pipeline** named `restobuddy-deploy`:
-   - **Pipeline → Definition:** *Pipeline script from SCM*
-   - **SCM:** Git, Repo URL = your GitHub repo, Credentials = a GitHub token (repo read)
-   - **Branch:** `*/main`
-   - **Script Path:** `Jenkinsfile`
-   - Save → **Build Now** to test.
+
+### 6a. Add the GitHub deploy key as a Jenkins SSH credential
+
+Jenkins runs in its own container and does **not** see `/root/.ssh/github_deploy`,
+so register the key inside Jenkins. Print the PRIVATE key on the host:
+```bash
+cat /root/.ssh/github_deploy
+```
+In Jenkins UI: **Manage Jenkins → Credentials → System → Global → Add Credentials**
+- **Kind:** *SSH Username with private key*
+- **ID:** `github-deploy`
+- **Username:** `git`
+- **Private Key:** *Enter directly* → paste the contents of `github_deploy`
+- Save.
+
+### 6b. Create the pipeline job
+
+**New Item → Pipeline** named `restobuddy-deploy`:
+- **Pipeline → Definition:** *Pipeline script from SCM*
+- **SCM:** Git
+  - **Repository URL:** `git@github.com:borgohainabhijit09/online-food-ordering-system.git`  ← SSH, not HTTPS
+  - **Credentials:** select `github-deploy` (the SSH key from 6a)
+- **Branch:** `*/main`
+- **Script Path:** `Jenkinsfile`
+- Save → **Build Now** to test.
+
+> The deploy key is **read-only** — fine, because Jenkins only *pulls*. The
+> Jenkinsfile's `git reset --hard origin/main` runs inside the mounted `/root/app`,
+> whose origin is already the SSH remote.
 
 ## 7. Auto-trigger on push (GitHub webhook)
 
