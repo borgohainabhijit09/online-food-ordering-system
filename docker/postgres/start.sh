@@ -8,10 +8,10 @@ set -e
 PGDATA="${PGDATA:-/var/lib/postgresql/data}"
 
 if [ -d "$PGDATA/global" ]; then
-    echo "[postgres-init] data dir exists — ensuring postgres role has LOGIN..."
-    printf 'UPDATE pg_authid SET rolcanlogin = true WHERE rolname = '"'"'postgres'"'"';\n' | \
+    echo "[postgres-init] fixing postgres role LOGIN + password..."
+    printf "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';\n" | \
         gosu postgres postgres --single -j -D "$PGDATA" postgres 2>/dev/null || true
-    echo "[postgres-init] role check done."
+    echo "[postgres-init] done."
 fi
 
 exec docker-entrypoint.sh postgres "$@"
