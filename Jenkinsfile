@@ -1,7 +1,7 @@
 // CI/CD for restobuddy.in — rebuilds and redeploys the Docker cell on the same
 // server whenever `main` updates. Runs inside the Jenkins container, which has
 // the Docker CLI + compose plugin and the host docker socket mounted, and the
-// deploy dir (/root/app) mounted at /workspace/app.
+// deploy dir (/root/app) mounted at /root/app (same path as host).
 pipeline {
   agent any
 
@@ -40,9 +40,15 @@ pipeline {
       steps {
         sh '''
           cd "$APP_DIR"
-          # Exclude Jenkins — it cannot restart itself mid-build.
-          SERVICES=$(docker compose config --services | grep -v '^jenkins$' | tr '\n' ' ')
-          docker compose up -d --build $SERVICES
+          # Build only app images (backend, frontend, db wrapper).
+          # Exclude Jenkins (can't restart itself) and stateful services (db, redis)
+          # that must not be recreated mid-deploy to avoid data loss or NOLOGIN resets.
+          BUILD_SERVICES=$(docker compose config --services \
+            | grep -vE '^(jenkins|db|redis|adminer|certbot)$' \
+            | tr '\n' ' ')
+          docker compose up -d --build $BUILD_SERVICES
+          # Ensure stateful services are running (start if stopped, no recreate).
+          docker compose up -d --no-recreate db redis adminer certbot
           docker image prune -f
         '''
       }

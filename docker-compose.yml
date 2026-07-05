@@ -25,7 +25,8 @@ name: food-ordering-cell
 
 services:
   db:
-    image: postgres:17-alpine
+    build:
+      context: ./docker/postgres
     container_name: food_ordering_db
     restart: unless-stopped
     environment:
@@ -33,7 +34,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: foodordering
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -48,7 +49,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
     volumes:
       - redisdata:/data
     healthcheck:
