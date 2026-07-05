@@ -12,8 +12,7 @@
 #    localhost:5433          Postgres
 #    localhost:6380          Redis
 #
-#  The Postgres volume is the SAME one the migration populated, so all the
-#  data migrated from Supabase is already here.
+#  Postgres data is persisted in the pgdata Docker volume.
 #
 #  Usage:
 #    docker compose up -d --build
@@ -78,7 +77,6 @@ services:
       NODE_ENV: production
       PORT: "8000"
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/foodordering"
-      DIRECT_URL: "postgresql://postgres:postgres@db:5432/foodordering"
       REDIS_URL: "redis://redis:6379"
       JWT_SECRET: "super_secret_jwt_key_please_change_in_production"
     depends_on:
