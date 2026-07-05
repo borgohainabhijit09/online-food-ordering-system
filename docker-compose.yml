@@ -24,8 +24,7 @@ name: food-ordering-cell
 
 services:
   db:
-    build:
-      context: ./docker/postgres
+    image: postgres:17-alpine
     container_name: food_ordering_db
     restart: unless-stopped
     environment:
