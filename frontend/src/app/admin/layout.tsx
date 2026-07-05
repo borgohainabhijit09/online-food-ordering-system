@@ -82,12 +82,14 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       // A SUPER_ADMIN token in adminToken is a leftover — remove it and send to login
       if (payload.role === 'SUPER_ADMIN') {
         localStorage.removeItem('adminToken');
+        setIsLoading(false);
         if (pathname !== '/admin/login') router.push('/admin/login');
         return;
       }
 
       // Regular users without a selected store should re-login
       if (!payload.tenantId && !payload.tenantSlug) {
+        setIsLoading(false);
         router.push('/admin/login');
         return;
       }
@@ -132,8 +134,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
       setIsLoading(false);
     } catch (e) {
-      // Token is malformed
-      router.push('/admin/login');
+      // Token is malformed — clear it so the next render shows the login form
+      localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('impersonatedToken');
+      setIsLoading(false);
+      if (pathname !== '/admin/login') router.push('/admin/login');
       return;
     }
   }, [pathname, router]);
