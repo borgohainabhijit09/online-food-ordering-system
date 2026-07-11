@@ -492,8 +492,8 @@ export default function SuperAdminTenants() {
 
       {viewingProfile && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-neutral-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-6">
                 <h2 className="text-xl font-bold text-neutral-900">Customer Profile</h2>
                 <div className="flex gap-4 border-l border-neutral-200 pl-6">
@@ -516,7 +516,7 @@ export default function SuperAdminTenants() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
               {profileTab === 'overview' ? (
                 <>
                   <div className="flex items-center gap-4">
@@ -668,7 +668,7 @@ export default function SuperAdminTenants() {
               )}
             </div>
 
-            <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end">
+            <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex justify-end shrink-0">
               <button
                 onClick={() => setViewingProfile(null)}
                 className="px-6 py-2 bg-black text-white font-bold rounded-xl hover:bg-neutral-800 transition-colors"
