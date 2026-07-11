@@ -216,6 +216,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       return;
     }
     localStorage.removeItem('adminToken');
+    // Also clear the cookie so a stale forcePasswordChange token can't
+    // redirect the user back to /admin/change-password after logout.
+    document.cookie = 'adminToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.push('/admin/login');
   };
 

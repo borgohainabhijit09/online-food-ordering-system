@@ -47,6 +47,16 @@ export default function ChangePasswordPage() {
         throw new Error(data.message || 'Failed to change password');
       }
 
+      const data = await res.json();
+
+      // The API returns a fresh token without forcePasswordChange — store it.
+      // Without this step, the stale token (with forcePasswordChange=true) stays
+      // in localStorage/cookie and immediately redirects the user back here after logout.
+      if (data.token) {
+        localStorage.setItem('adminToken', data.token);
+        document.cookie = `adminToken=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+      }
+
       // Successful password change
       router.push('/admin');
     } catch (err: any) {

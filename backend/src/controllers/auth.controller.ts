@@ -359,11 +359,31 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
       }
     });
 
-    res.status(200).json({ message: 'Password changed successfully' });
+    // Issue a fresh token with forcePasswordChange=false so the client can replace the
+    // stale token that was carrying forcePasswordChange=true. Without this the user would
+    // be bounced back to the change-password screen immediately after logging out.
+    const oldPayload = userReq.user; // decoded JWT payload attached by auth middleware
+    const freshToken = jwt.sign(
+      {
+        id: oldPayload.id,
+        name: oldPayload.name,
+        role: oldPayload.role,
+        phone: oldPayload.phone,
+        tenantId: oldPayload.tenantId,
+        tenantSlug: oldPayload.tenantSlug,
+        permissions: oldPayload.permissions,
+        forcePasswordChange: false,
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({ message: 'Password changed successfully', token: freshToken });
   } catch (error) {
     next(error);
   }
 };
+
 
 export const createLeadFromDemoRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
