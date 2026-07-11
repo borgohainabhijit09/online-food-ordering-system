@@ -77,7 +77,9 @@ export default function LandingPage() {
 
           <nav className="hidden md:flex items-center gap-8 font-semibold text-sm text-neutral-600 dark:text-neutral-300">
             <Link href="#features" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Features</Link>
-            <Link href="/demo-restaurant" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Demo</Link>
+            <Link href="#why-us" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Why Us</Link>
+            <Link href="#faq" className="hover:text-neutral-900 dark:hover:text-white transition-colors">FAQ</Link>
+            <Link href="/demo" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Demo</Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-3 sm:gap-5 shrink-0">
@@ -109,7 +111,9 @@ export default function LandingPage() {
               className="md:hidden absolute top-16 left-0 w-full bg-white dark:bg-[#0a0a0a] border-b border-neutral-200 dark:border-white/10 shadow-xl flex flex-col p-4 gap-4"
             >
               <Link href="#features" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Features</Link>
-              <Link href="/demo-restaurant" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Demo</Link>
+              <Link href="#why-us" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Why Us</Link>
+              <Link href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">FAQ</Link>
+              <Link href="/demo" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Demo</Link>
               <div className="h-px bg-neutral-200 dark:bg-white/10 my-2" />
               <Link href="/admin/login" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2 text-center border border-neutral-200 dark:border-white/20 rounded-xl">
                 Restaurant Login
@@ -184,6 +188,12 @@ export default function LandingPage() {
             >
               Book a Free Demo <ArrowRight className="w-5 h-5" />
             </button>
+            <Link
+              href="/demo"
+              className="w-full sm:w-auto px-8 py-4 bg-white/80 dark:bg-white/5 backdrop-blur-md border border-neutral-200 dark:border-white/10 text-neutral-900 dark:text-white font-bold text-lg rounded-full hover:bg-neutral-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              Explore a Demo Now
+            </Link>
           </motion.div>
 
           {/* Trust Strip */}
@@ -476,7 +486,7 @@ export default function LandingPage() {
 
 
         {/* Section 6: Why RestoBuddy Is Different */}
-        <section className="py-24 md:py-32 bg-slate-50 dark:bg-[#0a0a0a] border-b border-neutral-200/50 dark:border-white/5 relative overflow-hidden">
+        <section id="why-us" className="py-24 md:py-32 bg-slate-50 dark:bg-[#0a0a0a] border-b border-neutral-200/50 dark:border-white/5 relative overflow-hidden">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-center mb-16">
               <span className="text-orange-600 dark:text-orange-500 font-bold uppercase tracking-wider text-sm">
@@ -1032,7 +1042,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section className="py-32 bg-white/50 dark:bg-white/[0.02] border-y border-neutral-200/50 dark:border-white/5 backdrop-blur-3xl">
+        <section id="faq" className="py-32 bg-white/50 dark:bg-white/[0.02] border-y border-neutral-200/50 dark:border-white/5 backdrop-blur-3xl">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-black tracking-tighter">Frequently Asked Questions</h2>
