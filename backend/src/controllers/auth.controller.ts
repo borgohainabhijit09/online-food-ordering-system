@@ -364,3 +364,30 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const createLeadFromDemoRequest = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { restaurantName, ownerName, phone, email, city } = req.body;
+    
+    if (!restaurantName || !ownerName || !phone) {
+      return res.status(400).json({ message: 'Restaurant name, owner name, and phone number are required' });
+    }
+
+    const lead = await prisma.lead.create({
+      data: {
+        restaurantName,
+        ownerName,
+        phone,
+        email: email || null,
+        city: city || null,
+        status: 'NEW',
+        source: 'landing_page_demo_cta'
+      }
+    });
+
+    res.status(201).json(lead);
+  } catch (error) {
+    next(error);
+  }
+};
+
