@@ -86,7 +86,7 @@ export default function ChangePasswordPage() {
                 required
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-orange-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-orange-500 transition-colors text-neutral-900"
                 placeholder="Enter current password"
               />
             </div>
@@ -101,7 +101,7 @@ export default function ChangePasswordPage() {
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-orange-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-orange-500 transition-colors text-neutral-900"
                 placeholder="Create new password"
               />
             </div>
@@ -142,7 +142,7 @@ export default function ChangePasswordPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-orange-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl outline-none focus:border-orange-500 transition-colors text-neutral-900"
                 placeholder="Confirm new password"
               />
             </div>

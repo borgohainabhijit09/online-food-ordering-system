@@ -44,6 +44,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [tenantId, setTenantId] = useState<string | null>(null);
 
   const fetchFeatures = async () => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin/change-password') {
+      setIsLoading(false);
+      return;
+    }
     try {
       const getCookie = (name: string) => {
         const value = `; ${document.cookie}`;

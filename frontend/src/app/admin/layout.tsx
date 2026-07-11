@@ -103,6 +103,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
       // Fetch Settings and Stores
       const fetchInitialData = async () => {
+        if (typeof window !== 'undefined' && window.location.pathname === '/admin/change-password') return;
         try {
           const [settingsRes, storesRes] = await Promise.all([
             apiClient.get('/api/settings'),
@@ -155,6 +156,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { hasFeature } = useSubscription();
 
   const fetchCounts = async () => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin/change-password') return;
     try {
       const [ordersRes, supportRes] = await Promise.all([
         apiClient.get('/api/orders/new-count'),
