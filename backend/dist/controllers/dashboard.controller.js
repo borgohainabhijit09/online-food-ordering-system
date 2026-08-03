@@ -19,7 +19,8 @@ const getDashboardStats = async (req, res, next) => {
         const tenantId = req.tenantId;
         const [todaysOrders, ordersThisWeek, ordersThisMonth, sixMonthsOrders, recentOrders] = await Promise.all([
             prisma_1.default.order.findMany({
-                where: { tenantId, createdAt: { gte: today } }
+                where: { tenantId, createdAt: { gte: today } },
+                select: { total: true, status: true }
             }),
             prisma_1.default.order.count({
                 where: { tenantId, createdAt: { gte: sevenDaysAgo } }
@@ -61,13 +62,148 @@ const getDashboardStats = async (req, res, next) => {
             }
         });
         const trendData = Array.from(trendMap.entries()).map(([name, data]) => ({ name, ...data }));
+        const getOrdersByType = async (fromDate) => {
+            const group = await prisma_1.default.order.groupBy({
+                by: ['orderType'],
+                where: {
+                    tenantId,
+                    status: { not: 'CANCELLED' },
+                    ...(fromDate ? { createdAt: { gte: fromDate } } : {})
+                },
+                _count: { id: true },
+                _sum: { total: true }
+            });
+            return [
+                { name: 'Delivery', value: group.find(g => g.orderType === 'DELIVERY')?._count.id || 0, revenue: group.find(g => g.orderType === 'DELIVERY')?._sum.total || 0 },
+                { name: 'Takeaway', value: group.find(g => g.orderType === 'TAKEAWAY')?._count.id || 0, revenue: group.find(g => g.orderType === 'TAKEAWAY')?._sum.total || 0 },
+                { name: 'Dine In', value: group.find(g => g.orderType === 'DINE_IN')?._count.id || 0, revenue: group.find(g => g.orderType === 'DINE_IN')?._sum.total || 0 }
+            ];
+        };
+        const getTopProducts = async (fromDate) => {
+            const orderItems = await prisma_1.default.orderItem.groupBy({
+                by: ['productId'],
+                where: {
+                    order: {
+                        tenantId,
+                        status: { not: 'CANCELLED' },
+                        ...(fromDate ? { createdAt: { gte: fromDate } } : {})
+                    }
+                },
+                _sum: { quantity: true },
+                orderBy: { _sum: { quantity: 'desc' } },
+                take: 5
+            });
+            const productIds = orderItems.map(i => i.productId);
+            const products = await prisma_1.default.product.findMany({ where: { id: { in: productIds } } });
+            return orderItems.map(item => ({
+                name: products.find(p => p.id === item.productId)?.name || 'Unknown',
+                quantity: item._sum?.quantity || 0,
+                revenue: 0
+            }));
+        };
+        const getUpcomingBirthdays = async () => {
+            const customers = await prisma_1.default.customer.findMany({
+                where: { tenantId, dob: { not: null } },
+                select: { id: true, name: true, phone: true, dob: true }
+            });
+            const start = new Date();
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(start);
+            end.setDate(start.getDate() + 3);
+            end.setHours(23, 59, 59, 999);
+            return customers.filter(c => {
+                if (!c.dob)
+                    return false;
+                const bdayThisYear = new Date(c.dob);
+                bdayThisYear.setFullYear(start.getFullYear());
+                if (bdayThisYear < start) {
+                    bdayThisYear.setFullYear(start.getFullYear() + 1);
+                }
+                return bdayThisYear >= start && bdayThisYear <= end;
+            }).map(c => ({
+                id: c.id,
+                name: c.name,
+                phone: c.phone,
+                dob: c.dob
+            })).sort((a, b) => {
+                const d1 = new Date(a.dob);
+                d1.setFullYear(start.getFullYear());
+                if (d1 < start)
+                    d1.setFullYear(start.getFullYear() + 1);
+                const d2 = new Date(b.dob);
+                d2.setFullYear(start.getFullYear());
+                if (d2 < start)
+                    d2.setFullYear(start.getFullYear() + 1);
+                return d1.getTime() - d2.getTime();
+            });
+        };
+        const [topProducts1M, topProducts6M, topProductsAll, ordersByType1M, ordersByType6M, ordersByTypeAll, upcomingBirthdays] = await Promise.all([
+            getTopProducts(thirtyDaysAgo),
+            getTopProducts(sixMonthsAgo),
+            getTopProducts(),
+            getOrdersByType(thirtyDaysAgo),
+            getOrdersByType(sixMonthsAgo),
+            getOrdersByType(),
+            getUpcomingBirthdays()
+        ]);
+        const phones = [...new Set(recentOrders.map(o => o.phone).filter(Boolean))];
+        let customerTypeMap = {};
+        const settings = await prisma_1.default.settings.findFirst({
+            where: { tenantId }
+        });
+        const repeatThreshold = settings?.repeatOrderThreshold || 5;
+        const vipThreshold = settings?.vipSpendThreshold || 3000;
+        if (phones.length > 0) {
+            const customerStats = await prisma_1.default.order.groupBy({
+                by: ['phone'],
+                where: { tenantId, phone: { in: phones }, status: { notIn: ['CANCELLED'] } },
+                _count: { id: true },
+                _sum: { total: true }
+            });
+            customerStats.forEach(stat => {
+                if (!stat.phone)
+                    return;
+                const isRepeat = stat._count.id >= repeatThreshold;
+                const isVIP = stat._sum.total !== null && stat._sum.total >= vipThreshold;
+                if (isRepeat && isVIP) {
+                    customerTypeMap[stat.phone] = 'REPEAT + VIP';
+                }
+                else if (isVIP) {
+                    customerTypeMap[stat.phone] = 'VIP';
+                }
+                else if (isRepeat) {
+                    customerTypeMap[stat.phone] = 'REPEAT';
+                }
+                else if (stat._count.id > 1) {
+                    customerTypeMap[stat.phone] = 'RETURNING';
+                }
+                else {
+                    customerTypeMap[stat.phone] = 'NEW';
+                }
+            });
+        }
+        const recentOrdersWithType = recentOrders.map(order => ({
+            ...order,
+            customerType: order.phone ? (customerTypeMap[order.phone] || 'NEW') : 'NEW'
+        }));
         res.status(200).json({
             revenueToday,
             ordersToday: todaysOrders.length,
             ordersThisWeek,
             ordersThisMonth,
             trendData,
-            recentOrders
+            recentOrders: recentOrdersWithType,
+            ordersByType: {
+                '1m': ordersByType1M,
+                '6m': ordersByType6M,
+                'all': ordersByTypeAll
+            },
+            topProducts: {
+                '1m': topProducts1M,
+                '6m': topProducts6M,
+                'all': topProductsAll
+            },
+            upcomingBirthdays
         });
     }
     catch (error) {

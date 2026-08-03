@@ -72,6 +72,8 @@ services:
       context: ./backend
     container_name: food_ordering_backend
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     environment:
       NODE_ENV: production
       PORT: "8000"

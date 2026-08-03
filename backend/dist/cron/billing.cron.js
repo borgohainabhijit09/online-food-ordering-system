@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkPastDue = exports.processInvoices = exports.initBillingCron = void 0;
+exports.checkTrialExpiry = exports.checkPastDue = exports.processInvoices = exports.initBillingCron = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
 const prisma_1 = __importDefault(require("../services/prisma"));
 // Run every day at midnight
@@ -12,6 +12,7 @@ const initBillingCron = () => {
         console.log('Running daily billing cron job...');
         await (0, exports.processInvoices)();
         await (0, exports.checkPastDue)();
+        await (0, exports.checkTrialExpiry)();
     });
     console.log('Billing CRON initialized.');
 };
@@ -22,37 +23,39 @@ const processInvoices = async () => {
         // Find subscriptions that need to be billed today or earlier
         const dueSubscriptions = await prisma_1.default.tenantSubscription.findMany({
             where: {
-                nextBillingDate: {
-                    lte: now
-                },
+                nextBillingDate: { lte: now },
                 status: 'ACTIVE'
             },
-            include: {
-                package: true
-            }
+            include: { package: true }
         });
+        if (dueSubscriptions.length === 0) {
+            console.log('No subscriptions due for billing today.');
+            return;
+        }
         console.log(`Found ${dueSubscriptions.length} subscriptions due for billing.`);
-        for (const sub of dueSubscriptions) {
-            await prisma_1.default.$transaction(async (tx) => {
-                // Create an invoice/billing record
-                await tx.billingRecord.create({
-                    data: {
-                        tenantId: sub.tenantId,
-                        amount: sub.package.price,
-                        status: 'PENDING'
-                    }
-                });
-                // Push next billing date forward by 1 month
+        // OPTIMIZED: Single transaction for all billing records instead of N separate transactions
+        await prisma_1.default.$transaction(async (tx) => {
+            // Create all billing records in one createMany call
+            await tx.billingRecord.createMany({
+                data: dueSubscriptions.map(sub => ({
+                    tenantId: sub.tenantId,
+                    amount: sub.package.price,
+                    status: 'PENDING'
+                }))
+            });
+            // Update each subscription's next billing date
+            // Note: Prisma doesn't support updateMany with different values, so we use individual updates
+            // inside the same transaction — one DB round-trip for the connection, N for the statements
+            for (const sub of dueSubscriptions) {
                 const nextBilling = new Date(sub.nextBillingDate);
                 nextBilling.setMonth(nextBilling.getMonth() + 1);
-                // Update the subscription
                 await tx.tenantSubscription.update({
                     where: { id: sub.id },
                     data: { nextBillingDate: nextBilling }
                 });
-                console.log(`Generated invoice for tenant ${sub.tenantId} for ₹${sub.package.price}`);
-            });
-        }
+            }
+        });
+        console.log(`Billing batch complete: created ${dueSubscriptions.length} invoices.`);
     }
     catch (err) {
         console.error('Error processing invoices:', err);
@@ -67,28 +70,91 @@ const checkPastDue = async () => {
         const pastDueRecords = await prisma_1.default.billingRecord.findMany({
             where: {
                 status: 'PENDING',
-                date: {
-                    lte: gracePeriodEnd
-                }
-            }
+                date: { lte: gracePeriodEnd }
+            },
+            select: { tenantId: true }
         });
-        console.log(`Found ${pastDueRecords.length} pending invoices older than 7 days.`);
-        for (const record of pastDueRecords) {
-            await prisma_1.default.tenantSubscription.updateMany({
-                where: {
-                    tenantId: record.tenantId,
-                    status: 'ACTIVE'
-                },
-                data: {
-                    status: 'PAST_DUE'
-                }
-            });
-            console.log(`Marked subscription for tenant ${record.tenantId} as PAST_DUE`);
-        }
+        if (pastDueRecords.length === 0)
+            return;
+        const tenantIds = [...new Set(pastDueRecords.map(r => r.tenantId))];
+        console.log(`Found ${tenantIds.length} tenants with overdue invoices. Marking PAST_DUE.`);
+        // OPTIMIZED: Single updateMany instead of N individual updates
+        await prisma_1.default.tenantSubscription.updateMany({
+            where: {
+                tenantId: { in: tenantIds },
+                status: 'ACTIVE'
+            },
+            data: { status: 'PAST_DUE' }
+        });
+        console.log(`Marked ${tenantIds.length} subscriptions as PAST_DUE.`);
     }
     catch (err) {
         console.error('Error checking past due accounts:', err);
     }
 };
 exports.checkPastDue = checkPastDue;
+const checkTrialExpiry = async () => {
+    try {
+        const now = new Date();
+        // Find all TRIAL_ACTIVE tenants whose trial has ended
+        const expiredTrials = await prisma_1.default.tenant.findMany({
+            where: {
+                trialStatus: 'TRIAL_ACTIVE',
+                trialEndDate: { lte: now }
+            },
+            include: { currentPlan: true }
+        });
+        if (expiredTrials.length === 0)
+            return;
+        console.log(`[Trial Cron] Found ${expiredTrials.length} expired trials. Generating invoices and marking TRIAL_ENDED.`);
+        // Find cheapest plan as fallback
+        const allPlans = await prisma_1.default.subscriptionPlan.findMany({
+            orderBy: { monthlyPrice: 'asc' }
+        });
+        const cheapestPlan = allPlans.length > 0 ? allPlans[0] : null;
+        await prisma_1.default.$transaction(async (tx) => {
+            for (const tenant of expiredTrials) {
+                let planId = tenant.currentPlanId;
+                let amount = tenant.currentPlan?.monthlyPrice || 0;
+                if (!planId && cheapestPlan) {
+                    planId = cheapestPlan.id;
+                    amount = cheapestPlan.monthlyPrice;
+                }
+                // 1. Mark as TRIAL_ENDED and update plan if it was missing
+                await tx.tenant.update({
+                    where: { id: tenant.id },
+                    data: {
+                        trialStatus: 'TRIAL_ENDED',
+                        ...(!tenant.currentPlanId && planId ? { currentPlanId: planId } : {})
+                    }
+                });
+                // 2. Generate Invoice (BillingRecord)
+                if (planId) {
+                    await tx.billingRecord.create({
+                        data: {
+                            tenantId: tenant.id,
+                            planId: planId,
+                            amount: amount,
+                            status: 'PENDING'
+                        }
+                    });
+                }
+                // 3. Write audit log
+                await tx.auditLog.create({
+                    data: {
+                        businessId: tenant.id,
+                        action: 'TRIAL_EXPIRED',
+                        performedBy: 'SYSTEM',
+                        metadata: { businessName: tenant.businessName, expiredAt: now.toISOString(), invoiceGeneratedForPlan: planId }
+                    }
+                });
+            }
+        });
+        console.log(`[Trial Cron] Marked ${expiredTrials.length} tenants as TRIAL_ENDED and generated invoices.`);
+    }
+    catch (err) {
+        console.error('[Trial Cron] Error checking trial expiry:', err);
+    }
+};
+exports.checkTrialExpiry = checkTrialExpiry;
 //# sourceMappingURL=billing.cron.js.map

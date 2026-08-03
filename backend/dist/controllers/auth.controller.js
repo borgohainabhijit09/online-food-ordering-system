@@ -3,10 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerTenant = exports.login = void 0;
+exports.changePassword = exports.getStores = exports.selectStore = exports.registerTenant = exports.login = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = __importDefault(require("../services/prisma"));
+const password_service_1 = require("../services/password.service");
+const crypto_1 = __importDefault(require("crypto"));
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const login = async (req, res, next) => {
     try {
@@ -16,26 +18,95 @@ const login = async (req, res, next) => {
         }
         const user = await prisma_1.default.user.findUnique({
             where: { phone },
-            include: { tenant: true }
+            include: { tenantAccess: { include: { tenant: true, staffRole: true } }, tenant: true }
         });
         if (!user || !user.password) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+        if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+            return res.status(403).json({ message: 'Account temporarily locked. Please try again later.' });
+        }
         const isMatch = await bcryptjs_1.default.compare(password, user.password);
         if (!isMatch) {
+            const attempts = (user.failedLoginAttempts || 0) + 1;
+            const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+            await prisma_1.default.user.update({
+                where: { id: user.id },
+                data: { failedLoginAttempts: attempts, lockedUntil }
+            });
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        // Generate JWT token
-        const token = jsonwebtoken_1.default.sign({ id: user.id, role: user.role, phone: user.phone, tenantId: user.tenantId, tenantSlug: user.tenant?.slug }, JWT_SECRET, { expiresIn: '7d' });
-        res.status(200).json({
-            token,
+        await prisma_1.default.user.update({
+            where: { id: user.id },
+            data: {
+                lastLoginAt: new Date(),
+                failedLoginAttempts: 0,
+                lockedUntil: null
+            }
+        });
+        if (user.role === 'SUPER_ADMIN') {
+            const token = jsonwebtoken_1.default.sign({ id: user.id, name: user.name, role: user.role, phone: user.phone, forcePasswordChange: user.forcePasswordChange, permissions: [] }, JWT_SECRET, { expiresIn: '7d' });
+            return res.status(200).json({
+                token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    role: user.role,
+                    phone: user.phone,
+                    forcePasswordChange: user.forcePasswordChange
+                }
+            });
+        }
+        const accessibleStores = user.tenantAccess.map(a => {
+            const perms = a.staffRole?.permissions || [];
+            console.log(`[LOGIN DEBUG] User ${user.phone} -> Store ${a.tenant.slug} -> Role ${a.role} -> StaffRoleId ${a.staffRoleId} -> Permissions:`, perms);
+            return {
+                id: a.tenant.id,
+                slug: a.tenant.slug,
+                businessName: a.tenant.businessName,
+                role: a.role,
+                permissions: perms
+            };
+        });
+        if (accessibleStores.length === 0) {
+            return res.status(403).json({ message: 'User does not have access to any restaurants' });
+        }
+        if (accessibleStores.length === 1) {
+            const store = accessibleStores[0];
+            // Check if store is staff role and status is valid
+            const access = await prisma_1.default.tenantAccess.findFirst({
+                where: { userId: user.id, tenantId: store.id }
+            });
+            if (access && access.role === 'STAFF' && access.status !== 'ACTIVE') {
+                return res.status(403).json({ message: 'Account is ' + access.status.toLowerCase() });
+            }
+            const token = jsonwebtoken_1.default.sign({ id: user.id, name: user.name, role: store.role, phone: user.phone, tenantId: store.id, tenantSlug: store.slug, forcePasswordChange: user.forcePasswordChange, permissions: store.permissions }, JWT_SECRET, { expiresIn: '7d' });
+            return res.status(200).json({
+                token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    role: store.role,
+                    phone: user.phone,
+                    tenantId: store.id,
+                    tenantSlug: store.slug,
+                    forcePasswordChange: user.forcePasswordChange,
+                    permissions: store.permissions
+                },
+                stores: accessibleStores
+            });
+        }
+        // Multiple stores: Issue partial token and prompt for selection
+        const partialToken = jsonwebtoken_1.default.sign({ id: user.id, name: user.name, phone: user.phone, forcePasswordChange: user.forcePasswordChange }, JWT_SECRET, { expiresIn: '1h' });
+        return res.status(200).json({
+            partialToken,
+            requiresStoreSelection: true,
+            stores: accessibleStores,
             user: {
                 id: user.id,
                 name: user.name,
-                role: user.role,
                 phone: user.phone,
-                tenantId: user.tenantId,
-                tenantSlug: user.tenant?.slug
+                forcePasswordChange: user.forcePasswordChange
             }
         });
     }
@@ -52,35 +123,42 @@ const registerTenant = async (req, res, next) => {
         if (existingTenant) {
             return res.status(400).json({ message: 'Slug is already taken. Please choose another.' });
         }
-        const defaultPackage = await prisma_1.default.subscriptionPackage.findUnique({
-            where: { name: 'App Only' }
-        });
-        if (!defaultPackage) {
-            return res.status(500).json({ message: 'Default subscription package not found in system.' });
-        }
-        // Check if phone or email is already taken
+        // Check if user already exists
         const existingUser = await prisma_1.default.user.findUnique({ where: { phone } });
-        if (existingUser) {
-            return res.status(400).json({ message: 'Phone number already registered.' });
-        }
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
-        // Create Tenant, Admin User, and default Settings in one transaction
+        const generateId = () => 'RB-' + crypto_1.default.randomBytes(3).toString('hex').toUpperCase();
+        let restaurantId = generateId();
+        while (await prisma_1.default.tenant.findUnique({ where: { restaurantId } })) {
+            restaurantId = generateId();
+        }
         const result = await prisma_1.default.$transaction(async (tx) => {
             const newTenant = await tx.tenant.create({
                 data: {
                     slug,
                     businessName,
                     email,
-                    phone
+                    phone,
+                    restaurantId
                 }
             });
-            const newAdmin = await tx.user.create({
+            let adminUser = existingUser;
+            if (!adminUser) {
+                adminUser = await tx.user.create({
+                    data: {
+                        name: ownerName,
+                        phone,
+                        password: hashedPassword,
+                        role: 'ADMIN',
+                        tenantId: newTenant.id // Keeping for backward compat
+                    }
+                });
+            }
+            // Always create TenantAccess
+            await tx.tenantAccess.create({
                 data: {
-                    name: ownerName,
-                    phone,
-                    password: hashedPassword,
-                    role: 'ADMIN',
-                    tenantId: newTenant.id
+                    userId: adminUser.id,
+                    tenantId: newTenant.id,
+                    role: 'ADMIN'
                 }
             });
             await tx.settings.create({
@@ -92,20 +170,12 @@ const registerTenant = async (req, res, next) => {
                     tenantId: newTenant.id
                 }
             });
-            // Assign default subscription package
-            const nextMonth = new Date();
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
-            await tx.tenantSubscription.create({
-                data: {
-                    tenantId: newTenant.id,
-                    packageId: defaultPackage.id,
-                    nextBillingDate: nextMonth,
-                    status: 'ACTIVE'
-                }
-            });
-            return { tenant: newTenant, admin: newAdmin };
+            // NOTE: No TenantSubscription created at signup.
+            // Restaurants start in TESTING phase (set by schema default).
+            // Subscription begins only after the trial period ends and they subscribe.
+            return { tenant: newTenant, admin: adminUser };
         });
-        const token = jsonwebtoken_1.default.sign({ id: result.admin.id, role: result.admin.role, phone: result.admin.phone, tenantId: result.admin.tenantId, tenantSlug: result.tenant.slug }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jsonwebtoken_1.default.sign({ id: result.admin.id, name: result.admin.name, role: 'ADMIN', phone: result.admin.phone, tenantId: result.tenant.id, tenantSlug: result.tenant.slug }, JWT_SECRET, { expiresIn: '7d' });
         res.status(201).json({
             message: 'Business registered successfully!',
             tenantSlug: result.tenant.slug,
@@ -117,4 +187,123 @@ const registerTenant = async (req, res, next) => {
     }
 };
 exports.registerTenant = registerTenant;
+const selectStore = async (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token)
+            return res.status(401).json({ message: 'Unauthorized' });
+        let decoded;
+        try {
+            decoded = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+        }
+        catch (err) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        if (!decoded || !decoded.id)
+            return res.status(401).json({ message: 'Invalid token' });
+        const { tenantId } = req.body;
+        if (!tenantId)
+            return res.status(400).json({ message: 'tenantId is required' });
+        const access = await prisma_1.default.tenantAccess.findUnique({
+            where: { userId_tenantId: { userId: decoded.id, tenantId } },
+            include: { tenant: true, user: true, staffRole: true }
+        });
+        if (!access || !access.tenant.isActive) {
+            return res.status(403).json({ message: 'Access denied or restaurant suspended' });
+        }
+        if (access.role === 'STAFF' && access.status !== 'ACTIVE') {
+            return res.status(403).json({ message: 'Account is ' + access.status.toLowerCase() });
+        }
+        const permissions = access.staffRole?.permissions || [];
+        const newToken = jsonwebtoken_1.default.sign({
+            id: access.user.id,
+            name: access.user.name,
+            role: access.role,
+            phone: access.user.phone,
+            tenantId: access.tenant.id,
+            tenantSlug: access.tenant.slug,
+            forcePasswordChange: access.user.forcePasswordChange,
+            permissions
+        }, JWT_SECRET, { expiresIn: '7d' });
+        res.status(200).json({
+            token: newToken,
+            user: {
+                id: access.user.id,
+                name: access.user.name,
+                role: access.role,
+                phone: access.user.phone,
+                tenantId: access.tenant.id,
+                tenantSlug: access.tenant.slug,
+                forcePasswordChange: access.user.forcePasswordChange,
+                permissions
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.selectStore = selectStore;
+const getStores = async (req, res, next) => {
+    try {
+        const userReq = req;
+        if (!userReq.user || !userReq.user.id) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        const accesses = await prisma_1.default.tenantAccess.findMany({
+            where: { userId: userReq.user.id },
+            include: { tenant: true, staffRole: true }
+        });
+        const stores = accesses.map(a => ({
+            id: a.tenant.id,
+            slug: a.tenant.slug,
+            businessName: a.tenant.businessName,
+            role: a.role,
+            permissions: a.staffRole?.permissions || []
+        }));
+        res.status(200).json(stores);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getStores = getStores;
+const changePassword = async (req, res, next) => {
+    try {
+        const userReq = req;
+        if (!userReq.user || !userReq.user.id) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Current password and new password are required' });
+        }
+        const user = await prisma_1.default.user.findUnique({ where: { id: userReq.user.id } });
+        if (!user || !user.password) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const isMatch = await bcryptjs_1.default.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Incorrect current password' });
+        }
+        const validation = password_service_1.PasswordService.validatePassword(newPassword);
+        if (!validation.isValid) {
+            return res.status(400).json({ message: validation.message });
+        }
+        const hashedPassword = await password_service_1.PasswordService.hashPassword(newPassword);
+        await prisma_1.default.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                forcePasswordChange: false,
+                lastPasswordChangeAt: new Date()
+            }
+        });
+        res.status(200).json({ message: 'Password changed successfully' });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.changePassword = changePassword;
 //# sourceMappingURL=auth.controller.js.map

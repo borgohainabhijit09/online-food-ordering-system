@@ -364,3 +364,40 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
     next(error);
   }
 };
+
+export const deleteOrder = async (req: TenantReq, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    
+    const order = await prisma.order.findFirst({
+      where: { id, tenantId: req.tenantId }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Delete associated OrderItemAddon
+    const items = await prisma.orderItem.findMany({ where: { orderId: id } });
+    const itemIds = items.map(i => i.id);
+    if (itemIds.length > 0) {
+      await prisma.orderItemAddon.deleteMany({
+        where: { orderItemId: { in: itemIds } }
+      });
+    }
+
+    // Delete associated OrderItem
+    await prisma.orderItem.deleteMany({
+      where: { orderId: id }
+    });
+
+    // Delete the Order
+    await prisma.order.delete({
+      where: { id }
+    });
+
+    res.status(200).json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};

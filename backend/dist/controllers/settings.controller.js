@@ -9,13 +9,47 @@ const getSettings = async (req, res, next) => {
     try {
         if (!req.tenantId)
             return res.status(400).json({ message: 'Tenant required' });
-        const settings = await prisma_1.default.settings.findFirst({
-            where: { tenantId: req.tenantId }
+        let settings = await prisma_1.default.settings.findFirst({
+            where: { tenantId: req.tenantId },
+            include: {
+                tenant: {
+                    select: { slug: true, businessName: true, restaurantId: true }
+                }
+            }
         });
         if (!settings) {
-            return res.status(404).json({ message: 'Settings not found' });
+            // Auto-create settings if they don't exist yet
+            const tenant = await prisma_1.default.tenant.findUnique({ where: { id: req.tenantId } });
+            settings = await prisma_1.default.settings.create({
+                data: {
+                    tenantId: req.tenantId,
+                    restaurantName: tenant?.businessName || 'My Restaurant',
+                    isAcceptingOrders: true,
+                    deliveryRadiusKm: 5,
+                    restaurantLat: 0,
+                    restaurantLng: 0,
+                    whatsappNumber: '',
+                    loyaltyEnabled: false,
+                    loyaltyPointsExpiryDays: null,
+                    pointsEarningMultiplier: 1.0,
+                    pointsEarningSpendUnit: 100.0,
+                    pointValueInRupees: 1.0,
+                    minimumPointsToRedeem: 50,
+                    repeatOrderThreshold: 5,
+                    vipSpendThreshold: 3000,
+                },
+                include: {
+                    tenant: {
+                        select: { slug: true, businessName: true, restaurantId: true }
+                    }
+                }
+            });
         }
-        res.status(200).json(settings);
+        res.status(200).json({
+            ...settings,
+            tenantSlug: settings?.tenant?.slug,
+            restaurantId: settings?.tenant?.restaurantId
+        });
     }
     catch (error) {
         next(error);
@@ -26,8 +60,7 @@ const updateSettings = async (req, res, next) => {
     try {
         if (!req.tenantId)
             return res.status(400).json({ message: 'Tenant required' });
-        const { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber } = req.body;
-        // Check if settings exist
+        const { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem, repeatOrderThreshold, vipSpendThreshold } = req.body;
         const existing = await prisma_1.default.settings.findFirst({
             where: { tenantId: req.tenantId }
         });
@@ -35,15 +68,31 @@ const updateSettings = async (req, res, next) => {
         if (existing) {
             settings = await prisma_1.default.settings.update({
                 where: { id: existing.id },
-                data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber }
+                data: {
+                    restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber,
+                    hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber,
+                    loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem,
+                    repeatOrderThreshold, vipSpendThreshold
+                },
+                include: { tenant: { select: { slug: true, restaurantId: true } } }
             });
         }
         else {
             settings = await prisma_1.default.settings.create({
-                data: { restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber, tenantId: req.tenantId }
+                data: {
+                    restaurantName, isAcceptingOrders, deliveryRadiusKm, restaurantLat, restaurantLng, whatsappNumber,
+                    hasDeliveryCharge, deliveryChargeAmount, minOrderValueForDelivery, logoUrl, fssaiNumber, tenantId: req.tenantId,
+                    loyaltyEnabled, loyaltyPointsExpiryDays, pointsEarningMultiplier, pointsEarningSpendUnit, pointValueInRupees, minimumPointsToRedeem,
+                    repeatOrderThreshold, vipSpendThreshold
+                },
+                include: { tenant: { select: { slug: true, restaurantId: true } } }
             });
         }
-        res.status(200).json(settings);
+        res.status(200).json({
+            ...settings,
+            tenantSlug: settings?.tenant?.slug,
+            restaurantId: settings?.tenant?.restaurantId
+        });
     }
     catch (error) {
         next(error);

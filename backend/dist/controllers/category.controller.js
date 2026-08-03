@@ -10,6 +10,9 @@ const getCategories = async (req, res, next) => {
         const categories = await prisma_1.default.category.findMany({
             where: { tenantId: req.tenantId },
             orderBy: { order: 'asc' },
+            include: {
+                _count: { select: { products: true } }
+            }
         });
         res.status(200).json(categories);
     }
@@ -20,9 +23,9 @@ const getCategories = async (req, res, next) => {
 exports.getCategories = getCategories;
 const createCategory = async (req, res, next) => {
     try {
-        const { name, order, imageUrl } = req.body;
+        const { name, order, imageUrl, isActive } = req.body;
         const category = await prisma_1.default.category.create({
-            data: { name, order, imageUrl, tenantId: req.tenantId },
+            data: { name, order, imageUrl, isActive: isActive !== undefined ? isActive : true, tenantId: req.tenantId },
         });
         res.status(201).json(category);
     }
@@ -34,14 +37,14 @@ exports.createCategory = createCategory;
 const updateCategory = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, order, imageUrl } = req.body;
+        const { name, order, imageUrl, isActive } = req.body;
         // First verify it belongs to tenant
         const existing = await prisma_1.default.category.findFirst({ where: { id: id, tenantId: req.tenantId } });
         if (!existing)
             return res.status(404).json({ message: 'Not found' });
         const category = await prisma_1.default.category.update({
             where: { id: id },
-            data: { name, order, imageUrl },
+            data: { name, order, imageUrl, isActive },
         });
         res.status(200).json(category);
     }
@@ -53,9 +56,21 @@ exports.updateCategory = updateCategory;
 const deleteCategory = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const existing = await prisma_1.default.category.findFirst({ where: { id: id, tenantId: req.tenantId } });
+        const existing = await prisma_1.default.category.findFirst({
+            where: { id: id, tenantId: req.tenantId },
+            include: {
+                _count: {
+                    select: { products: true }
+                }
+            }
+        });
         if (!existing)
             return res.status(404).json({ message: 'Not found' });
+        if (existing._count.products > 0) {
+            return res.status(400).json({
+                message: `Cannot delete category. It contains ${existing._count.products} products. Please reassign or delete them first.`
+            });
+        }
         await prisma_1.default.category.delete({
             where: { id: id },
         });

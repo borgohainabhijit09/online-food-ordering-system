@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, RefreshCw, Printer, Eye, X } from 'lucide-react';
+import { Loader2, RefreshCw, Printer, Eye, X, Trash2 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
+import { toast } from 'react-hot-toast';
 
 interface OrderItem {
   id: string;
@@ -42,9 +43,16 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
 
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [confirmState, setConfirmState] = useState<{isOpen: boolean, message: string, onConfirm: () => void}>({isOpen: false, message: '', onConfirm: () => {}});
+  const confirmAction = (message: string, onConfirm: () => void) => {
+    setConfirmState({ isOpen: true, message, onConfirm });
+  };
+
   useEffect(() => {
     fetchOrders();
     fetchSettings();
+    setIsSuperAdmin(localStorage.getItem('superAdminMode') === 'true');
   }, []);
 
   const fetchSettings = async () => {
@@ -91,6 +99,23 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Failed to update status', error);
     }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    confirmAction('Are you sure you want to permanently delete this order?', async () => {
+      try {
+        const res = await apiClient.delete(`/api/orders/${orderId}`);
+        if (res.ok) {
+          setOrders(orders.filter(o => o.id !== orderId));
+          toast.success('Order deleted successfully');
+        } else {
+          toast.error('Failed to delete order.');
+        }
+      } catch (error) {
+        console.error('Failed to delete order', error);
+        toast.error('Failed to delete order.');
+      }
+    });
   };
 
   const handleShareWhatsApp = (order: Order) => {
@@ -359,7 +384,7 @@ ${trackingLink}`;
                         <div className="text-xs text-blue-600 font-bold">Table {order.table.tableNumber}</div>
                       )}
                       {order.remarks && (
-                        <div className="mt-2 text-xs bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 p-2 rounded border border-orange-100 dark:border-orange-800/30">
+                        <div className="mt-2 text-xs bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 p-2 rounded border border-orange-100 dark:border-orange-800/30 max-w-[250px] whitespace-normal break-words">
                           <strong>Remarks:</strong> {order.remarks}
                         </div>
                       )}
@@ -396,6 +421,15 @@ ${trackingLink}`;
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="w-4 h-4" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.949h.004c4.368 0 7.927-3.558 7.93-7.926a7.86 7.86 0 0 0-2.33-5.596ZM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.69-4.98c-.202-.1-1.194-.588-1.378-.654-.183-.066-.317-.1-.45.1-.132.2-.513.649-.629.782-.116.133-.232.148-.43.05-.197-.1-.833-.306-1.585-.975-.586-.522-.981-1.168-1.096-1.365-.116-.197-.012-.303.088-.403.09-.09.198-.232.298-.348.1-.116.133-.197.198-.33.065-.132.033-.248-.016-.347-.049-.1-.45-1.082-.616-1.482-.162-.389-.327-.336-.45-.336-.116-.003-.248-.003-.38-.003-.132 0-.347.05-.529.25-.183.2-.699.68-6.99 1.66c0 .98.71 1.927.81 2.062.1.133 1.396 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.194-.488 1.362-1.06.168-.573.168-1.064.118-1.164-.05-.1-.183-.15-3.69-.25Z"/></svg>
                           </button>
+                          {isSuperAdmin && (
+                            <button
+                              onClick={() => handleDeleteOrder(order.id)}
+                              title="Delete Order (Super Admin)"
+                              className="p-1.5 text-neutral-500 hover:text-red-600 bg-neutral-100 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                         {order.status === 'NEW' && (
                           <div className="flex gap-1.5 mt-1">
@@ -406,7 +440,11 @@ ${trackingLink}`;
                               Accept & Prepare
                             </button>
                             <button
-                              onClick={() => { if(confirm('Are you sure you want to reject this order?')) handleStatusChange(order.id, 'CANCELLED') }}
+                              onClick={() => {
+                                confirmAction('Are you sure you want to reject this order?', () => {
+                                  handleStatusChange(order.id, 'CANCELLED');
+                                });
+                              }}
                               className="px-2 py-1 bg-red-100 text-red-600 hover:bg-red-200 font-bold rounded text-xs transition-colors"
                             >
                               Reject
@@ -511,7 +549,7 @@ ${trackingLink}`;
                </ul>
 
                {selectedOrder.remarks && (
-                 <div className="mb-6 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800/30 text-sm">
+                 <div className="mb-6 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800/30 text-sm max-w-full whitespace-normal break-words">
                    <strong className="text-orange-800 dark:text-orange-400 block mb-1">Customer Remarks:</strong>
                    <span className="text-orange-700 dark:text-orange-300">{selectedOrder.remarks}</span>
                  </div>
@@ -602,6 +640,19 @@ ${trackingLink}`;
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmState.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-sm p-6 relative shadow-xl border border-neutral-200 dark:border-neutral-800">
+            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-2">Confirm Action</h3>
+            <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-6">{confirmState.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmState({ ...confirmState, isOpen: false })} className="px-4 py-2 font-bold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">Cancel</button>
+              <button onClick={() => { setConfirmState({ ...confirmState, isOpen: false }); confirmState.onConfirm(); }} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors">Confirm</button>
             </div>
           </div>
         </div>
