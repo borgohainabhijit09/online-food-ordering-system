@@ -38,7 +38,7 @@ export default function CheckoutPage() {
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
   const { items, remarks, getTotalPrice, clearCart, appliedCoupon, orderType, tableId, tableNumber } = useCartStore();
-  const { location, error: locError, loading: locLoading, requestLocation } = useLocation();
+  const { location, error: locError, loading: locLoading, requestLocation, calculateDistance } = useLocation();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -110,6 +110,34 @@ export default function CheckoutPage() {
     fetchSettings();
     checkPaymentStatus();
   }, []);
+
+  useEffect(() => {
+    if (orderType === 'DELIVERY' && location && settings?.restaurantLat && settings?.restaurantLng) {
+      const allowedRadius = settings.deliveryRadiusKm || FALLBACK_RADIUS_KM;
+      const distance = calculateDistance(
+        settings.restaurantLat,
+        settings.restaurantLng,
+        location.lat,
+        location.lng
+      );
+      
+      console.log('--- Delivery Validation ---');
+      console.log('Restaurant coordinates:', settings.restaurantLat, settings.restaurantLng);
+      console.log('Customer coordinates:', location.lat, location.lng);
+      console.log('Calculated distance (km):', distance);
+      console.log('Allowed radius (km):', allowedRadius);
+      
+      if (distance > allowedRadius) {
+        console.log('Validation result: REJECTED');
+        setDistanceError(`Sorry, we only deliver within ${allowedRadius}km. You are ${distance.toFixed(1)}km away.`);
+      } else {
+        console.log('Validation result: ACCEPTED');
+        setDistanceError(null);
+      }
+    } else {
+      setDistanceError(null);
+    }
+  }, [location, settings, orderType, calculateDistance]);
 
   const subtotal = appliedCoupon ? appliedCoupon.finalAmount : getTotalPrice();
   const deliveryFee = (settings?.hasDeliveryCharge && orderType === 'DELIVERY') ? (settings.deliveryChargeAmount || 0) : 0;
