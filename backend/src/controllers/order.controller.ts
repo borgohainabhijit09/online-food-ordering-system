@@ -376,8 +376,16 @@ export const deleteOrder = async (req: TenantReq, res: Response, next: NextFunct
   try {
     const id = req.params.id as string;
     
+    const userRole = (req as any).user?.role;
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+    const whereClause: any = { id };
+    if (!isSuperAdmin) {
+      whereClause.tenantId = req.tenantId;
+    }
+    
     const order = await prisma.order.findFirst({
-      where: { id, tenantId: req.tenantId }
+      where: whereClause
     });
 
     if (!order) {
