@@ -210,11 +210,18 @@ export const createOrder = async (req: TenantReq, res: Response, next: NextFunct
         return sum + (item.price + addonTotal) * item.quantity;
       }, 0);
 
+      const rawDiscountableTotal = items.reduce((sum: number, item: any) => {
+        if (item.isDiscounted) return sum; // Skip discounted items
+        const addonTotal = item.addons?.reduce((a: number, addon: any) => a + addon.price, 0) || 0;
+        return sum + (item.price + addonTotal) * item.quantity;
+      }, 0);
+
       const couponResult = await validateCoupon({
         tenantId: req.tenantId!,
         couponCode,
         phone,
-        cartTotal: rawCartTotal
+        cartTotal: rawCartTotal,
+        discountableTotal: rawDiscountableTotal
       });
 
       if (!couponResult.valid) {

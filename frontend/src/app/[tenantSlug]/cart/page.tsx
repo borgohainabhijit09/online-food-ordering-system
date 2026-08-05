@@ -10,7 +10,7 @@ import Link from 'next/link';
 export default function CartPage() {
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
-  const { items, remarks, setRemarks, updateQuantity, removeItem, getTotalPrice, appliedCoupon, applyCoupon, removeCoupon, orderType } = useCartStore();
+  const { items, remarks, setRemarks, updateQuantity, removeItem, getTotalPrice, getDiscountableTotalPrice, appliedCoupon, applyCoupon, removeCoupon, orderType } = useCartStore();
   const total = getTotalPrice();
 
   const [mounted, setMounted] = React.useState(false);
@@ -64,7 +64,8 @@ export default function CartPage() {
       const res = await apiClient.post('/api/coupons/validate', {
         couponCode: code,
         phone: cartPhone,
-        cartTotal: getTotalPrice()
+        cartTotal: getTotalPrice(),
+        discountableTotal: getDiscountableTotalPrice()
       });
       const data = await res.json();
       

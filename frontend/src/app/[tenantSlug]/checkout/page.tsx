@@ -160,7 +160,8 @@ export default function CheckoutPage() {
       quantity: item.quantity,
       price: item.variant ? item.variant.price : item.price,
       variant: item.variant?.name,
-      addons: item.addons.map(addon => ({ addonName: addon.name, price: addon.price }))
+      addons: item.addons.map(addon => ({ addonName: addon.name, price: addon.price })),
+      isDiscounted: item.isDiscounted || false
     })),
     remarks: remarks || formData.notes,
     couponCode: appliedCoupon?.code,

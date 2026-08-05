@@ -17,6 +17,7 @@ export interface CartItem {
     name: string;
     price: number;
   }>;
+  isDiscounted?: boolean;
 }
 
 export interface AppliedCoupon {
@@ -36,6 +37,7 @@ interface CartState {
   remarks: string;
   setRemarks: (remarks: string) => void;
   getTotalPrice: () => number;
+  getDiscountableTotalPrice: () => number;
   getTotalItems: () => number;
   clearCart: () => void;
   appliedCoupon: AppliedCoupon | null;
@@ -107,6 +109,16 @@ export const useCartStore = create<CartState>()(
       getTotalPrice: () => {
         const { items } = get();
         return items.reduce((total, item) => {
+          let itemTotal = item.variant ? item.variant.price : item.price;
+          itemTotal += item.addons.reduce((sum, addon) => sum + addon.price, 0);
+          return total + (itemTotal * item.quantity);
+        }, 0);
+      },
+
+      getDiscountableTotalPrice: () => {
+        const { items } = get();
+        return items.reduce((total, item) => {
+          if (item.isDiscounted) return total; // Skip discounted items entirely for coupons
           let itemTotal = item.variant ? item.variant.price : item.price;
           itemTotal += item.addons.reduce((sum, addon) => sum + addon.price, 0);
           return total + (itemTotal * item.quantity);

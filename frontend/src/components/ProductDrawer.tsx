@@ -55,13 +55,22 @@ export function ProductDrawer({ isOpen, onClose, product }: ProductDrawerProps) 
       return { id: a!.id, name: a!.name, price: a!.price };
     });
 
+    let isItemDiscounted = !!product.offerPrice;
+    if (selectedVariant) {
+      const v = productVariants.find((v: any) => v.id === selectedVariant);
+      if (v) {
+        isItemDiscounted = !!v.offerPrice;
+      }
+    }
+
     addItem({
       productId: product.id,
       name: product.name,
       price: product.offerPrice ?? product.basePrice ?? product.price, // Fallback for safety
       quantity,
       variant: variantObj,
-      addons: addonsObj
+      addons: addonsObj,
+      isDiscounted: isItemDiscounted
     });
     
     // Reset state and close
