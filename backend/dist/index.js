@@ -31,6 +31,7 @@ const inventory_routes_1 = __importDefault(require("./routes/inventory.routes"))
 const staff_routes_1 = __importDefault(require("./routes/staff.routes"));
 const analytics_routes_1 = __importDefault(require("./routes/analytics.routes"));
 const billing_routes_1 = __importDefault(require("./routes/billing.routes"));
+const public_routes_1 = __importDefault(require("./routes/public.routes"));
 const billing_cron_1 = require("./cron/billing.cron");
 const prisma_1 = require("./services/prisma");
 const app = (0, express_1.default)();
@@ -48,6 +49,7 @@ app.use('/api/super-admin/bi', bi_routes_1.default);
 app.use('/api/super-admin/leads', leads_routes_1.default);
 app.use('/api/super-admin', superadmin_routes_1.default);
 app.use('/api', subscription_routes_1.default);
+app.use('/api/public', public_routes_1.default);
 // Apply tenant resolution for all restaurant-scoped routes
 app.use(tenant_middleware_1.resolveTenant);
 app.use('/api/payments', payment_routes_1.default);

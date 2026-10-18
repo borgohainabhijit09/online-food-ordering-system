@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "RestoBuddy Food",
+    "slug": "restobuddy-food",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "restobuddy",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.restobuddy.food"
+    },
+    "android": {
+      "package": "com.restobuddy.food",
+      "adaptiveIcon": {
+        "backgroundColor": "#e11d48",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-location"
+    ]
+  }
+}

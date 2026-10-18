@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.getStores = exports.selectStore = exports.registerTenant = exports.login = void 0;
+exports.createLeadFromDemoRequest = exports.changePassword = exports.getStores = exports.selectStore = exports.registerTenant = exports.login = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = __importDefault(require("../services/prisma"));
@@ -299,11 +299,49 @@ const changePassword = async (req, res, next) => {
                 lastPasswordChangeAt: new Date()
             }
         });
-        res.status(200).json({ message: 'Password changed successfully' });
+        // Issue a fresh token with forcePasswordChange=false so the client can replace the
+        // stale token that was carrying forcePasswordChange=true. Without this the user would
+        // be bounced back to the change-password screen immediately after logging out.
+        const oldPayload = userReq.user; // decoded JWT payload attached by auth middleware
+        const freshToken = jsonwebtoken_1.default.sign({
+            id: oldPayload.id,
+            name: oldPayload.name,
+            role: oldPayload.role,
+            phone: oldPayload.phone,
+            tenantId: oldPayload.tenantId,
+            tenantSlug: oldPayload.tenantSlug,
+            permissions: oldPayload.permissions,
+            forcePasswordChange: false,
+        }, JWT_SECRET, { expiresIn: '7d' });
+        res.status(200).json({ message: 'Password changed successfully', token: freshToken });
     }
     catch (error) {
         next(error);
     }
 };
 exports.changePassword = changePassword;
+const createLeadFromDemoRequest = async (req, res, next) => {
+    try {
+        const { restaurantName, ownerName, phone, email, city } = req.body;
+        if (!restaurantName || !ownerName || !phone) {
+            return res.status(400).json({ message: 'Restaurant name, owner name, and phone number are required' });
+        }
+        const lead = await prisma_1.default.lead.create({
+            data: {
+                restaurantName,
+                ownerName,
+                phone,
+                email: email || null,
+                city: city || null,
+                status: 'NEW',
+                source: 'landing_page_demo_cta'
+            }
+        });
+        res.status(201).json(lead);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.createLeadFromDemoRequest = createLeadFromDemoRequest;
 //# sourceMappingURL=auth.controller.js.map

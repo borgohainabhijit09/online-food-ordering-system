@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "RestoBuddy POS",
+    "slug": "restobuddy-pos",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.restobuddy.pos"
+    },
+    "android": {
+      "package": "com.restobuddy.pos",
+      "adaptiveIcon": {
+        "backgroundColor": "#ea580c",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "WAKE_LOCK"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

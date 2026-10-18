@@ -24,9 +24,17 @@ const resolveTenant = async (req, res, next) => {
                 // Just ignore JWT errors here, let actual auth middleware handle it if it's a protected route
             }
         }
-        // 2. Otherwise, look for x-tenant-slug header (used by public customer portal endpoints)
+        // 2. Otherwise, look for tenantId or tenant slug in headers, query, or body
         if (!resolvedTenantId) {
-            const slug = req.headers['x-tenant-slug'];
+            const headerTenantId = req.headers['x-tenant-id'];
+            const bodyTenantId = req.body?.tenantId;
+            if (headerTenantId)
+                resolvedTenantId = headerTenantId;
+            else if (bodyTenantId)
+                resolvedTenantId = bodyTenantId;
+        }
+        if (!resolvedTenantId) {
+            const slug = req.headers['x-tenant-slug'] || req.query?.tenantSlug || req.body?.tenantSlug;
             if (slug && typeof slug === 'string') {
                 resolvedSlug = slug;
             }

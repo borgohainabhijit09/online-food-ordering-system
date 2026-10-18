@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.calculateCouponDiscount = exports.validateCoupon = void 0;
 const prisma_1 = __importDefault(require("./prisma"));
 const validateCoupon = async (payload) => {
-    const { tenantId, couponCode, phone, cartTotal } = payload;
+    const { tenantId, couponCode, phone, cartTotal, discountableTotal } = payload;
     // 1. Fetch Coupon
     const coupon = await prisma_1.default.coupon.findFirst({
         where: {
@@ -49,7 +49,7 @@ const validateCoupon = async (payload) => {
         }
     }
     // 6. Calculate Discount
-    const { discountAmount, finalAmount } = (0, exports.calculateCouponDiscount)(coupon, cartTotal);
+    const { discountAmount, finalAmount } = (0, exports.calculateCouponDiscount)(coupon, cartTotal, discountableTotal);
     return {
         valid: true,
         discountAmount,
@@ -62,16 +62,20 @@ const validateCoupon = async (payload) => {
     };
 };
 exports.validateCoupon = validateCoupon;
-const calculateCouponDiscount = (coupon, cartTotal) => {
+const calculateCouponDiscount = (coupon, cartTotal, discountableTotal) => {
     let discountAmount = 0;
+    const applicableTotal = discountableTotal !== undefined ? discountableTotal : cartTotal;
     if (coupon.discountType === 'PERCENTAGE') {
-        discountAmount = cartTotal * (coupon.discountValue / 100);
+        discountAmount = applicableTotal * (coupon.discountValue / 100);
         if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
             discountAmount = coupon.maxDiscount;
         }
     }
     else if (coupon.discountType === 'FLAT') {
         discountAmount = coupon.discountValue;
+        if (discountAmount > applicableTotal) {
+            discountAmount = applicableTotal;
+        }
     }
     // Prevent Negative Totals
     let finalAmount = cartTotal - discountAmount;

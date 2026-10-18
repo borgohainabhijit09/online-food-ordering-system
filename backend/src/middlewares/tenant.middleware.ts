@@ -26,9 +26,16 @@ export const resolveTenant = async (req: TenantRequest, res: Response, next: Nex
       }
     }
 
-    // 2. Otherwise, look for x-tenant-slug header (used by public customer portal endpoints)
+    // 2. Otherwise, look for tenantId or tenant slug in headers, query, or body
     if (!resolvedTenantId) {
-      const slug = req.headers['x-tenant-slug'];
+      const headerTenantId = req.headers['x-tenant-id'] as string;
+      const bodyTenantId = req.body?.tenantId as string;
+      if (headerTenantId) resolvedTenantId = headerTenantId;
+      else if (bodyTenantId) resolvedTenantId = bodyTenantId;
+    }
+
+    if (!resolvedTenantId) {
+      const slug = (req.headers['x-tenant-slug'] as string) || (req.query?.tenantSlug as string) || (req.body?.tenantSlug as string);
       if (slug && typeof slug === 'string') {
         resolvedSlug = slug;
       }

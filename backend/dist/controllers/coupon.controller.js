@@ -9,20 +9,23 @@ const coupon_service_1 = require("../services/coupon.service");
 // PUBLIC - Validate Coupon at Checkout
 const validateCouponApi = async (req, res, next) => {
     try {
-        const { couponCode, phone, cartTotal } = req.body;
+        const { couponCode, phone, cartTotal, discountableTotal } = req.body;
         if (!req.tenantId || !couponCode || cartTotal === undefined) {
             return res.status(400).json({ valid: false, message: 'Missing required fields.' });
         }
+        const dTotal = discountableTotal !== undefined ? Number(discountableTotal) : Number(cartTotal);
+        console.log("dTotal:", dTotal, "discountableTotal:", discountableTotal, "cartTotal:", cartTotal);
         const result = await (0, coupon_service_1.validateCoupon)({
             tenantId: req.tenantId,
             couponCode,
             phone,
-            cartTotal: Number(cartTotal)
+            cartTotal: Number(cartTotal),
+            discountableTotal: dTotal
         });
         if (!result.valid) {
-            return res.status(400).json(result);
+            return res.status(400).json({ ...result, debug: { dTotal, discountableTotal, cartTotal } });
         }
-        return res.status(200).json(result);
+        return res.status(200).json({ ...result, debug: { dTotal, discountableTotal, cartTotal } });
     }
     catch (error) {
         next(error);

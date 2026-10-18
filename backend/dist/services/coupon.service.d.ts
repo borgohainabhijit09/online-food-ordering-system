@@ -3,6 +3,7 @@ export interface ValidateCouponPayload {
     couponCode: string;
     phone?: string;
     cartTotal: number;
+    discountableTotal?: number;
 }
 export declare const validateCoupon: (payload: ValidateCouponPayload) => Promise<{
     valid: boolean;
@@ -21,7 +22,7 @@ export declare const validateCoupon: (payload: ValidateCouponPayload) => Promise
     };
     message?: undefined;
 }>;
-export declare const calculateCouponDiscount: (coupon: any, cartTotal: number) => {
+export declare const calculateCouponDiscount: (coupon: any, cartTotal: number, discountableTotal?: number) => {
     discountAmount: number;
     finalAmount: number;
 };

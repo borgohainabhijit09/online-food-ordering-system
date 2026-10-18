@@ -9,5 +9,6 @@ router.post('/register', auth_controller_1.registerTenant);
 router.post('/select-store', auth_controller_1.selectStore);
 router.get('/me/stores', auth_middleware_1.authenticate, auth_controller_1.getStores);
 router.post('/change-password', auth_middleware_1.authenticate, auth_controller_1.changePassword);
+router.post('/demo-request', auth_controller_1.createLeadFromDemoRequest);
 exports.default = router;
 //# sourceMappingURL=auth.routes.js.map

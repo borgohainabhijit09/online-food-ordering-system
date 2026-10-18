@@ -14,12 +14,9 @@ dotenv_1.default.config({ override: true });
 // driver adapters, so we must do it ourselves.
 let pgPool = null;
 const prismaClientSingleton = () => {
-    // IMPORTANT: Keep max:2 for Supabase free tier (hard limit of 15 session connections).
-    // We use DIRECT_URL (port 5432) because Prisma 7 with adapter-pg sends prepared statements
-    // which can hang in Transaction Mode (port 6543) depending on Supavisor config.
     pgPool = new pg_1.Pool({
         connectionString: process.env.DATABASE_URL,
-        max: 2,
+        max: 10,
         idleTimeoutMillis: 10000,
         connectionTimeoutMillis: 8000,
         allowExitOnIdle: true,

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createOrder = exports.updateOrderStatus = exports.getOrderById = exports.getNewOrdersCount = exports.getOrders = void 0;
+exports.deleteOrder = exports.createOrder = exports.updateOrderStatus = exports.getOrderById = exports.getNewOrdersCount = exports.getOrders = void 0;
 const prisma_1 = __importDefault(require("../services/prisma"));
 const coupon_service_1 = require("../services/coupon.service");
 const getOrders = async (req, res, next) => {
@@ -203,11 +203,18 @@ const createOrder = async (req, res, next) => {
                 const addonTotal = item.addons?.reduce((a, addon) => a + addon.price, 0) || 0;
                 return sum + (item.price + addonTotal) * item.quantity;
             }, 0);
+            const rawDiscountableTotal = items.reduce((sum, item) => {
+                if (item.isDiscounted)
+                    return sum; // Skip discounted items
+                const addonTotal = item.addons?.reduce((a, addon) => a + addon.price, 0) || 0;
+                return sum + (item.price + addonTotal) * item.quantity;
+            }, 0);
             const couponResult = await (0, coupon_service_1.validateCoupon)({
                 tenantId: req.tenantId,
                 couponCode,
                 phone,
-                cartTotal: rawCartTotal
+                cartTotal: rawCartTotal,
+                discountableTotal: rawDiscountableTotal
             });
             if (!couponResult.valid) {
                 return res.status(400).json({ message: couponResult.message });
@@ -351,4 +358,42 @@ const createOrder = async (req, res, next) => {
     }
 };
 exports.createOrder = createOrder;
+const deleteOrder = async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        const userRole = req.user?.role;
+        const isSuperAdmin = userRole === 'SUPER_ADMIN';
+        const whereClause = { id };
+        if (!isSuperAdmin) {
+            whereClause.tenantId = req.tenantId;
+        }
+        const order = await prisma_1.default.order.findFirst({
+            where: whereClause
+        });
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+        // Delete associated OrderItemAddon
+        const items = await prisma_1.default.orderItem.findMany({ where: { orderId: id } });
+        const itemIds = items.map(i => i.id);
+        if (itemIds.length > 0) {
+            await prisma_1.default.orderItemAddon.deleteMany({
+                where: { orderItemId: { in: itemIds } }
+            });
+        }
+        // Delete associated OrderItem
+        await prisma_1.default.orderItem.deleteMany({
+            where: { orderId: id }
+        });
+        // Delete the Order
+        await prisma_1.default.order.delete({
+            where: { id }
+        });
+        res.status(200).json({ message: 'Order deleted successfully' });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.deleteOrder = deleteOrder;
 //# sourceMappingURL=order.controller.js.map

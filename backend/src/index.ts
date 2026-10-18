@@ -28,6 +28,7 @@ import inventoryRoutes from './routes/inventory.routes';
 import staffRoutes from './routes/staff.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import billingRoutes from './routes/billing.routes';
+import publicRoutes from './routes/public.routes';
 
 import { initBillingCron } from './cron/billing.cron';
 import { disconnectPrisma } from './services/prisma';
@@ -50,6 +51,7 @@ app.use('/api/super-admin/bi', biRoutes);
 app.use('/api/super-admin/leads', leadsRoutes);
 app.use('/api/super-admin', superadminRoutes);
 app.use('/api', subscriptionRoutes);
+app.use('/api/public', publicRoutes);
 
 // Apply tenant resolution for all restaurant-scoped routes
 app.use(resolveTenant);

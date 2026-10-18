@@ -7,5 +7,6 @@ export declare const getNewOrdersCount: (req: TenantReq, res: Response, next: Ne
 export declare const getOrderById: (req: TenantReq, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const updateOrderStatus: (req: TenantReq, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const createOrder: (req: TenantReq, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const deleteOrder: (req: TenantReq, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 export {};
 //# sourceMappingURL=order.controller.d.ts.map

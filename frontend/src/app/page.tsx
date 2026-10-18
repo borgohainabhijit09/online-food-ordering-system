@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, TrendingUp, Users, Percent, Gift, Star, BadgeCheck, Smartphone, MapPin, BarChart3, LayoutList, Database, Loader2, Menu, X, Building2, User2, PhoneCall, Mail, Check, Sparkles, MessageCircle, Monitor, Receipt, Utensils, Megaphone, MessageSquare, Sliders, Heart, Cpu, Bot, Brain, Quote } from 'lucide-react';
+import { ArrowRight, CheckCircle2, TrendingUp, Users, Percent, Gift, Star, BadgeCheck, Smartphone, Download, ShoppingBag, MapPin, BarChart3, LayoutList, Database, Loader2, Menu, X, Building2, User2, PhoneCall, Mail, Check, Sparkles, MessageCircle, Monitor, Receipt, Utensils, Megaphone, MessageSquare, Sliders, Heart, Cpu, Bot, Brain, Quote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '@/lib/apiClient';
@@ -82,7 +82,16 @@ export default function LandingPage() {
             <Link href="/demo" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Demo</Link>
           </nav>
 
-          <div className="hidden md:flex items-center gap-3 sm:gap-5 shrink-0">
+          <div className="hidden md:flex items-center gap-3 sm:gap-4 shrink-0">
+            <a
+              href="/downloads/restobuddy-store-manager.apk"
+              download="restobuddy-store-manager.apk"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-full transition-all"
+              title="Download Android Store Manager APK"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Store App (.APK)</span>
+            </a>
             <Link href="/admin/login" className="text-xs sm:text-sm font-semibold whitespace-nowrap text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white px-3 py-2 sm:px-4 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
               Restaurant Login
             </Link>
@@ -112,9 +121,20 @@ export default function LandingPage() {
             >
               <Link href="#features" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Features</Link>
               <Link href="#why-us" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Why Us</Link>
+              <Link href="#app-download" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-emerald-600 dark:text-emerald-400 py-2 flex items-center gap-2">
+                <Smartphone className="w-4 h-4" /> Store App (APK)
+              </Link>
               <Link href="#faq" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">FAQ</Link>
               <Link href="/demo" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2">Demo</Link>
               <div className="h-px bg-neutral-200 dark:bg-white/10 my-2" />
+              <a
+                href="/downloads/restobuddy-store-manager.apk"
+                download="restobuddy-store-manager.apk"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 py-2.5 text-center rounded-xl flex items-center justify-center gap-2 text-sm"
+              >
+                <Download className="w-4 h-4" /> Download Store Manager APK
+              </a>
               <Link href="/admin/login" onClick={() => setIsMobileMenuOpen(false)} className="font-semibold text-neutral-900 dark:text-white py-2 text-center border border-neutral-200 dark:border-white/20 rounded-xl">
                 Restaurant Login
               </Link>
@@ -180,7 +200,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6"
           >
             <button
               onClick={() => setIsDemoModalOpen(true)}
@@ -194,6 +214,103 @@ export default function LandingPage() {
             >
               Explore a Demo Now
             </Link>
+          </motion.div>
+
+          {/* App Downloads Mini-Section within Hero */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="max-w-3xl mx-auto my-6"
+          >
+            <div className="bg-white/80 dark:bg-white/[0.04] backdrop-blur-xl border border-neutral-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-xl shadow-neutral-900/5 dark:shadow-black/20 text-left">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-neutral-100 dark:border-white/5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-2">
+                      Get RestoBuddy for Android
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Direct .APK
+                      </span>
+                    </h3>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Two dedicated apps built for restaurant operations & customer dining
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-neutral-400 hidden sm:inline-block">
+                  Android 7.0+
+                </span>
+              </div>
+
+              {/* 2 Apps Side-by-Side Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* 1. Store Manager App */}
+                <div className="p-3.5 sm:p-4 rounded-xl bg-neutral-50 dark:bg-white/[0.03] border border-neutral-200/70 dark:border-white/5 hover:border-emerald-500/40 transition-all flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                          <Utensils className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-neutral-900 dark:text-white">
+                          Store Manager App
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                        v1.0 Ready
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mb-3 leading-relaxed">
+                      For restaurant counter & kitchen. Real-time KOT alerts, table management, ESC/POS thermal printing & shift reports.
+                    </p>
+                  </div>
+                  <a
+                    href="/downloads/restobuddy-store-manager.apk"
+                    download="restobuddy-store-manager.apk"
+                    className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Store Manager APK</span>
+                    <span className="text-[10px] opacity-80 font-normal">(81 MB)</span>
+                  </a>
+                </div>
+
+                {/* 2. Customer App */}
+                <div className="p-3.5 sm:p-4 rounded-xl bg-neutral-50 dark:bg-white/[0.03] border border-neutral-200/70 dark:border-white/5 hover:border-orange-500/40 transition-all flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                          <ShoppingBag className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-neutral-900 dark:text-white">
+                          Customer Food App
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold border border-orange-500/20">
+                        v1.0 Ready
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mb-3 leading-relaxed">
+                      For food lovers & diners. Discover restaurants, contactless QR table orders, loyalty perks & direct takeaway delivery.
+                    </p>
+                  </div>
+                  <a
+                    href="/downloads/restobuddy-food.apk"
+                    download="restobuddy-food.apk"
+                    className="w-full py-2.5 px-3 bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Customer App APK</span>
+                    <span className="text-[10px] opacity-80 font-normal">(81 MB)</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
           {/* Trust Strip */}
@@ -1038,6 +1155,104 @@ export default function LandingPage() {
 
             </div>
 
+          </div>
+        </section>
+
+        {/* Android Store Manager App Download Section */}
+        <section id="app-download" className="py-24 relative overflow-hidden bg-gradient-to-b from-neutral-900 to-neutral-950 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-500/10 via-transparent to-transparent pointer-events-none" />
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="bg-gradient-to-br from-neutral-800/80 to-neutral-900/90 border border-neutral-700/60 rounded-3xl p-8 sm:p-12 lg:p-16 shadow-2xl backdrop-blur-xl">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-semibold text-xs tracking-wider uppercase">
+                    <Smartphone className="w-3.5 h-3.5" /> Official Android Store Manager App
+                  </div>
+
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+                    Manage Orders & Kitchen <br className="hidden sm:inline" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">
+                      Right from Your Counter Tablet
+                    </span>
+                  </h2>
+
+                  <p className="text-neutral-300 text-base sm:text-lg leading-relaxed max-w-2xl">
+                    Equip your kitchen and front desk with the standalone RestoBuddy Store Manager Android application. Receive instant audible order alerts, auto-print KOTs, update menu stock, and reconcile daily cash shifts.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                    <div className="flex items-center gap-2.5 text-neutral-200 text-sm font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Live Dine-in & Takeaway KOTs</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-neutral-200 text-sm font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>ESC/POS Bluetooth & WiFi Printing</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-neutral-200 text-sm font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Audible Sound & Visual Alerts</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-neutral-200 text-sm font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Z-Report & Shift Cash Reconciliation</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <a
+                      href="/downloads/restobuddy-store-manager.apk"
+                      download="restobuddy-store-manager.apk"
+                      className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-emerald-900/40 hover:scale-105 transition-all flex items-center justify-center gap-3 active:scale-95 cursor-pointer"
+                    >
+                      <Download className="w-5 h-5" />
+                      <span>Download Android APK (Direct)</span>
+                    </a>
+                    <div className="text-xs text-neutral-400 flex flex-col justify-center">
+                      <span className="font-semibold text-neutral-200">Universal Debug APK • v1.0.0</span>
+                      <span>Requires Android 7.0+ (Phones & Tablets)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-5 bg-neutral-900/90 border border-neutral-700/50 rounded-2xl p-6 space-y-5">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Quick Sideload Installation Guide
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <p className="text-xs sm:text-sm text-neutral-300">
+                        <strong className="text-white">Download the APK:</strong> Tap the green download button above directly from your Android device browser.
+                      </p>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <p className="text-xs sm:text-sm text-neutral-300">
+                        <strong className="text-white">Allow Unknown Sources:</strong> When prompted by Chrome / Android, toggle <span className="text-orange-300 font-medium">"Allow installation from this source"</span>.
+                      </p>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <span className="w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                      <p className="text-xs sm:text-sm text-neutral-300">
+                        <strong className="text-white">Sign In & Go Live:</strong> Open the app and log in with your restaurant manager credentials.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-neutral-800/80 border border-neutral-700/40 rounded-xl text-xs text-neutral-400">
+                    💡 <strong className="text-neutral-200">Coming soon to Google Play:</strong> Play Store listing is currently being prepped. Sideloading allows instant onboarding today!
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
         </section>
 
